@@ -1,0 +1,97 @@
+/* =========================================================
+   DASHBOARD TABS — Side-by-side, with glow + clear feedback
+   ========================================================= */
+
+/* ---- brand colors (tweak to taste) ---- */
+:root {
+  --brand-green: #2f5e3c;        /* selected background + border */
+  --brand-green-light: #dcf3e5;  /* hover background */
+  --brand-border: #1f2a22;       /* unselected border */
+  --brand-text: #111111;         /* normal text */
+  --brand-hover-text: #0a3c1f;   /* text on hover */
+  --brand-glow: #4caf50;         /* glow color */
+}
+
+/* ---------- TABS CONTAINER ----------
+   keeps buttons in a single row, centered, and wraps if needed
+*/
+.tabs {
+  display: flex;               /* row layout */
+  flex-direction: row;         /* horizontal */
+  justify-content: center;     /* center the group */
+  align-items: center;         /* vertical alignment */
+  gap: 16px;                   /* space between buttons */
+  padding: 10px 0;             /* top/bottom space */
+  border-bottom: none;         /* no underline */
+  flex-wrap: wrap;             /* wrap on small screens */
+  overflow-x: auto;            /* allow sideways scroll if many tabs */
+}
+
+/* ---------- BASE TAB (unselected) ----------
+   equal-width buttons, rounded corners, clean border
+*/
+.tab {
+  display: inline-block;
+  flex: 1 1 280px;             /* make tabs share width; min ~280px */
+  text-align: center;          /* center label */
+  padding: 12px 18px;
+  border: 2px solid var(--brand-border);
+  border-radius: 12px;         /* rounded corners */
+  background: #ffffff;
+  color: var(--brand-text);
+  font-weight: 700;            /* strong label for readability */
+  line-height: 1;
+  user-select: none;
+  cursor: pointer;
+
+  /* smooth motion / color changes */
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.1s ease,
+    box-shadow 0.25s ease;
+}
+
+/* hover = lighter green, small zoom, soft glow */
+.tab:hover {
+  background: var(--brand-green-light);
+  color: var(--brand-hover-text);
+  border-color: var(--brand-green);
+  transform: scale(1.05);
+  box-shadow: 0 0 10px var(--brand-glow);
+}
+
+/* click press feedback */
+.tab:active {
+  transform: scale(0.97);
+  box-shadow: 0 0 4px rgba(0,0,0,0.25);
+}
+
+/* keyboard focus ring (accessibility) */
+.tab:focus-visible {
+  outline: 3px solid rgba(47,94,60,0.4);
+  outline-offset: 3px;
+}
+
+/* ---------- SELECTED TAB ----------
+   dark green, white text, stronger glow, slight lift
+*/
+.tab--selected {
+  background: var(--brand-green);
+  color: #ffffff;
+  border-color: var(--brand-green);
+  transform: scale(1.05);
+  box-shadow:
+    0 0 15px var(--brand-glow),   /* glow border */
+    0 4px 10px rgba(0,0,0,0.18);  /* depth shadow */
+}
+
+/* keep solid look when hovering the selected tab */
+.tab--selected:hover {
+  background: var(--brand-green);
+  color: #ffffff;
+  box-shadow:
+    0 0 20px var(--brand-glow),
+    0 6px 12px rgba(0,0,0,0.22);
+}
