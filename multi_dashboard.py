@@ -18,6 +18,12 @@ except ModuleNotFoundError:
     import polysubstance_dashboard as poly
 
 try:
+    import polysubstance_alt as poly_alt
+    HAS_POLY_ALT = True
+except Exception:
+    HAS_POLY_ALT = False
+
+try:
     import cooccurring_dashboard as co
     HAS_CO = True
 except Exception:
@@ -32,6 +38,9 @@ top_nav = html.Nav(
         html.Button("Go to Polysubstance", id="nav-to-poly",
                     className="btn btn-outline-primary btn-sm me-2",
                     title="Alt+Shift+P", accessKey="p"),
+        *( [html.Button("Go to Polysubstance Alt", id="nav-to-poly-alt",
+                        className="btn btn-outline-info btn-sm me-2",
+                        title="Alt+Shift+A", accessKey="a")] if HAS_POLY_ALT else [] ),
         *( [html.Button("Go to Co-occurring", id="nav-to-co",
                         className="btn btn-outline-secondary btn-sm",
                         title="Alt+Shift+C", accessKey="c")] if HAS_CO else [] )
@@ -46,6 +55,11 @@ tabs = [
     dcc.Tab(label="Related to polysubstance use", value="poly",
             className="tab", selected_className="tab--selected"),
 ]
+if HAS_POLY_ALT:
+    tabs.append(
+        dcc.Tab(label="Polysubstance alternates", value="poly-alt",
+                className="tab", selected_className="tab--selected")
+    )
 if HAS_CO:
     tabs.append(
         dcc.Tab(label="Co-occurring: SUD × MH (secondary)", value="co",
@@ -78,15 +92,18 @@ app.layout = dbc.Container(
     Output("view-tabs", "value"),
     Input("nav-to-alt", "n_clicks"),
     Input("nav-to-poly", "n_clicks"),
+    Input("nav-to-poly-alt", "n_clicks") if HAS_POLY_ALT else Input("view-tabs", "value"),
     Input("nav-to-co", "n_clicks") if HAS_CO else Input("view-tabs", "value"),
     prevent_initial_call=True,
 )
-def switch_tabs(n_alt, n_poly, n_co_or_value):
+def switch_tabs(n_alt, n_poly, n_poly_alt_or_value, n_co_or_value):
     trig = ctx.triggered_id
     if trig == "nav-to-alt":
         return "alt"
     if trig == "nav-to-poly":
         return "poly"
+    if HAS_POLY_ALT and trig == "nav-to-poly-alt":
+        return "poly-alt"
     if HAS_CO and trig == "nav-to-co":
         return "co"
     return no_update
@@ -100,6 +117,8 @@ def switch_tabs(n_alt, n_poly, n_co_or_value):
 def render_view(value):
     if value == "poly":
         return poly.layout, "Related to polysubstance use"
+    if value == "poly-alt" and HAS_POLY_ALT:
+        return poly_alt.layout, "Polysubstance Co-occurrence Analysis"
     if value == "co" and HAS_CO:
         return co.layout, "Co-occurring: SUD × MH (secondary)"
     return alt.layout, ""
