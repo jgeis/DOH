@@ -223,13 +223,21 @@ def layout_for(is_mobile: bool = False):
                     dbc.CardBody([
                         html.P([
                             "When a primary substance is present, this shows what percentage of those cases ",
-                            "also contain each other substance. Use the filter below to focus on one substance."
+                            "also contain each other substance. Use the filter below to focus on one substance.",
+                            html.Br() if is_mobile else "",
+                            html.Small("(Scroll horizontally to see all substances)", className="text-muted") if is_mobile else ""
                         ], className="text-muted mb-3"),
                         dcc.Loading(
-                            dcc.Graph(
-                                id="alt-bar-chart",
-                                config={"displayModeBar": True, "displaylogo": False},
-                                style={"height": "500px"}
+                            html.Div(
+                                html.Div(
+                                    dcc.Graph(
+                                        id="alt-bar-chart",
+                                        config={"displayModeBar": True, "displaylogo": False},
+                                        style={"height": "650px" if is_mobile else "500px"}
+                                    ),
+                                    className="graph-inner" if is_mobile else ""
+                                ),
+                                className="hscroll-graph" if is_mobile else ""
                             )
                         ),
                         html.Hr(className="my-3"),
@@ -372,8 +380,9 @@ def update_heatmap(_, is_mobile):
 @callback(
     Output("alt-bar-chart", "figure"),
     Input("alt-primary-substance", "value"),
+    Input("alt-is-mobile", "data"),
 )
-def update_bar_chart(primary_substance):
+def update_bar_chart(primary_substance, is_mobile):
     """Create grouped bar chart showing co-occurrence percentages."""
     
     if df_raw.empty or 'substance' not in df_raw.columns:
@@ -384,6 +393,26 @@ def update_bar_chart(primary_substance):
     
     if co_data.empty:
         return go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
+    
+    # Mobile-specific adjustments
+    if is_mobile:
+        text_size = 8
+        height = 650
+        width = 900  # Fixed width for scrolling
+        title_size = 13
+        margin_left = 140
+        margin_right = 40
+        margin_top = 70
+        margin_bottom = 100
+    else:
+        text_size = 10
+        height = 500
+        width = None  # Auto width
+        title_size = 16
+        margin_left = 150
+        margin_right = 50  # Can reduce now that legend is on top
+        margin_top = 120  # More room for horizontal legend
+        margin_bottom = 120  # More room for x-axis labels
     
     # Filter by primary substance if selected (and not empty string)
     if primary_substance and primary_substance != "":
@@ -430,14 +459,15 @@ def update_bar_chart(primary_substance):
             hovertemplate='<b>%{y}</b><br>' +
                          'Co-occurrence: %{x:.1f}%<br>' +
                          'Count: %{customdata[0]}<br>' +
-                         'Total: %{customdata[1]}<extra></extra>'
+                         'Total: %{customdata[1]}<extra></extra>',
+            textfont=dict(size=text_size)
         )
         
     else:
         # Show all primary substances
         # Add custom text label with percentage and count
         co_data['label'] = co_data.apply(
-            lambda row: f"{row['Percentage']:.1f}% (n={int(row['Count']):,})", 
+            lambda row: f"{row['Percentage']:.1f}% (n={int(row['Count']):,})" if not is_mobile else f"{row['Percentage']:.0f}%", 
             axis=1
         )
         
@@ -471,13 +501,35 @@ def update_bar_chart(primary_substance):
                          'Primary: %{x}<br>' +
                          'Co-occurrence: %{y:.1f}%<br>' +
                          'Count: %{customdata[0]}<br>' +
-                         'Total: %{customdata[1]}<extra></extra>'
+                         'Total: %{customdata[1]}<extra></extra>',
+            textfont=dict(size=text_size)
         )
     
+    # Apply mobile-responsive layout
     fig.update_layout(
-        height=500,
-        xaxis=dict(tickangle=45 if not primary_substance or primary_substance == "" else 0),
-        margin=dict(l=150 if primary_substance and primary_substance != "" else 100, r=50, t=80, b=100)
+        height=height,
+        width=width,
+        title=dict(font=dict(size=title_size)),
+        xaxis=dict(
+            tickangle=45 if not primary_substance or primary_substance == "" else 0,
+            tickfont=dict(size=text_size)
+        ),
+        yaxis=dict(tickfont=dict(size=text_size)),
+        margin=dict(
+            l=margin_left if primary_substance and primary_substance != "" else (margin_left - 10), 
+            r=margin_right, 
+            t=margin_top, 
+            b=margin_bottom
+        ),
+        legend=dict(
+            font=dict(size=text_size),
+            orientation="h",  # Horizontal legend
+            yanchor="bottom",
+            y=1.02,  # Position above plot area
+            xanchor="center",
+            x=0.5  # Center horizontally
+        ) if not primary_substance or primary_substance == "" else dict(font=dict(size=text_size)),
+        autosize=False if is_mobile else True
     )
     
     return fig

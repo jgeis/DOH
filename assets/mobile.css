@@ -149,7 +149,7 @@
   }
   /* Ensure the inner graph has a minimum width so labels never get clipped */
   .mobile-root .hscroll-graph .graph-inner {
-    min-width: 560px;   /* bump to 640px if your longest labels still clip */
+    min-width: 900px;   /* Wide enough for grouped bar charts */
   }
   
   /* Special handling for heatmap - needs much more width */
