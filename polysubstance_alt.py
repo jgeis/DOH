@@ -423,8 +423,8 @@ def update_bar_chart(primary_substance, is_mobile):
                 showarrow=False
             )
         
-        # Sort by percentage descending
-        co_data = co_data.sort_values('Percentage', ascending=True)
+        # Sort by percentage descending (highest to lowest) for both mobile and desktop
+        co_data = co_data.sort_values('Percentage', ascending=False)
         
         # Create custom text with percentage and count
         co_data['label'] = co_data.apply(
@@ -436,32 +436,62 @@ def update_bar_chart(primary_substance, is_mobile):
         co_data['Count_formatted'] = co_data['Count'].apply(lambda x: f"{int(x):,}")
         co_data['Total_formatted'] = co_data['Total'].apply(lambda x: f"{int(x):,}")
         
-        fig = px.bar(
-            co_data,
-            x='Percentage',
-            y='Also Found',
-            orientation='h',
-            title=f"When {primary_substance} is present, % with other substances",
-            labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
-            text='label',
-            hover_data={
-                'Count': False, 
-                'Total': False, 
-                'label': False,
-                'Count_formatted': ':.0f',
-                'Total_formatted': ':.0f'
-            },
-            custom_data=['Count_formatted', 'Total_formatted']
-        )
-        
-        fig.update_traces(
-            textposition='outside',
-            hovertemplate='<b>%{y}</b><br>' +
-                         'Co-occurrence: %{x:.1f}%<br>' +
-                         'Count: %{customdata[0]}<br>' +
-                         'Total: %{customdata[1]}<extra></extra>',
-            textfont=dict(size=text_size)
-        )
+        # Mobile: vertical bars (x=substance, y=percentage), Desktop: horizontal bars (x=percentage, y=substance)
+        if is_mobile:
+            fig = px.bar(
+                co_data,
+                x='Also Found',
+                y='Percentage',
+                orientation='v',
+                title=f"When {primary_substance} is present, % with other substances",
+                labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
+                text='label',
+                hover_data={
+                    'Count': False, 
+                    'Total': False, 
+                    'label': False,
+                    'Count_formatted': ':.0f',
+                    'Total_formatted': ':.0f'
+                },
+                custom_data=['Count_formatted', 'Total_formatted']
+            )
+            
+            fig.update_traces(
+                textposition='outside',
+                textangle=0,
+                hovertemplate='<b>%{x}</b><br>' +
+                             'Co-occurrence: %{y:.1f}%<br>' +
+                             'Count: %{customdata[0]}<br>' +
+                             'Total: %{customdata[1]}<extra></extra>',
+                textfont=dict(size=text_size)
+            )
+        else:
+            fig = px.bar(
+                co_data,
+                x='Percentage',
+                y='Also Found',
+                orientation='h',
+                title=f"When {primary_substance} is present, % with other substances",
+                labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
+                text='label',
+                hover_data={
+                    'Count': False, 
+                    'Total': False, 
+                    'label': False,
+                    'Count_formatted': ':.0f',
+                    'Total_formatted': ':.0f'
+                },
+                custom_data=['Count_formatted', 'Total_formatted']
+            )
+            
+            fig.update_traces(
+                textposition='outside',
+                hovertemplate='<b>%{y}</b><br>' +
+                             'Co-occurrence: %{x:.1f}%<br>' +
+                             'Count: %{customdata[0]}<br>' +
+                             'Total: %{customdata[1]}<extra></extra>',
+                textfont=dict(size=text_size)
+            )
         
     else:
         # Show all primary substances
@@ -506,12 +536,15 @@ def update_bar_chart(primary_substance, is_mobile):
         )
     
     # Apply mobile-responsive layout
+    # X-axis angle: 45° for grouped view (substance names), 45° for mobile filtered (substance names), 0° for desktop filtered (percentages)
+    x_angle = 45 if (not primary_substance or primary_substance == "") else (45 if is_mobile else 0)
+    
     fig.update_layout(
         height=height,
         width=width,
         title=dict(font=dict(size=title_size)),
         xaxis=dict(
-            tickangle=45 if not primary_substance or primary_substance == "" else 0,
+            tickangle=x_angle,
             tickfont=dict(size=text_size)
         ),
         yaxis=dict(tickfont=dict(size=text_size)),
