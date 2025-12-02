@@ -116,32 +116,44 @@ python -c "from db_utils import test_connection; test_connection()"
 
 ## 🏃‍♂️ Usage
 
-To run the main dashboard locally:
+### Run the Desktop Dashboard
+
+To run the main multi-dashboard application locally:
 
 ```bash
-python app.py
-```
-
-Open your web browser and navigate to `http://127.0.0.1:8050/` to view the dashboard.
-
-
-### Run the application:
-```
-python multi_dashboard.py
-```
-
-If that gives errors, try:
-```
 python run_dashboard.py
 ```
 
-Or use gunicorn (production server):
-```
-gunicorn multi_dashboard:server
+Or directly (may cause comm errors in Anaconda):
+```bash
+python multi_dashboard.py
 ```
 
-### Access the app:
-Open your browser to http://127.0.0.1:8050 (or the port shown in the terminal)
+### Run the Mobile-Optimized Dashboard
+
+To run the mobile-responsive version with optimized layouts:
+
+```bash
+python run_mobile.py
+```
+
+Or directly (may cause comm errors in Anaconda):
+```bash
+python mobile_app.py
+```
+
+### Access the Application
+
+Open your web browser and navigate to `http://127.0.0.1:8050/` to view the dashboard.
+
+**Note:** If you're in an Anaconda environment, always use the `run_dashboard.py` or `run_mobile.py` wrapper scripts to avoid Jupyter comm compatibility errors.
+
+### Production Server
+
+Use gunicorn for production deployment:
+```bash
+gunicorn multi_dashboard:server
+```
 
 ## 📊 Data Sources
 
@@ -319,7 +331,9 @@ The standard dashboard is desktop-focused. Use `mobile_app.py` for full mobile o
 
 **`inspect_columns.py`** - Utility script to inspect and clean CSV column names. Helps verify the structure of the source data files.
 
-**`run_dashboard.py`** - Wrapper script to fix Jupyter/comm compatibility issues in Anaconda environments. Patches the `comm.create_comm` function before importing Dash to prevent `NotImplementedError`.
+**`run_dashboard.py`** - Wrapper script to fix Jupyter/comm compatibility issues in Anaconda environments. Patches the `comm.create_comm` function before importing Dash to prevent `NotImplementedError`. Use this to run `multi_dashboard.py` in Anaconda.
+
+**`run_mobile.py`** - Wrapper script for mobile-optimized dashboard. Patches comm module before importing `mobile_app.py`. Use this to run the mobile-responsive version in Anaconda.
 
 **`run_app.py`** - Alternative wrapper script (less successful version of `run_dashboard.py`).
 

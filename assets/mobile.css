@@ -151,6 +151,16 @@
   .mobile-root .hscroll-graph .graph-inner {
     min-width: 560px;   /* bump to 640px if your longest labels still clip */
   }
+  
+  /* Special handling for heatmap - needs much more width */
+  .mobile-root .heatmap-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mobile-root .heatmap-scroll .graph-inner {
+    min-width: 800px;  /* Give heatmap plenty of space */
+  }
 
   /* Put two small boxes side-by-side (for Age & Sex tables) */
   .mobile-root .two-up {

@@ -32,12 +32,14 @@ def _safe_import(name, attr=None):
 # These are separate files that hold each page's layout and logic.
 ALT_MOD  = _safe_import("app_alt")
 POLY_MOD = _safe_import("polysubstance_dashboard")
+POLY_ALT_MOD = _safe_import("polysubstance_alt")
 CO_MOD   = _safe_import("cooccurring_dashboard_db")
 
 # Check if each module has a layout defined.
 # We use these flags later to decide which tabs to show on desktop.
 ALT_LAYOUT  = getattr(ALT_MOD,  "layout",  None) if ALT_MOD  else None
 POLY_LAYOUT = getattr(POLY_MOD, "layout",  None) if POLY_MOD else None
+POLY_ALT_LAYOUT = getattr(POLY_ALT_MOD, "layout", None) if POLY_ALT_MOD else None
 CO_LAYOUT   = getattr(CO_MOD,   "layout",  None) if CO_MOD   else None
 
 
@@ -105,6 +107,9 @@ def make_desktop_tabs():
     if POLY_LAYOUT is not None:
         tabs.append(_tab("Related to polysubstance use", "poly"))
         default_value = default_value or "poly"
+    if POLY_ALT_LAYOUT is not None:
+        tabs.append(_tab("Polysubstance alternates", "poly-alt"))
+        default_value = default_value or "poly-alt"
     if CO_LAYOUT is not None:
         tabs.append(_tab("Co-occurring (DB)", "co"))
         default_value = default_value or "co"
@@ -138,6 +143,9 @@ def make_mobile_tabs():
     if POLY_LAYOUT is not None:
         options.append({"label": "Polysubstance", "value": "poly"})
         default_value = default_value or "poly"
+    if POLY_ALT_LAYOUT is not None:
+        options.append({"label": "Poly Alternates", "value": "poly-alt"})
+        default_value = default_value or "poly-alt"
     if CO_LAYOUT is not None:
         options.append({"label": "Co-occurring", "value": "co"})
         default_value = default_value or "co"
@@ -161,7 +169,7 @@ def make_mobile_tabs():
 
 def _page_for(value, is_mobile=False):
     """
-    Given the selected tab value (alt, poly, co) and whether we're
+    Given the selected tab value (alt, poly, poly-alt, co) and whether we're
     on mobile or not, return the right page layout.
 
     - If the page module has a layout_for() function, we call it with
@@ -175,6 +183,8 @@ def _page_for(value, is_mobile=False):
             return ALT_MOD.layout_for(is_mobile) if hasattr(ALT_MOD, "layout_for") else ALT_MOD.layout
         if value == "poly" and POLY_MOD:
             return POLY_MOD.layout_for(is_mobile) if hasattr(POLY_MOD, "layout_for") else POLY_MOD.layout
+        if value == "poly-alt" and POLY_ALT_MOD:
+            return POLY_ALT_MOD.layout_for(is_mobile) if hasattr(POLY_ALT_MOD, "layout_for") else POLY_ALT_MOD.layout
         if value == "co" and CO_MOD:
             return CO_MOD.layout_for(is_mobile) if hasattr(CO_MOD, "layout_for") else CO_MOD.layout
     except Exception:

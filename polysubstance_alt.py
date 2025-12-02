@@ -164,6 +164,9 @@ def layout_for(is_mobile: bool = False):
     """Build the full page layout with co-occurrence visualizations."""
     
     return dbc.Container([
+        # Store mobile state for callbacks
+        dcc.Store(id="alt-is-mobile", data=is_mobile),
+        
         html.H2(
             "Polysubstance Co-occurrence Analysis — Alternative Views",
             className="text-white bg-dark p-3 text-center mb-4"
@@ -188,13 +191,21 @@ def layout_for(is_mobile: bool = False):
                     dbc.CardBody([
                         html.P([
                             "This heatmap shows how often substances appear together in the same record. ",
-                            "Darker colors indicate stronger co-occurrence patterns."
+                            "Darker colors indicate stronger co-occurrence patterns.",
+                            html.Br() if is_mobile else "",
+                            html.Small("(Scroll horizontally to see full chart)", className="text-muted") if is_mobile else ""
                         ], className="text-muted mb-3"),
                         dcc.Loading(
-                            dcc.Graph(
-                                id="alt-heatmap",
-                                config={"displayModeBar": True, "displaylogo": False},
-                                style={"height": "600px"}
+                            html.Div(
+                                html.Div(
+                                    dcc.Graph(
+                                        id="alt-heatmap",
+                                        config={"displayModeBar": True, "displaylogo": False},
+                                        style={"height": "600px"}  # Fixed height for both mobile and desktop
+                                    ),
+                                    className="graph-inner" if is_mobile else ""
+                                ),
+                                className="heatmap-scroll" if is_mobile else ""
                             )
                         )
                     ])
@@ -299,8 +310,9 @@ layout = layout_for(is_mobile=False)
 @callback(
     Output("alt-heatmap", "figure"),
     Input("alt-primary-substance", "value"),  # Not used, but keeps callback structure
+    Input("alt-is-mobile", "data"),
 )
-def update_heatmap(_):
+def update_heatmap(_, is_mobile):
     """Create a heatmap showing correlation between substances."""
     
     if df_raw.empty or 'substance' not in df_raw.columns:
@@ -308,6 +320,28 @@ def update_heatmap(_):
     
     # Build correlation matrix
     corr_matrix = build_correlation_matrix(df_raw)
+    
+    # Adjust parameters based on mobile state
+    if is_mobile:
+        text_size = 9
+        height = 700  # Taller to accommodate all rows
+        width = 800   # Wide enough to not compress
+        margin_left = 120
+        margin_right = 80  # Space for colorbar
+        margin_top = 80
+        margin_bottom = 120
+        title_text = "Substance Correlations"
+        title_size = 14
+    else:
+        text_size = 10
+        height = 600
+        width = None  # Auto width for desktop
+        margin_left = 150
+        margin_right = 50
+        margin_top = 80
+        margin_bottom = 150
+        title_text = "Substance Co-occurrence Correlation Matrix"
+        title_size = 16
     
     # Create heatmap
     fig = go.Figure(data=go.Heatmap(
@@ -318,16 +352,18 @@ def update_heatmap(_):
         zmid=0,
         text=corr_matrix.values,
         texttemplate='%{text:.2f}',
-        textfont={"size": 10},
-        colorbar=dict(title="Correlation")
+        textfont={"size": text_size},
+        colorbar=dict(title="Correlation", titleside="right")
     ))
     
     fig.update_layout(
-        title="Substance Co-occurrence Correlation Matrix",
-        xaxis=dict(side='bottom', tickangle=45),
-        yaxis=dict(autorange='reversed'),
-        height=600,
-        margin=dict(l=150, r=50, t=80, b=150)
+        title=dict(text=title_text, font=dict(size=title_size)),
+        xaxis=dict(side='bottom', tickangle=45, tickfont=dict(size=text_size)),
+        yaxis=dict(autorange='reversed', tickfont=dict(size=text_size)),
+        height=height,
+        width=width,
+        margin=dict(l=margin_left, r=margin_right, t=margin_top, b=margin_bottom),
+        autosize=False if is_mobile else True
     )
     
     return fig
