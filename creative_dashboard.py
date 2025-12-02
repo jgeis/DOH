@@ -1,5 +1,5 @@
 import math
-import sqlite3
+from db_utils import execute_query
 import pandas as pd
 import dash
 import dash_bootstrap_components as dbc
@@ -45,15 +45,13 @@ def load_sql_query(name, path="queries.sql"):
 
 
 # ----------------------------
-# Load data from SQLite via your named query
+# Load data from database via your named query
 # ----------------------------
-def load_main_dataframe_from_db(db_path="discharges.db"):
+def load_main_dataframe_from_db():
     sql = load_sql_query("load_main_data")
-    conn = sqlite3.connect(db_path)
-    try:
-        df = pd.read_sql_query(sql, conn)
-    finally:
-        conn.close()
+    
+    # Execute query using db_utils (automatically uses correct database)
+    df = execute_query(sql)
 
     if df.empty:
         raise RuntimeError(
@@ -75,7 +73,7 @@ def load_main_dataframe_from_db(db_path="discharges.db"):
 # ----------------------------
 # Load data
 # ----------------------------
-df_raw = load_main_dataframe_from_db("discharges.db")
+df_raw = load_main_dataframe_from_db()
 
 # KPI: exact total (no rounding)
 total_unique = df_raw["record_id"].nunique()

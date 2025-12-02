@@ -1,10 +1,9 @@
 # polysubstance_dashboard_db.py — pure layout + callbacks (desktop-safe, mobile-aware)
 
-# - sqlite3 and Path: to find and read the local database file
+# - db_utils: to connect to database (SQLite or MSSQL based on config)
 # - pandas / numpy: to clean and shape the data
 # - dash + dash_bootstrap_components: to build the web page and styles
 # - plotly: to draw the charts
-import sqlite3
 from pathlib import Path
 
 import pandas as pd
@@ -15,11 +14,12 @@ import plotly.express as px
 import plotly.io as pio
 
 from theme import register_template
+from db_utils import execute_query
+
 # This applies our custom Plotly look (colors, fonts, etc.) everywhere in this app.
 register_template()  # set your Plotly template globally
 
 # Simple shortcuts so we can change these in one place if paths ever move
-DB_PATH = "discharges.db"
 QUERIES_PATH = "queries.sql"
 PREFERRED_QUERY = "load_polysubstance_data"
 FALLBACK_QUERY  = "load_main_data"
@@ -73,9 +73,8 @@ def load_df():
         sql = load_sql_query(FALLBACK_QUERY, QUERIES_PATH)
         print(f"[load_df] Using query: {FALLBACK_QUERY}")
 
-    # Open the database and run the query
-    with sqlite3.connect(DB_PATH) as con:
-        df = pd.read_sql_query(sql, con)
+    # Execute query using db_utils (automatically uses correct database)
+    df = execute_query(sql)
 
     # If nothing comes back, it’s better to crash early than show an empty dashboard.
     if df.empty:

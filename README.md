@@ -7,7 +7,7 @@ A Python-based web application for visualizing Department of Health (DOH) hospit
   * **Language**: Python 3.x
   * **Framework**: [Plotly Dash](https://dash.plotly.com/)
   * **Data Manipulation**: Pandas
-  * **Database**: SQLite
+  * **Database**: SQLite (local development) / MSSQL (production)
   * **Deployment**: Heroku (implied by `Procfile`)
 
 ## 🚀 Getting Started
@@ -20,7 +20,7 @@ Ensure you have Python installed on your system.
 
 1.  **Clone the repository**
     ```
-    git clone https://github.com/Trevellp/DOH doh_plotly
+    git clone https://github.com/jgeis/DOH doh_plotly
     cd doh_plotly
     ```
 
@@ -37,7 +37,38 @@ Ensure you have Python installed on your system.
     pip install -r requirements.txt
     ```
 
+4.  **Configure Database (Choose One)**
+
+    The application supports both SQLite (local) and MSSQL (production). 
+
+    **Option A: SQLite (Local Development - Default)**
+    
+    Create a `.env` file:
+    ```bash
+    cp .env.example .env
+    ```
+    
+    Edit `.env` to ensure SQLite is selected:
+    ```bash
+    USE_MSSQL=false
+    SQLITE_DB_PATH=discharges.db
+    ```
+
+    **Option B: MSSQL (Production/Testing)**
+    
+    Edit `.env` with your MSSQL credentials:
+    ```bash
+    USE_MSSQL=true
+    DB_SERVER=your-server.database.windows.net
+    DB_NAME=your_database_name
+    DB_USER=your_username
+    DB_PASSWORD=your_password
+    DB_DRIVER={ODBC Driver 17 for SQL Server}
+    ```
+
 ### Database Setup
+
+**For SQLite (Local):**
 
 If the `discharges.db` file is missing or needs to be refreshed with the latest CSV data:
 
@@ -45,9 +76,43 @@ If the `discharges.db` file is missing or needs to be refreshed with the latest 
 python create_db.py
 ```
 
-*This script will read the source CSV files (`discharge_data_view_demographics.csv`, etc.) and populate the SQLite database.*
+*This script will read the source CSV files and populate the SQLite database.*
 
-Output should be: "Database created: discharges.db"
+Output should be: "✅ Database tables created successfully in SQLite"
+
+**For MSSQL (Production):**
+
+Ensure your `.env` has `USE_MSSQL=true` and valid credentials, then run:
+
+```bash
+python create_db.py
+```
+
+*This will create tables in your MSSQL database and populate them from the CSV files.*
+
+Output should be: "✅ Database tables created successfully in MSSQL"
+
+### Test Database Connection
+
+Verify your database connection is working:
+
+```bash
+python -c "from db_utils import test_connection; test_connection()"
+```
+
+**Expected output for SQLite:**
+```
+[db_utils] Testing SQLite connection...
+[db_utils] Connected successfully!
+[db_utils] SQLite version: 3.x.x
+```
+
+**Expected output for MSSQL:**
+```
+[db_utils] Testing MSSQL connection...
+[db_utils] Connected successfully!
+[db_utils] SQL Server version: ...
+```
 
 ## 🏃‍♂️ Usage
 
@@ -89,14 +154,119 @@ The application visualizes data related to:
 
 This project includes a `Procfile`, making it ready for deployment on platforms like **Heroku**.
 
-1.  Create a new Heroku app.
-2.  Push the code to Heroku.
+### Deploy to Heroku
+
+1.  **Create a new Heroku app**
     ```bash
-    heroku create
+    heroku create your-app-name
+    ```
+
+2.  **Set environment variables for MSSQL**
+    ```bash
+    heroku config:set USE_MSSQL=true
+    heroku config:set DB_SERVER=your-server.database.windows.net
+    heroku config:set DB_NAME=your_database_name
+    heroku config:set DB_USER=your_username
+    heroku config:set DB_PASSWORD=your_password
+    heroku config:set DB_DRIVER="{ODBC Driver 17 for SQL Server}"
+    ```
+
+3.  **Deploy the application**
+    ```bash
     git push heroku main
     ```
 
-## 📂 Project Structure
+4.  **Verify the deployment**
+    ```bash
+    heroku logs --tail
+    ```
+
+The application will automatically use MSSQL in production when `USE_MSSQL=true` is set.
+
+## 🔄 Switching Between Databases
+
+The application seamlessly switches between SQLite and MSSQL based on the `USE_MSSQL` environment variable:
+
+### Local Development (SQLite)
+- Set `USE_MSSQL=false` or leave unset in `.env`
+- Uses local `discharges.db` file
+- No MSSQL credentials needed
+
+### Production/Testing (MSSQL)
+- Set `USE_MSSQL=true` in `.env` or Heroku config
+- Provide MSSQL connection credentials
+- Same codebase works for both environments
+
+**Key Benefits:**
+- ✅ No code changes needed to switch databases
+- ✅ Develop locally with SQLite, deploy to MSSQL
+- ✅ Automatic database selection based on environment
+- ✅ All dashboard files use unified `db_utils.execute_query()` function
+
+## � Mobile Responsive Design
+
+The application automatically adapts between desktop and mobile views to provide an optimized experience on all devices.
+
+### How Mobile Views Work
+
+**1. Automatic Detection**
+- When the page loads, JavaScript checks the browser window width
+- **< 768px** (Bootstrap's "md" breakpoint) = Mobile mode activated
+- **≥ 768px** = Desktop mode
+
+**2. Shell Swapping**
+The entire app layout changes based on screen size:
+- **Desktop Shell**: Uses standard horizontal tabs for navigation
+- **Mobile Shell**: Uses segmented button controls wrapped in a `.mobile-root` class
+
+**3. Responsive Layout Factory**
+Each dashboard module (`app_alt.py`, `polysubstance_dashboard.py`, `polysubstance_alt.py`) implements a `layout_for(is_mobile=False)` function that adjusts chart heights:
+- **Mobile**: Viewport-relative heights (e.g., `60vh`) for better scrolling
+- **Desktop**: Fixed pixel heights (e.g., `400px`) for consistent layout
+
+**4. CSS Media Queries** (`assets/mobile.css`)
+Mobile-specific styles activate when both conditions are true:
+- Screen width < 768px
+- Element is inside `.mobile-root` wrapper
+
+Key mobile optimizations:
+- ✅ **Columns stack vertically** (100% width) instead of side-by-side
+- ✅ **Tables scroll horizontally** to prevent squishing
+- ✅ **Input font size = 16px** to prevent iOS auto-zoom
+- ✅ **Touch-friendly buttons** with minimum 44px height
+- ✅ **Tighter padding** (8px) for more screen space
+- ✅ **Scaled-down Plotly toolbar** (90%) for mobile screens
+
+**5. Dynamic Page Rendering**
+Content updates automatically when:
+- User switches tabs/pages
+- Screen size triggers mode change
+- Dashboard calls appropriate `layout_for(is_mobile)` method
+
+**6. Viewport Meta Tag**
+Proper mobile configuration ensures correct rendering:
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+```
+
+### Testing Mobile Views
+
+**Using `mobile_app.py`:**
+```bash
+python mobile_app.py
+```
+Then resize your browser window below 768px or use browser DevTools device emulation.
+
+**Using `multi_dashboard.py`:**
+The standard dashboard is desktop-focused. Use `mobile_app.py` for full mobile optimization.
+
+### Key Files for Mobile Support
+
+- **`mobile_app.py`**: Mobile-optimized entry point with responsive shell swapping
+- **`assets/mobile.css`**: Mobile-specific CSS with media queries
+- **Dashboard modules**: Each has `layout_for(is_mobile)` for adaptive layouts
+
+## �📂 Project Structure
 
   * **`app.py` / `app_alt.py`**: Main application entry points.
   * **`multi_dashboard.py`**: Likely the container for handling multiple dashboard views.
@@ -125,11 +295,19 @@ This project includes a `Procfile`, making it ready for deployment on platforms 
 
 ### Data & Database Files
 
-**`create_db.py`** - Database initialization script. Loads two CSV files (`discharge_data_view_diag_su.csv` and `discharge_data_view_demographics.csv`), renames columns, and creates a SQLite database (`discharges.db`) with two tables: `diagnoses` and `demographics`.
+**`create_db.py`** - Database initialization script. Loads two CSV files (`discharge_data_view_diag_su.csv` and `discharge_data_view_demographics.csv`), renames columns, and creates database tables (`diagnoses` and `demographics`). Automatically uses SQLite or MSSQL based on configuration.
+
+**`config.py`** - Database configuration module. Manages environment variables and connection settings for both SQLite and MSSQL. Determines which database to use based on `USE_MSSQL` environment variable.
+
+**`db_utils.py`** - Database utility functions. Provides unified interface for database operations that works with both SQLite and MSSQL. Contains `execute_query()`, `get_connection()`, and `test_connection()` functions.
 
 **`queries.sql`** - Centralized SQL query repository. Contains named SQL queries used throughout the application (e.g., `load_main_data`, `load_polysubstance_data`, `count_by_sex_distinct`). Keeps SQL separate from Python code for easier maintenance.
 
-**`discharges.db`** - SQLite database (created by `create_db.py`) containing the discharge data tables.
+**`discharges.db`** - SQLite database (created by `create_db.py` when using local mode) containing the discharge data tables.
+
+**`.env`** - Environment configuration file (not committed to git). Contains database credentials and configuration. Copy from `.env.example` to get started.
+
+**`.env.example`** - Template for environment variables. Shows all available configuration options for both SQLite and MSSQL.
 
 **`discharge_data_view_diag_su.csv`** - Source data file containing diagnosis/substance use information (record_id, substance, etc.).
 

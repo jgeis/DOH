@@ -1,10 +1,10 @@
 # app_alt.py — Discharges (Alt Views) page
 
 # These are the tools we use:
-# - sqlite3: to talk to the local database file
+# - db_utils: to connect to database (SQLite or MSSQL based on config)
 # - pandas: to shape and clean up the data
 # - dash / dbc / plotly: to build the website layout and graphs
-import sqlite3
+from db_utils import execute_query
 import pandas as pd
 import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, State, callback
@@ -44,7 +44,7 @@ def load_sql_query(name, path="queries.sql"):
         raise KeyError(f"Named query '{name}' not found in {path}.")
     return m[name]
 
-def load_main_dataframe_from_db(db_path="discharges.db"):
+def load_main_dataframe_from_db():
     """
     This helper:
       1. Loads the main SQL query by name.
@@ -53,16 +53,14 @@ def load_main_dataframe_from_db(db_path="discharges.db"):
 
     Why: having this in one place avoids repeating the same database
     logic in multiple callbacks.
+    
+    Note: Uses either SQLite or MSSQL automatically based on config.
     """
     # Grab the SQL for our main data
     sql = load_sql_query("load_main_data")
-    conn = sqlite3.connect(db_path)
-    try:
-        # Read all matching rows into a table-like object we can filter later
-        df = pd.read_sql_query(sql, conn)
-    finally:
-        # Always close the connection, even if something goes wrong
-        conn.close()
+    
+    # Execute query using db_utils (automatically uses correct database)
+    df = execute_query(sql)
 
     # If there is no data, we stop early instead of showing a broken page
     if df.empty:
@@ -81,7 +79,8 @@ def load_main_dataframe_from_db(db_path="discharges.db"):
 
 # Load the full dataset once at startup.
 # The callbacks will reuse this instead of hitting the database every time.
-df_raw = load_main_dataframe_from_db("discharges.db")
+df_raw = load_main_dataframe_from_db()
+
 
 # Count how many unique records we have to show on the KPI card.
 total_unique = df_raw["record_id"].nunique()

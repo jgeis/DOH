@@ -1,6 +1,5 @@
 # polysubstance_alt.py — Alternative visualizations for substance co-occurrence patterns
 
-import sqlite3
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -11,11 +10,11 @@ import plotly.graph_objects as go
 import plotly.io as pio
 
 from theme import register_template
+from db_utils import execute_query
 
 register_template()
 
 # Configuration
-DB_PATH = "discharges.db"
 QUERIES_PATH = "queries.sql"
 PREFERRED_QUERY = "load_polysubstance_data"
 FALLBACK_QUERY = "load_main_data"
@@ -41,7 +40,7 @@ def load_sql_query(name: str, path: str = QUERIES_PATH) -> str:
 
 # ---------- Load data ----------
 def load_df():
-    """Load the main dataset from SQLite."""
+    """Load the main dataset from database (SQLite or MSSQL)."""
     try:
         sql = load_sql_query(PREFERRED_QUERY, QUERIES_PATH)
         print(f"[polysubstance_alt] Using query: {PREFERRED_QUERY}")
@@ -49,8 +48,8 @@ def load_df():
         sql = load_sql_query(FALLBACK_QUERY, QUERIES_PATH)
         print(f"[polysubstance_alt] Using query: {FALLBACK_QUERY}")
 
-    with sqlite3.connect(DB_PATH) as con:
-        df = pd.read_sql_query(sql, con)
+    # Execute query using db_utils (automatically uses correct database)
+    df = execute_query(sql)
 
     if df.empty:
         raise RuntimeError("Query returned 0 rows.")
