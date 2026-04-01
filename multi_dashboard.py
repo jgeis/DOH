@@ -49,32 +49,28 @@ app = Dash(
 server = app.server
 app.title = "Substance Use Dashboards"
 
-app.layout = html.Div(
-    dbc.Container(
-        [
-            html.A(
-                "Skip to navigation",
-                href="#top-nav",
-                className="visually-hidden-focusable",
-                tabIndex=0,
-            ),
+app.layout = dbc.Container(
+    [
+        html.A(
+            "Skip to navigation",
+            href="#top-nav",
+            className="visually-hidden-focusable",
+            tabIndex=0,
+        ),
 
-            dcc.Location(id="url", refresh=False),
+        dcc.Location(id="url", refresh=False),
 
-            html.Div(
-                html.Div(id="top-nav", className="tabs"),
-                id="top-nav-wrapper",
-                className="mb-2",
-            ),
+        html.Div(
+            html.Div(id="top-nav", className="tabs"),
+            id="top-nav-wrapper",
+            className="mb-2",
+        ),
 
-            html.H2(id="page-title", className="text-center mb-2"),
+        html.H2(id="page-title", className="text-center mb-2"),
 
-            html.Div(page_container, style={"marginTop": "12px"}),
-        ],
-        fluid=True,
-    ),
-    id="content-size-wrapper",
-    style={"height": "max-content", "overflow": "hidden"}
+        html.Div(page_container, style={"marginTop": "12px"}),
+    ],
+    fluid=True,
 )
 
 

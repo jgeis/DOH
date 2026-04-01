@@ -1,6 +1,6 @@
 
 function sendHeightToParent() {
-  const height = document.documentElement.scrollHeight;
+  const height = document.documentElement.getBoundingClientRect().height;
 
   // post message with target origin as bh808 site
   window.parent.postMessage({
@@ -18,23 +18,20 @@ const resizeObserver = new ResizeObserver(() => {
 });
 
 // retreive the vis container created by dash
-const visContainer = document.getElementById("content-size-wrapper");
+const visContainer = document.getElementById("_dash-app-content");
 
-// if found send height to parent and observe it for changes
+// if found observe it for changes
 if(visContainer) {
-  sendHeightToParent();
   resizeObserver.observe(existingContainer);
 }
 // otherwise set up mutation observer and check for the container creation
 else {
   const mutationObserver = new MutationObserver((mutations, observerInstance) => {
     // body was mutated, check if container exists now
-    const visContainer = document.getElementById("content-size-wrapper");
-    // if it does disconnect the mutation observer, send the height to parents, and observe container for changes
+    const visContainer = document.getElementById("_dash-app-content");
+    // if it does disconnect the mutation observer and observe container for changes
     if(visContainer) {
       observerInstance.disconnect();
-      
-      sendHeightToParent();
       resizeObserver.observe(visContainer);
     }
   });
