@@ -49,28 +49,32 @@ app = Dash(
 server = app.server
 app.title = "Substance Use Dashboards"
 
-app.layout = dbc.Container(
-    [
-        html.A(
-            "Skip to navigation",
-            href="#top-nav",
-            className="visually-hidden-focusable",
-            tabIndex=0,
-        ),
+app.layout = html.Div(
+    dbc.Container(
+        [
+            html.A(
+                "Skip to navigation",
+                href="#top-nav",
+                className="visually-hidden-focusable",
+                tabIndex=0,
+            ),
 
-        dcc.Location(id="url", refresh=False),
+            dcc.Location(id="url", refresh=False),
 
-        html.Div(
-            html.Div(id="top-nav", className="tabs"),
-            id="top-nav-wrapper",
-            className="mb-2",
-        ),
+            html.Div(
+                html.Div(id="top-nav", className="tabs"),
+                id="top-nav-wrapper",
+                className="mb-2",
+            ),
 
-        html.H2(id="page-title", className="text-center mb-2"),
+            html.H2(id="page-title", className="text-center mb-2"),
 
-        html.Div(page_container, style={"marginTop": "12px"}),
-    ],
-    fluid=True,
+            html.Div(page_container, style={"marginTop": "12px"}),
+        ],
+        fluid=True,
+    ),
+    id="content-size-wrapper",
+    style={"height": "max-content", "overflow": "hidden"}
 )
 
 
@@ -79,14 +83,11 @@ app.layout = dbc.Container(
     Output("top-nav-wrapper", "style"),
     Output("page-title", "children"),
     Input("url", "pathname"),
-    Input("url", "search"),
 )
-def update_active_tab(pathname, search):
+def update_active_tab(pathname):
     """Render the active tab group for the current route and set title."""
     if not pathname:
         pathname = "/"
-    
-    search_params = search if search else ""
 
     group_name = ROUTE_TO_GROUP.get(pathname)
     tabs = []
@@ -95,7 +96,7 @@ def update_active_tab(pathname, search):
         tabs = [
             html.A(
                 label,
-                href=f"{path}{search_params}",
+                href=path,
                 className=("tab tab--selected" if pathname == path else "tab"),
             )
             for path, label in NAV_GROUPS[group_name]
