@@ -17,28 +17,15 @@ const resizeObserver = new ResizeObserver(() => {
   sendHeightToParent();
 });
 
-// retreive the vis container created by dash
-const visContainer = document.getElementById("_dash-app-content");
+// retreive the react entry point container
+const reactContainer = document.getElementById("react-entry-point");
 
 // if found observe it for changes
-if(visContainer) {
-  resizeObserver.observe(existingContainer);
+if(reactContainer) {
+  resizeObserver.observe(reactContainer);
 }
-// otherwise set up mutation observer and check for the container creation
+// otherwise note that the container was not found
 else {
-  const mutationObserver = new MutationObserver((mutations, observerInstance) => {
-    // body was mutated, check if container exists now
-    const visContainer = document.getElementById("_dash-app-content");
-    // if it does disconnect the mutation observer and observe container for changes
-    if(visContainer) {
-      observerInstance.disconnect();
-      resizeObserver.observe(visContainer);
-    }
-  });
-
-  mutationObserver.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+  console.error("React entrypoint not found. Sizing messages will not be sent.");
 }
 
