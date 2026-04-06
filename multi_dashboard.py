@@ -16,7 +16,6 @@ DEFAULT_PATH = "/discharges"
 NAV_GROUPS = {
     "substance": [
         ("/discharges", "Discharges related to substance use"),
-        ("/sudors", "SUDORS Overdose Deaths"),
         ("/polysubstance", "Related to polysubstance use"),
         ("/polysubstance-alt", "Polysubstance Alternates"),
     ],
@@ -30,13 +29,24 @@ NAV_GROUPS = {
 
 ROUTE_TO_GROUP = {
     "/discharges": "substance",
-    "/sudors": "substance",
     "/polysubstance": "substance",
     "/polysubstance-alt": "substance",
     # Example future route mapping:
     # "/new-overview": "new-visuals",
     # "/new-trends": "new-visuals",
     # "/new-details": "new-visuals",
+}
+
+SUDORS_NAV_GROUPS = {
+    "substance": [
+        ("/sudors", "SUDORS Overdose Deaths"),
+        ("/sudors-polysubstance", "SUDORS with Polysubstance Use"),
+    ],
+}
+
+SUDORS_ROUTE_TO_GROUP = {
+    "/sudors": "substance",
+    "/sudors-polysubstance": "substance",
 }
 
 app = Dash(
@@ -73,7 +83,6 @@ app.layout = dbc.Container(
     fluid=True,
 )
 
-
 @callback(
     Output("top-nav", "children"),
     Output("top-nav-wrapper", "style"),
@@ -86,6 +95,7 @@ def update_active_tab(pathname):
         pathname = "/"
 
     group_name = ROUTE_TO_GROUP.get(pathname)
+    sudors_group_name = SUDORS_ROUTE_TO_GROUP.get(pathname)
     tabs = []
 
     if group_name in NAV_GROUPS:
@@ -98,13 +108,22 @@ def update_active_tab(pathname):
             for path, label in NAV_GROUPS[group_name]
         ]
         nav_style = {}
+    elif sudors_group_name in SUDORS_NAV_GROUPS:
+        tabs = [
+            html.A(
+                label,
+                href=path,
+                className=("tab tab--selected" if pathname == path else "tab"),
+            )
+            for path, label in SUDORS_NAV_GROUPS[sudors_group_name]
+        ]
+        nav_style = {}
     else:
         nav_style = {"display": "none"}
 
     title = TAB_PATHS.get(pathname, "Substance Use Dashboards")
 
     return tabs, nav_style, title
-
 
 if __name__ == "__main__":
     app.run(debug=True)
