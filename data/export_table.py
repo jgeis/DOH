@@ -18,7 +18,8 @@ except KeyError as e:
     print(f"Error: Missing key {e} in 'credentials.json'.")
     exit()
 
-# Note: We added 'Encrypt=yes' and 'TrustServerCertificate=no' 
+# Set up the connection string
+# Included 'Encrypt=yes' and 'TrustServerCertificate=no' 
 # which are often required for Azure/Enterprise connections.
 conn_str = (
     f'Driver={{ODBC Driver 17 for SQL Server}};'
@@ -31,21 +32,48 @@ conn_str = (
     'Connection Timeout=30;'
 )
 
-try:
-    conn = pyodbc.connect(conn_str)
-    #table_name = "discharge_data_view_diag_su"
-    #table_name = "discharge_data_view_demographics"
-    #table_name = "sudors_data_view_demographics$"
-    table_name = "wonder_age_group"
-    query = "SELECT * FROM dbo." +  table_name
-    print(query)
-    df = pd.read_sql(query, conn)
+# List all the tables you want to export here
+table_names = [
+    #"discharge_data_view_diag_su",
+    #"discharge_data_view_demographics",
+    #"sudors_data_view_demographics$",
+    #"wonder_age_group",
+    "wonder_gender",
+    "wonder_overview",
+    "wonder_race",
+    "wonder_substance",
+]
 
-    # Using utf-8-sig ensures Excel opens the file correctly 
-    # and handles the diagnosis column encoding issues.
-    output_path = rf'C:\Users\jgeis\DOH\doh_plotly\{table_name}.csv'
-    df.to_csv(output_path, index=False, encoding='utf-8-sig')
-    print("Export Successful!")
+try:
+    # Open the database connection once
+    conn = pyodbc.connect(conn_str)
+    
+    # Loop through each table in the list
+    for table_name in table_names:
+        print(f"Processing: {table_name}...")
+        
+        # Wrapped the table name in brackets to handle special characters like '$'
+        query = f"SELECT * FROM dbo.[{table_name}]"
+        
+        # Read the data into a Pandas DataFrame
+        df = pd.read_sql(query, conn)
+
+        # Generate the dynamic output path
+        output_path = rf'C:\Users\jgeis\DOH\doh_plotly\data\{table_name}.csv'
+        
+        # Export to CSV. 
+        # Using utf-8-sig ensures Excel opens the file correctly 
+        # and handles the diagnosis column encoding issues.
+        df.to_csv(output_path, index=False, encoding='utf-8-sig')
+        print(f" -> Successfully exported to {output_path}")
+        
+    print("\nAll exports completed successfully!")
 
 except Exception as e:
     print(f"Error: {e}")
+
+finally:
+    # Safely close the database connection when done
+    if 'conn' in locals():
+        conn.close()
+        print("Database connection closed.")
