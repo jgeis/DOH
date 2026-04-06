@@ -1,11 +1,22 @@
 import pandas as pd
 import pyodbc
+import json
 
-# Use your actual credentials here
-server = ''
-database = ''
-username = ''
-password = ''
+# Load the credentials from the JSON file
+try:
+    with open('credentials.json', 'r') as file:
+        creds = json.load(file)
+        
+    server = creds['server']
+    database = creds['database']
+    username = creds['username']
+    password = creds['password']
+except FileNotFoundError:
+    print("Error: 'credentials.json' file not found.")
+    exit()
+except KeyError as e:
+    print(f"Error: Missing key {e} in 'credentials.json'.")
+    exit()
 
 # Note: We added 'Encrypt=yes' and 'TrustServerCertificate=no' 
 # which are often required for Azure/Enterprise connections.
