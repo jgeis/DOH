@@ -81,7 +81,7 @@ WHERE LOWER(COALESCE(NULLIF(TRIM(d.age_group), ''), 'unknown')) <> 'unknown'; --
 -- name: load_dose_data
 WITH dx AS (
   SELECT DISTINCT record_id, TRIM(diagnosis) AS substance
-  FROM nonfatal_overdose_poisonings
+  FROM dose_data
   WHERE diagnosis IS NOT NULL AND TRIM(diagnosis) <> ''
 )
 SELECT

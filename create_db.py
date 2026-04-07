@@ -46,8 +46,8 @@ try:
     print("Creating 'discharge_data_view_demographics' table...")
     df_demo.to_sql("discharge_data_view_demographics", conn, if_exists="replace", index=False)
     
-    print("Creating 'nonfatal_overdose_poisonings' table...")
-    df_dose.to_sql("nonfatal_overdose_poisonings", conn, if_exists="replace", index=False)
+    print("Creating 'dose_data' table...")
+    df_dose.to_sql("dose_data", conn, if_exists="replace", index=False)
 
     print("Creating 'sudors_data_view_demographics$' table...")
     df_sudors_demo.to_sql("sudors_data_view_demographics$", conn, if_exists="replace", index=False)
@@ -60,7 +60,7 @@ try:
     print(f"  - discharge_data_view_diag_su: {len(df_diag_su):,} rows")
     print(f"  - discharge_data_view_diag_mh: {len(df_diag_mh):,} rows")
     print(f"  - discharge_data_view_demographics: {len(df_demo):,} rows")
-    print(f"  - nonfatal_overdose_poisonings: {len(df_dose):,} rows")
+    print(f"  - dose_data: {len(df_dose):,} rows")
     print(f"  - sudors_data_view_demographics$: {len(df_sudors_demo):,} rows")
     print(f"  - sudors_data_view_diag_su$: {len(df_sudors_diag_su):,} rows")
     
@@ -72,7 +72,7 @@ print("\nVerifying table structure...")
 conn = sqlite3.connect(DB_NAME)
 cursor = conn.cursor()
 
-for table in ['discharge_data_view_diag_su', 'discharge_data_view_diag_mh', 'discharge_data_view_demographics', 'nonfatal_overdose_poisonings', 'sudors_data_view_demographics$', 'sudors_data_view_diag_su$']:
+for table in ['discharge_data_view_diag_su', 'discharge_data_view_diag_mh', 'discharge_data_view_demographics', 'dose_data', 'sudors_data_view_demographics$', 'sudors_data_view_diag_su$']:
     cursor.execute(f"PRAGMA table_info({table})")
     print(f"\n{table} columns:")
     for row in cursor.fetchall():
