@@ -74,7 +74,7 @@ def load_discharge_dataframe_from_db():
 
     # For these columns, replace missing values with "Unknown"
     # so we don't get blank labels in filters and tables.
-    for col in ["county", "city", "hawaii_residency", "age_group", "sex", "substance", "year"]:
+    for col in ["county", "city", "zip", "hawaii_residency", "age_group", "sex", "substance", "year"]:
         if col in df.columns:
             df[col] = df[col].fillna("Unknown")
     return df
@@ -82,6 +82,15 @@ def load_discharge_dataframe_from_db():
 # Load the full dataset once at startup.
 # The callbacks will reuse this instead of hitting the database every time.
 df_raw = load_discharge_dataframe_from_db()
+
+# Normalize ZIP values (5-digit strings) so they look cleaner in the filters and tables.
+if "zip" in df_raw.columns:
+    df_raw["zip"] = (
+        df_raw["zip"]
+        .astype(str)
+        .str.extract(r"(\d{5})", expand=False)
+        .fillna("")
+    )
 
 # Count how many unique records we have to show on the KPI card.
 total_unique = df_raw["record_id"].nunique()
@@ -99,9 +108,12 @@ def sort_opts(series):
 
 # Build the lists of choices for each filter only if the column exists.
 # Why: this makes the code more flexible if the data shape changes later.
+# record_id,county,city,zip,hawaii_residency,age_group,sex,year
+
 substance_opts = sort_opts(df_raw["substance"])                     if "substance"          in df_raw.columns else []
 county_opts    = sort_opts(df_raw["county"])                        if "county"             in df_raw.columns else []
 city_opts      = sort_opts(df_raw["city"])                          if "city"               in df_raw.columns else []
+zip_opts       = sort_opts(df_raw["zip"])                           if "zip"                in df_raw.columns else []
 year_opts      = sorted(df_raw["year"].dropna().unique().tolist())  if "year"               in df_raw.columns else []
 hawaii_residency_opts = sort_opts(df_raw["hawaii_residency"])       if "hawaii_residency"   in df_raw.columns else []
 age_opts       = sort_opts(df_raw["age_group"])                     if "age_group"          in df_raw.columns else []
@@ -127,6 +139,7 @@ total_dose_unique = df_dose_raw["record_id"].nunique()
 dose_substance_opts = sort_opts(df_dose_raw["substance"])                       if "substance"  in df_dose_raw.columns else []
 dose_county_opts    = sort_opts(df_dose_raw["county"])                          if "county"     in df_dose_raw.columns else []
 dose_city_opts      = sort_opts(df_dose_raw["city"])                            if "city"       in df_dose_raw.columns else []
+dose_zip_opts       = sort_opts(df_dose_raw["zip"])                             if "zip"        in df_dose_raw.columns else []
 dose_year_opts      = sorted(df_dose_raw["year"].dropna().unique().tolist())    if "year"       in df_dose_raw.columns else []
 dose_residency_opts = sort_opts(df_dose_raw["hawaii_residency"])                if "hawaii_residency" in df_dose_raw.columns else []
 dose_age_opts       = sort_opts(df_dose_raw["age_group"])                       if "age_group"  in df_dose_raw.columns else []
@@ -397,12 +410,6 @@ def layout_for(
             style={} if show_discharges else {"display": "none"}
         ),
 
-        dbc.Row([
-            # Map of overdoses relating to county
-            graph_block("map-county", "Discharges by County", map_h),
-            html.P("Map of discharges by county. Use the legend to toggle categories.", className="sr-only"),
-        ]),
-
         html.Hr(
             className="my-5",
             style={} if (show_discharges and show_dose) else {"display": "none"}
@@ -432,8 +439,13 @@ def layout_for(
                     graph_block("year-diagnosis-lines-dose", "DOSE Discharges by Year and Substance", line_h),
                     # Screen-reader description only; not visible on screen.
                     html.P("Line chart of discharges by substance over time. Use the legend to toggle substances.", className="sr-only"),
+                
+                    dbc.Row([
+                        # Map of overdoses relating to county
+                        graph_block("map-county", "Discharges by County", map_h),
+                        html.P("Map of discharges by county. Use the legend to toggle categories.", className="sr-only"),
+                    ]),
                 ], xs=12, md=6),
-
 
                 dbc.Col(
                     [
@@ -667,39 +679,51 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex):
     else:
         sex_bar = px.bar()
 
-    # for map graph
-    with open("assets/coastline.json") as f:
-        counties_geo = json.load(f)
+    """ 
+    Because px.choropleth uses Plotly's D3.js outline engine (which is optimized for global and national maps), 
+    it often struggles to project highly detailed, localized coordinates accurately, causing the shapes to 
+    distort or misalign.
 
-    # ---------- Map graph: Discharges by county ----------
-    if {"county"}.issubset(dff.columns):
-        by_county = (
-            dff.groupby("county")["record_id"]
+    To fix this, I'm using Plotly's tile-based mapping engine, px.choropleth_mapbox 
+    (or px.choropleth_map if we switch to the newest Plotly version). This engine plots your GeoJSON 
+    coordinates exactly as they are onto a standard web map, eliminating the distortion. 
+    """
+    # for map graph
+    with open("assets/hawaii_zipcodes.geojson") as f:
+        zips_geo = json.load(f)
+
+    # ---------- Map graph: Discharges by ZIP ----------
+    if {"zip"}.issubset(dff.columns):
+        by_zip = (
+            dff[dff["zip"] != ""]
+            .groupby("zip")["record_id"]
             .nunique()
             .reset_index(name="count")
         )
 
-        map_fig = px.choropleth(
-            by_county,
-            geojson=counties_geo,
-            locations="county",
-            featureidkey="properties.county",
+        # Switched to choropleth_mapbox
+        map_fig = px.choropleth_mapbox(
+            by_zip,
+            geojson=zips_geo,
+            locations="zip",
+            featureidkey="properties.geoid20", 
             color="count",
             color_continuous_scale="Blues",
-            labels={"count": "Discharges"}
+            mapbox_style="carto-positron", # Provides a clean, free base map without an API key
+            zoom=6, # Set an initial zoom level appropriate for the Hawaiian islands
+            center={"lat": 20.7967, "lon": -156.3319}, # Approximate center coordinates for Hawaii
+            opacity=0.7, # Adds transparency so the base map islands show through
+            labels={"count": "Discharges", "zip": "ZIP Code"},
         )
 
-        map_fig.update_geos(
-            fitbounds="locations",
-            visible=False
-        )
-
+        # Removed update_geos() as it does not apply to mapbox figures
+        
         map_fig.update_layout(
             margin=dict(l=0, r=0, t=10, b=0)
         )
     else:
-        # If we don't have the needed columns, return an empty figure
-        map_fig = px.choropleth()
+        # Return an empty mapbox figure
+        map_fig = px.choropleth_mapbox()
 
     # ---------- Helper for the summary tables ----------
     def tbl(column, categories=None):
