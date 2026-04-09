@@ -1,10 +1,13 @@
 import pandas as pd
 import pyodbc
 import json
+import os
+
+dir = r"C:\Users\jgeis\DOH\doh_plotly\data"
 
 # Load the credentials from the JSON file
 try:
-    with open('credentials.json', 'r') as file:
+    with open(os.path.join(dir, "credentials.json"), 'r') as file:
         creds = json.load(file)
         
     server = creds['server']
@@ -38,10 +41,11 @@ table_names = [
     #"discharge_data_view_demographics",
     #"sudors_data_view_demographics$",
     #"wonder_age_group",
-    "wonder_gender",
-    "wonder_overview",
-    "wonder_race",
-    "wonder_substance",
+    #"wonder_gender",
+    #"wonder_overview",
+    #"wonder_race",
+    #"wonder_substance",
+    "discharge_data_view_demographics_test",
 ]
 
 try:
@@ -59,8 +63,8 @@ try:
         df = pd.read_sql(query, conn)
 
         # Generate the dynamic output path
-        output_path = rf'C:\Users\jgeis\DOH\doh_plotly\data\{table_name}.csv'
-        
+        output_path = os.path.join(dir, f'{table_name}.csv')
+
         # Export to CSV. 
         # Using utf-8-sig ensures Excel opens the file correctly 
         # and handles the diagnosis column encoding issues.
