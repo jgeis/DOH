@@ -118,6 +118,7 @@ year_opts      = sorted(df_raw["year"].dropna().unique().tolist())  if "year"   
 hawaii_residency_opts = sort_opts(df_raw["hawaii_residency"])       if "hawaii_residency"   in df_raw.columns else []
 age_opts       = sort_opts(df_raw["age_group"])                     if "age_group"          in df_raw.columns else []
 sex_opts       = sort_opts(df_raw["sex"])                           if "sex"                in df_raw.columns else []
+race_ethnicity_opts = sort_opts(df_raw["race_ethnicity"])           if "race_ethnicity"     in df_raw.columns else []
 
 def opts_list(values):
     """
@@ -134,8 +135,7 @@ df_dose_raw = execute_query(sql_dose)
 # Count how many unique DOSE records we have to show on the KPI card.
 total_dose_unique = df_dose_raw["record_id"].nunique()
 
-# Build the lists of choices for each filter only if the column exists.
-# Why: this makes the code more flexible if the data shape changes later.
+# Build the lists of choices for DOSE filters
 dose_substance_opts = sort_opts(df_dose_raw["substance"])                       if "substance"  in df_dose_raw.columns else []
 dose_county_opts    = sort_opts(df_dose_raw["county"])                          if "county"     in df_dose_raw.columns else []
 dose_city_opts      = sort_opts(df_dose_raw["city"])                            if "city"       in df_dose_raw.columns else []
@@ -144,6 +144,7 @@ dose_year_opts      = sorted(df_dose_raw["year"].dropna().unique().tolist())    
 dose_residency_opts = sort_opts(df_dose_raw["hawaii_residency"])                if "hawaii_residency" in df_dose_raw.columns else []
 dose_age_opts       = sort_opts(df_dose_raw["age_group"])                       if "age_group"  in df_dose_raw.columns else []
 dose_sex_opts       = sort_opts(df_dose_raw["sex"])                             if "sex"        in df_dose_raw.columns else []
+dose_race_ethnicity_opts = sort_opts(df_dose_raw["race_ethnicity"])             if "race_ethnicity" in df_dose_raw.columns else []
 
 # ----------------------------
 # Reusable graph block (Tools toggle + title + graph)
@@ -250,7 +251,14 @@ filters_card = dbc.Card(
         html.Label("Sex", htmlFor="sex-filter", tabIndex=6, className="form-label"),
         dcc.Dropdown(
             id="sex-filter", options=opts_list(sex_opts), multi=True,
-            placeholder="Sex", className="mb-0",
+            placeholder="Sex", className="mb-2",
+            persistence=True, persistence_type="session"
+        ),
+
+        html.Label("Race/Ethnicity", htmlFor="race-ethnicity-filter", tabIndex=7, className="form-label"),
+        dcc.Dropdown(
+            id="race-ethnicity-filter", options=opts_list(race_ethnicity_opts), multi=True,
+            placeholder="Race/Ethnicity", className="mb-0",
             persistence=True, persistence_type="session"
         ),
     ]),
@@ -308,7 +316,14 @@ filters_card_dose = dbc.Card(
         html.Label("Sex", htmlFor="sex-filter-dose", tabIndex=6, className="form-label"),
         dcc.Dropdown(
             id="sex-filter-dose", options=opts_list(dose_sex_opts), multi=True,
-            placeholder="Sex", className="mb-0",
+            placeholder="Sex", className="mb-2",
+            persistence=True, persistence_type="session"
+        ),
+
+        html.Label("Race/Ethnicity", htmlFor="race-ethnicity-filter-dose", tabIndex=7, className="form-label"),
+        dcc.Dropdown(
+            id="race-ethnicity-filter-dose", options=opts_list(dose_race_ethnicity_opts), multi=True,
+            placeholder="Race/Ethnicity", className="mb-0",
             persistence=True, persistence_type="session"
         ),
     ]),
@@ -513,9 +528,10 @@ layout = layout_for(is_mobile=False)
     Input("hawaii-residency-filter", "value"),
     Input("age-filter", "value"),
     Input("sex-filter", "value"),
+    Input("race-ethnicity-filter", "value"),
 )
 
-def update_dashboard(substance, county, city, year, hawaii_residency, age, sex):
+def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, race_ethnicity):
     """
     This function runs every time the user changes a filter.
 
@@ -550,6 +566,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex):
     if "hawaii_residency" in dff.columns:   dff = apply_filter(dff, "hawaii_residency", hawaii_residency)
     if "age_group" in dff.columns:          dff = apply_filter(dff, "age_group", age)
     if "sex" in dff.columns:                dff = apply_filter(dff, "sex", sex)
+    if "race_ethnicity" in dff.columns:     dff = apply_filter(dff, "race_ethnicity", race_ethnicity)
 
     # Count unique discharges (each record_id represents one discharge).
     # Used to update the total on the KPI card when user selects the filter
@@ -821,10 +838,11 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex):
     Input("hawaii-residency-filter-dose", "value"),
     Input("age-filter-dose", "value"),
     Input("sex-filter-dose", "value"),
+    Input("race-ethnicity-filter-dose", "value"),
 )
 
-def update_dose_section(substance, county, city, year, hawaii_residency, age, sex):
-
+def update_dose_section(substance, county, city, year, hawaii_residency, age, sex, race_ethnicity):
+    
     def apply_filter(frame, col, val):
         """
         Small helper so we don't repeat the same filter logic.
@@ -849,7 +867,8 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
     if "hawaii_residency" in dose_df.columns:   dose_df = apply_filter(dose_df, "hawaii_residency", hawaii_residency)
     if "age_group" in dose_df.columns:          dose_df = apply_filter(dose_df, "age_group", age)
     if "sex" in dose_df.columns:                dose_df = apply_filter(dose_df, "sex", sex)
-
+    if "race_ethnicity" in dose_df.columns:     dose_df = apply_filter(dose_df, "race_ethnicity", race_ethnicity)
+    
     # Count unique discharges (each record_id represents one discharge).
     # Used to update the total on the KPI card when user selects the filter
     filter_dose_total = dose_df["record_id"].nunique()

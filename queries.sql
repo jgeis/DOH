@@ -13,6 +13,7 @@ SELECT
   m.hawaii_residency,
   m.age_group, 
   m.sex, 
+  m.race_ethnicity,
   m.year
 FROM dx
 JOIN discharge_data_view_demographics m ON m.record_id = dx.record_id;
@@ -38,7 +39,7 @@ SELECT
   u.record_id,
   u.substance,
   m.county, m.city, m.zip, m.hawaii_residency,
-  m.age_group, m.sex,
+  m.age_group, m.sex, m.race_ethnicity,
   CAST(m.year AS INTEGER) AS year
 FROM dx_union AS u
 JOIN poly_ids AS p
@@ -71,7 +72,7 @@ SELECT
   co.sud_substance                    AS su_diagnosis,
   co.mh_dx                            AS mh_diagnosis,
   d.county, d.city, d.zip, d.hawaii_residency,
-  d.age_group, d.sex,
+  d.age_group, d.sex, d.race_ethnicity,
   CAST(d.year AS INTEGER)    AS year
 FROM co
 JOIN discharge_data_view_demographics d ON d.record_id = co.record_id
@@ -92,6 +93,7 @@ SELECT
   m.hawaii_residency,
   m.age_group,
   m.sex,
+  m.race_ethnicity,
   m.year
 FROM dx
 JOIN discharge_data_view_demographics m ON m.record_id = dx.record_id;
