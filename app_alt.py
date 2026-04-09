@@ -847,6 +847,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
     # Count unique discharges (each record_id represents one discharge).
     # Used to update the total on the KPI card when user selects the filter
     filter_dose_total = dose_df["record_id"].nunique()
+    kpi_dose_display = "<11" if filter_dose_total < 11 else f"{filter_dose_total:,}"
 
     # ---------- Bar chart: Nonfatal overdoses related to poisonings ----------
     if {"substance"}.issubset(dose_df.columns):
@@ -864,9 +865,9 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         # Cuts off label length after 25 characters
         by_dose["substance_label"] = by_dose["substance"].apply(ellipsize)
 
-        # Hides numbers to "<10" if it is less than or equal to 10
+        # Suppress counts below 11 per disclosure rules
         by_dose["display_count"] = by_dose["count"].apply(
-            lambda x: "<10" if x <= 10 else f"{int(x):,}"
+            lambda x: "<11" if x < 11 else f"{int(x):,}"
         )
 
         dose_bar = px.bar(
@@ -945,8 +946,8 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             g[column] = pd.Categorical(g[column], categories=categories, ordered=True)
             g = g.sort_values(column)
 
-        # Make the counts look nicer with commas
-        g["count"] = g["count"].map(lambda x: f"{int(x):,}")
+        # Suppress counts below 11 per disclosure rules
+        g["count"] = g["count"].map(lambda x: "<11" if x < 11 else f"{int(x):,}")
 
         # Use friendly display labels for table headers
         header_labels = {
@@ -966,16 +967,21 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             .reset_index(name="count")
             .sort_values("count", ascending=False)
         )
+        # Suppress small counts: replace with None so they show as "<11" in label
+        pie_df["display_count"] = pie_df["count"].apply(
+            lambda x: "<11" if x < 11 else f"{int(x):,}"
+        )
         dose_sex_pie = px.pie(
             pie_df,
             names="sex",
             values="count",
-            hole=0.35
+            hole=0.35,
+            custom_data=["display_count"],
         )
         dose_sex_pie.update_traces(
             textposition="inside",
-            texttemplate="%{label}<br>%{percent:.1%} (%{value:,})",
-            hovertemplate="%{label}: %{value:,} (%{percent:.1%})"
+            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
+            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
         )
         dose_sex_pie.update_layout(margin=dict(l=0, r=0, t=10, b=0))
     else:
@@ -1037,7 +1043,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
 
     # Return all the updated visuals and tables to Dash
     return (
-        f"{filter_dose_total:,}",
+        kpi_dose_display,
         dose_bar,
         dose_line,
         map_fig,
