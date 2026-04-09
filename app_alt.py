@@ -701,28 +701,36 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex):
             .reset_index(name="count")
         )
 
-        # Switched to choropleth_mapbox
+        # Create a new column specifically for the hover label
+        # If count is less than 11, make it "<11", otherwise convert the number to a string
+        by_zip["display_count"] = by_zip["count"].apply(lambda x: "<11" if x < 11 else str(x))
+
         map_fig = px.choropleth_mapbox(
             by_zip,
             geojson=zips_geo,
             locations="zip",
             featureidkey="properties.geoid20", 
-            color="count",
+            color="count", # Keep the raw numeric count for the color scale
             color_continuous_scale="Blues",
-            mapbox_style="carto-positron", # Provides a clean, free base map without an API key
-            zoom=6, # Set an initial zoom level appropriate for the Hawaiian islands
-            center={"lat": 20.7967, "lon": -156.3319}, # Approximate center coordinates for Hawaii
-            opacity=0.7, # Adds transparency so the base map islands show through
+            mapbox_style="carto-positron", 
+            zoom=6, 
+            center={"lat": 20.7967, "lon": -156.3319}, 
+            opacity=0.7, 
+            custom_data=["display_count"], # Pass our newly created column into the figure's data
             labels={"count": "Discharges", "zip": "ZIP Code"},
         )
 
-        # Removed update_geos() as it does not apply to mapbox figures
-        
+        # Override the default hover box to show our custom display_count
+        # %{location} pulls the ZIP code, %{customdata[0]} pulls our "<11" or string value
+        # <extra></extra> removes the secondary, redundant trace box next to the tooltip
+        map_fig.update_traces(
+            hovertemplate="<b>ZIP Code: %{location}</b><br>Discharges: %{customdata[0]}<extra></extra>"
+        )
+
         map_fig.update_layout(
             margin=dict(l=0, r=0, t=10, b=0)
         )
     else:
-        # Return an empty mapbox figure
         map_fig = px.choropleth_mapbox()
 
     # ---------- Helper for the summary tables ----------
