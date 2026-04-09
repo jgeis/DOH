@@ -90,6 +90,7 @@ SELECT
   dx.substance,
   m.county,
   m.city,
+  m.zip,
   m.hawaii_residency,
   m.age_group,
   m.sex,

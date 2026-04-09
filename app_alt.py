@@ -132,6 +132,24 @@ def opts_list(values):
 sql_dose = load_sql_query("load_dose_data")
 df_dose_raw = execute_query(sql_dose)
 
+# Make the year column numeric when possible so graphs treat it as numbers
+if "year" in df_dose_raw.columns:
+    df_dose_raw["year"] = pd.to_numeric(df_dose_raw["year"], errors="coerce")
+
+# For these columns, replace missing values with "Unknown"
+for col in ["county", "city", "zip", "hawaii_residency", "age_group", "sex", "substance", "year", "race_ethnicity"]:
+    if col in df_dose_raw.columns:
+        df_dose_raw[col] = df_dose_raw[col].fillna("Unknown")
+
+# Normalize ZIP values (5-digit strings) so they match the GeoJSON
+if "zip" in df_dose_raw.columns:
+    df_dose_raw["zip"] = (
+        df_dose_raw["zip"]
+        .astype(str)
+        .str.extract(r"(\d{5})", expand=False)
+        .fillna("")
+    )
+
 # Count how many unique DOSE records we have to show on the KPI card.
 total_dose_unique = df_dose_raw["record_id"].nunique()
 
@@ -517,7 +535,6 @@ layout = layout_for(is_mobile=False)
     Output("bar-substances", "figure"),
     Output("county-year-lines", "figure"),
     Output("sex-year-stacked", "figure"),
-    Output("map-county", "figure"),
     Output("table-county", "children"),
     Output("table-age", "children"),
     Output("sex-pie", "figure"),
@@ -705,50 +722,8 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
     (or px.choropleth_map if we switch to the newest Plotly version). This engine plots your GeoJSON 
     coordinates exactly as they are onto a standard web map, eliminating the distortion. 
     """
-    # for map graph
-    with open("assets/hawaii_zipcodes.geojson") as f:
-        zips_geo = json.load(f)
+    # for map graph - now handled in DOSE callback
 
-    # ---------- Map graph: Discharges by ZIP ----------
-    if {"zip"}.issubset(dff.columns):
-        by_zip = (
-            dff[dff["zip"] != ""]
-            .groupby("zip")["record_id"]
-            .nunique()
-            .reset_index(name="count")
-        )
-
-        # Create a new column specifically for the hover label
-        # If count is less than 11, make it "<11", otherwise convert the number to a string
-        by_zip["display_count"] = by_zip["count"].apply(lambda x: "<11" if x < 11 else str(x))
-
-        map_fig = px.choropleth_mapbox(
-            by_zip,
-            geojson=zips_geo,
-            locations="zip",
-            featureidkey="properties.geoid20", 
-            color="count", # Keep the raw numeric count for the color scale
-            color_continuous_scale="Blues",
-            mapbox_style="carto-positron", 
-            zoom=6.2, # Slightly increased zoom for a tighter fit
-            center={"lat": 20.8, "lon": -157.1}, # Centered perfectly between Oahu and Maui
-            opacity=0.7, 
-            custom_data=["display_count"], # Pass our newly created column into the figure's data
-            labels={"count": "Discharges", "zip": "ZIP Code"},
-        )
-
-        # Override the default hover box to show our custom display_count
-        # %{location} pulls the ZIP code, %{customdata[0]} pulls our "<11" or string value
-        # <extra></extra> removes the secondary, redundant trace box next to the tooltip
-        map_fig.update_traces(
-            hovertemplate="<b>ZIP Code: %{location}</b><br>Discharges: %{customdata[0]}<extra></extra>"
-        )
-
-        map_fig.update_layout(
-            margin=dict(l=0, r=0, t=10, b=0)
-        )
-    else:
-        map_fig = px.choropleth_mapbox()
 
     # ---------- Helper for the summary tables ----------
     def tbl(column, categories=None):
@@ -818,7 +793,6 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         sub_bar,
         line_fig,
         sex_bar,
-        map_fig,
         tbl("county"),
         tbl("age_group", age_groups),
         sex_pie,
@@ -828,6 +802,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
     Output("kpi-total-dose-discharges", "children"),
     Output("bar-dose", "figure"),
     Output("year-diagnosis-lines-dose", "figure"),
+    Output("map-county", "figure"),
     Output("table-county-dose", "children"),
     Output("table-age-dose", "children"),
     Output("sex-pie-dose", "figure"),
@@ -1009,11 +984,63 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
     # Extract age groups dynamically from the filtered DOSE data
     dose_age_groups = sorted([v for v in dose_df["age_group"].unique() if v != "Unknown"]) + (["Unknown"] if "Unknown" in dose_df["age_group"].values else []) if "age_group" in dose_df.columns and not dose_df.empty else None
 
+    # ---------- Map: Discharges by ZIP Code ----------
+    try:
+        with open("assets/hawaii_zipcodes.geojson") as f:
+            zips_geo = json.load(f)
+        print(f"[MAP] Loaded GeoJSON with {len(zips_geo.get('features', []))} features")
+    except Exception as e:
+        print(f"[MAP ERROR] Failed to load GeoJSON: {e}")
+        zips_geo = None
+    
+    if {"zip"}.issubset(dose_df.columns) and zips_geo:
+        by_zip = (
+            dose_df[dose_df["zip"] != ""]
+            .groupby("zip")["record_id"]
+            .nunique()
+            .reset_index(name="count")
+        )
+        print(f"[MAP] by_zip has {len(by_zip)} rows")
+        print(f"[MAP] Sample ZIPs: {by_zip['zip'].head(3).tolist()}")
+        
+        if not by_zip.empty:
+            by_zip["display_count"] = by_zip["count"].apply(lambda x: "<11" if x < 11 else str(x))
+            
+            map_fig = px.choropleth_mapbox(
+                by_zip,
+                geojson=zips_geo,
+                locations="zip",
+                featureidkey="properties.geoid20",
+                color="count",
+                color_continuous_scale="Blues",
+                mapbox_style="carto-positron",
+                zoom=6.2,
+                center={"lat": 20.8, "lon": -157.1},
+                opacity=0.7,
+                custom_data=["display_count"],
+                labels={"count": "Discharges", "zip": "ZIP Code"},
+            )
+            
+            map_fig.update_traces(
+                hovertemplate="<b>ZIP Code: %{location}</b><br>Discharges: %{customdata[0]}<extra></extra>"
+            )
+            
+            map_fig.update_layout(
+                margin=dict(l=0, r=0, t=10, b=0)
+            )
+        else:
+            print("[MAP] by_zip is empty!")
+            map_fig = px.choropleth_mapbox()
+    else:
+        print(f"[MAP] Missing zip column or no GeoJSON: zip in columns: {'zip' in dose_df.columns}, zips_geo: {zips_geo is not None}")
+        map_fig = px.choropleth_mapbox()
+
     # Return all the updated visuals and tables to Dash
     return (
         f"{filter_dose_total:,}",
         dose_bar,
         dose_line,
+        map_fig,
         tbl("county"),
         tbl("age_group", dose_age_groups),
         dose_sex_pie,
