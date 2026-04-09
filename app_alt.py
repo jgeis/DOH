@@ -713,8 +713,8 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex):
             color="count", # Keep the raw numeric count for the color scale
             color_continuous_scale="Blues",
             mapbox_style="carto-positron", 
-            zoom=6, 
-            center={"lat": 20.7967, "lon": -156.3319}, 
+            zoom=6.2, # Slightly increased zoom for a tighter fit
+            center={"lat": 20.8, "lon": -157.1}, # Centered perfectly between Oahu and Maui
             opacity=0.7, 
             custom_data=["display_count"], # Pass our newly created column into the figure's data
             labels={"count": "Discharges", "zip": "ZIP Code"},
