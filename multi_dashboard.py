@@ -41,12 +41,16 @@ SUDORS_NAV_GROUPS = {
     "substance": [
         ("/sudors", "SUDORS Overdose Deaths"),
         ("/sudors-polysubstance", "SUDORS with Polysubstance Use"),
+        ("/wonder-overview", "CDC WONDER Overdose Deaths Overview"),
+        ("/wonder-breakdown", "WONDER Breakdown"),
     ],
 }
 
 SUDORS_ROUTE_TO_GROUP = {
     "/sudors": "substance",
     "/sudors-polysubstance": "substance",
+    "/wonder-overview": "substance",
+    "/wonder-breakdown": "substance",
 }
 
 app = Dash(

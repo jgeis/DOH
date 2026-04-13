@@ -116,3 +116,48 @@ SELECT
   m.year
 FROM dx
 JOIN sudors_data_view_demographics$ m ON m.incident_id = dx.incident_id;
+
+-- name: load_wonder_overview
+SELECT
+  CAST(year AS INTEGER) AS year,
+  county,
+  CAST(deaths AS INTEGER) AS deaths
+FROM wonder_overview
+WHERE year IS NOT NULL;
+
+-- name: load_wonder_substance
+SELECT
+  CAST(year AS INTEGER) AS year,
+  county,
+  substance,
+  CAST(deaths AS INTEGER) AS deaths
+FROM wonder_substance
+WHERE year IS NOT NULL;
+
+-- name: load_wonder_race
+SELECT
+  CAST(year AS INTEGER) AS year,
+  county,
+  race,
+  CAST(deaths AS INTEGER) AS deaths
+FROM wonder_race
+WHERE year IS NOT NULL;
+
+-- name: load_wonder_age_group
+SELECT
+  CAST(year AS INTEGER) AS year,
+  county,
+  age_group,
+  CAST(deaths AS INTEGER) AS deaths,
+  precedence
+FROM wonder_age_group
+WHERE year IS NOT NULL;
+
+-- name: load_wonder_gender
+SELECT
+  CAST(year AS INTEGER) AS year,
+  county,
+  gender,
+  CAST(deaths AS INTEGER) AS deaths
+FROM wonder_gender
+WHERE year IS NOT NULL;
