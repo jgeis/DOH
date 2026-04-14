@@ -8,7 +8,7 @@ TAB_PATHS = {
     "/sudors": "SUDORS Overdose Deaths",
     "/dose": "Drug Overdose Surveillance and Epidemiology (DOSE)",
     "/polysubstance": "Related to polysubstance use",
-    "/polysubstance-alt": "Polysubstance Alternates",
+    # "/polysubstance-alt": "Polysubstance Alternates",
 }
 
 DEFAULT_PATH = "/discharges"
@@ -17,7 +17,7 @@ NAV_GROUPS = {
     "substance": [
         ("/discharges", "Discharges related to substance use"),
         ("/polysubstance", "Related to polysubstance use"),
-        ("/polysubstance-alt", "Polysubstance Alternates"),
+        # ("/polysubstance-alt", "Polysubstance Alternates"),
     ],
     # Example future group:
     # "new-visuals": [
@@ -30,7 +30,7 @@ NAV_GROUPS = {
 ROUTE_TO_GROUP = {
     "/discharges": "substance",
     "/polysubstance": "substance",
-    "/polysubstance-alt": "substance",
+    # "/polysubstance-alt": "substance",
     # Example future route mapping:
     # "/new-overview": "new-visuals",
     # "/new-trends": "new-visuals",
