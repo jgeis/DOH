@@ -203,6 +203,14 @@ filters_card = dbc.Card(
             placeholder="Calendar Year", className="mb-2",
             persistence=True, persistence_type="session"
         ),
+        html.Div(
+            [
+                html.P("* Values less than 10 are suppressed for privacy reasons and are displayed as <10.", className="small text-muted mb-1"),
+                html.P("† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).", className="small text-muted mb-1"),
+                html.P("‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).", className="small text-muted mb-0"),
+            ],
+            className="mt-3",
+        ),
     ]),
     id="alt-filters",
     className="mb-4"
@@ -254,6 +262,9 @@ def layout_for(
                 ],
                 className="g-2",
             ),
+            dbc.Row([
+                graph_block("substance-year-line", "Deaths by Substance Over Time", bar_h),
+            ]),
         ],
         xs=12, md=6
     )
@@ -323,6 +334,11 @@ def layout_for(
             style={} if (show_deaths) else {"display": "none"}
         ),
 
+        html.P(
+            "This section highlights the number of unintentional and undetermined drug overdose deaths in Hawaii broken down by substances that caused death (not mutually exclusive), age, race/ethnicity, sex at birth, and housing status. Specific substances tracked include: Fentanyl, Methamphetamine, Heroin, Prescription Opioids, Cocaine, and Benzodiazepines. Data is sourced from the State Unintentional Drug Overdose Reporting System (SUDORS) which collects information from death certificates, medical examiner or coroner reports, and postmortem toxicology reports to provide comprehensive information on the circumstances surrounding overdose deaths.",
+            className="small text-muted mt-2 mb-3",
+        ),
+
     ], fluid=True, className="p-2")
 
 
@@ -342,6 +358,7 @@ layout = layout_for(is_mobile=False)
     Output("table-sudors-age", "children"),
     Output("sex-sudors-pie", "figure"),
     Output("homeless-sudors-pie", "figure"),
+    Output("substance-year-line", "figure"),
     Input("substance-filter", "value"),
     Input("homeless-filter", "value"),
     Input("sex-filter", "value"),
@@ -556,6 +573,41 @@ def update_dashboard(substance, homeless, sex, age, race, year):
     else:
         homeless_pie = px.pie()
 
+    # ---------- Line chart: Deaths by Substance Over Time ----------
+    if {"year", "substance"}.issubset(dff.columns):
+        by_year_substance = (
+            dff.groupby(["year", "substance"])["incident_id"].nunique()
+            .reset_index(name="count")
+            .sort_values(["year", "substance"])
+        )
+
+        line_fig = px.line(
+            by_year_substance,
+            x="year",
+            y="count",
+            color="substance",
+            markers=True,
+            labels={"year": "Year", "count": "Number of Deaths", "substance": "Substance"},
+        )
+        line_fig.update_traces(
+            hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Deaths: %{y:,}<extra></extra>"
+        )
+        line_fig.update_layout(
+            margin=dict(l=10, r=10, t=80, b=70),
+            xaxis=dict(dtick=1, automargin=True, title_standoff=12),
+            yaxis=dict(rangemode="tozero"),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="left",
+                x=0,
+                font=dict(size=10),
+            ),
+        )
+    else:
+        line_fig = px.line()
+
 
     # Return all the updated visuals and tables to Dash
     return (
@@ -566,4 +618,5 @@ def update_dashboard(substance, homeless, sex, age, race, year):
         tbl("age_cat", age_table_order),
         sex_pie,
         homeless_pie,
+        line_fig,
     )
