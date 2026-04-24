@@ -326,6 +326,9 @@ def update_dashboard(county, year):
             .sum()
             .sort_values(["year", "county"])
         )
+        by_year["display_count"] = by_year["deaths"].apply(
+            lambda x: "<10" if x < 10 else f"{int(x):,}"
+        )
 
         year_line = px.line(
             by_year,
@@ -333,11 +336,13 @@ def update_dashboard(county, year):
             y="deaths",
             color="county",
             markers=True,
+            text="display_count",
             labels={"year": "Calendar Year", "deaths": "Number of Deaths", "county": "County"},
         )
 
         year_line.update_traces(
-            hovertemplate="Year %{x}<br>County: %{fullData.name}<br>Deaths: %{y:,}<extra></extra>",
+            textposition="top center",
+            hovertemplate="Year %{x}<br>County: %{fullData.name}<br>Deaths: %{text}<extra></extra>",
         )
 
         year_line.update_layout(
