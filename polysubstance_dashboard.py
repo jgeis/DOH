@@ -379,25 +379,16 @@ def layout_for(is_mobile: bool = False):
     center = dbc.Col([
         graph_block("bar-top-substances", "Top Substances (Polysubstance Records)", h_bar),
         # Hidden description for screen readers.
-        html.P(
-            "Horizontal bar chart of top substances among polysubstance records.",
-            className="sr-only"
-        ),
+        html.P("Horizontal bar chart showing the top substances among polysubstance records.", className="visually-hidden"),
 
         graph_block("stack-year-county", "Discharges by Year and County", h_stack),
-        html.P(
-            "Stacked bar chart of discharges by year and county. Use the legend to toggle counties.",
-            className="sr-only"
-        ),
+        html.P("Stacked bar chart showing discharges by year and county.", className="visually-hidden"),
     ], xs=12, md=6)
 
     # RIGHT: county share chart + two small summary tables
     right = dbc.Col([
         graph_block("pie-county-share", "County Share (Unique Discharges)", h_tree),
-        html.P(
-            "Pie chart showing share of unique discharges by county.",
-            className="sr-only"
-        ),
+        html.P("Pie chart showing the share of unique discharges by county.", className="visually-hidden"),
 
         # Two summary tables (Age + Sex at Birth)
         # Match Discharges tab behavior: 2-up on phones, stacked on md+.
@@ -423,36 +414,16 @@ def layout_for(is_mobile: bool = False):
 
         # Store mobile state for callbacks
         dcc.Store(id="polysubstance-cooccurrence-is-mobile", data=is_mobile),
-        
-        html.H2(
-            "Polysubstance Discharges — Exploratory View",
-            className="text-white bg-dark p-3 text-center mb-4",
-            tabIndex=0
-        ),
-
 
         dbc.Row([left, center, right], className="g-3"),
 
-                html.H2(
-            "Polysubstance Co-occurrence Analysis — Alternative Views",
-            className="text-white bg-dark p-3 text-center mb-4"
-        ),
-        
-        # Explanation section
-        dbc.Alert([
-            html.H5("About These Visualizations", className="alert-heading"),
-            html.P([
-                "These charts show relationships between different substances found in polysubstance cases. ",
-                "Each visualization offers a different perspective on how substances co-occur."
-            ]),
-        ], color="info", className="mb-4"),
         
         # Visualization 1: Heatmap
         dbc.Row([
             dbc.Col([
                 dbc.Card([
                     dbc.CardHeader([
-                        html.H5("1. Co-occurrence Heatmap", className="mb-0")
+                        html.H5("Co-occurrence Heatmap", className="mb-0")
                     ]),
                     dbc.CardBody([
                         html.P([
@@ -479,6 +450,10 @@ def layout_for(is_mobile: bool = False):
                                 className="graph-inner" if is_mobile else ""
                             ),
                             className="heatmap-scroll" if is_mobile else ""
+                        ),
+                        html.P(
+                            "Heatmap showing how often substances appear together in the same polysubstance record.",
+                            className="visually-hidden",
                         )
                     ])
                 ])
@@ -490,7 +465,7 @@ def layout_for(is_mobile: bool = False):
             dbc.Col([
                 dbc.Card([
                     dbc.CardHeader([
-                        html.H5("2. Co-occurrence by Primary Substance", className="mb-0")
+                        html.H5("Co-occurrence by Primary Substance", className="mb-0")
                     ]),
                     dbc.CardBody([
                         html.P([
@@ -499,6 +474,18 @@ def layout_for(is_mobile: bool = False):
                             html.Br() if is_mobile else "",
                             html.Small("(Scroll horizontally to see all substances)", className="text-muted") if is_mobile else ""
                         ], className="text-muted mb-3"),
+                        html.Hr(className="my-3"),
+                        html.Label("Filter by Primary Substance:", className="form-label fw-bold"),
+                        dcc.Dropdown(
+                            id="polysubstance-cooccurrence-primary-substance",
+                            options=[{"label": "All substances (no filter)", "value": ""}] + 
+                                    [{"label": s, "value": s} for s in sorted(df_raw['substance'].unique())],
+                            value="",
+                            clearable=False,
+                            className="mb-2"
+                        ),
+                        html.Small("Select a specific substance to see what co-occurs with it, or choose 'All substances' to see the full overview.", 
+                                   className="text-muted"),
                         dcc.Loading(
                             html.Div(
                                 html.Div(
@@ -512,18 +499,10 @@ def layout_for(is_mobile: bool = False):
                                 className="hscroll-graph" if is_mobile else ""
                             )
                         ),
-                        html.Hr(className="my-3"),
-                        html.Label("Filter by Primary Substance:", className="form-label fw-bold"),
-                        dcc.Dropdown(
-                            id="polysubstance-cooccurrence-primary-substance",
-                            options=[{"label": "All substances (no filter)", "value": ""}] + 
-                                    [{"label": s, "value": s} for s in sorted(df_raw['substance'].unique())],
-                            value="",
-                            clearable=False,
-                            className="mb-2"
-                        ),
-                        html.Small("Select a specific substance to see what co-occurs with it, or choose 'All substances' to see the full overview.", 
-                                   className="text-muted")
+                        html.P(
+                            "Grouped bar chart showing the percentage of cases where each primary substance co-occurs with other substances.",
+                            className="visually-hidden",
+                        )
                     ])
                 ])
             ], md=12, className="mb-4")
@@ -534,7 +513,7 @@ def layout_for(is_mobile: bool = False):
             dbc.Col([
                 dbc.Card([
                     dbc.CardHeader([
-                        html.H5("3. Substance Co-occurrence Network", className="mb-0")
+                        html.H5("Substance Co-occurrence Network", className="mb-0")
                     ]),
                     dbc.CardBody([
                         html.P([
@@ -548,6 +527,10 @@ def layout_for(is_mobile: bool = False):
                                 config={"displayModeBar": True, "displaylogo": False},
                                 style={"height": "600px"}
                             )
+                        ),
+                        html.P(
+                            "Network graph showing substances as connected nodes, with thicker lines indicating more frequent co-occurrence.",
+                            className="visually-hidden",
                         )
                     ])
                 ])
@@ -559,7 +542,7 @@ def layout_for(is_mobile: bool = False):
             dbc.Col([
                 dbc.Card([
                     dbc.CardHeader([
-                        html.H5("4. Substance Flow Diagram (Sankey)", className="mb-0")
+                        html.H5("Substance Flow Diagram (Sankey)", className="mb-0")
                     ]),
                     dbc.CardBody([
                         html.P([
@@ -573,6 +556,10 @@ def layout_for(is_mobile: bool = False):
                                 config={"displayModeBar": True, "displaylogo": False},
                                 style={"height": "700px"}
                             )
+                        ),
+                        html.P(
+                            "Sankey diagram showing flows between the most frequent co-occurring substances in polysubstance cases.",
+                            className="visually-hidden",
                         )
                     ])
                 ])

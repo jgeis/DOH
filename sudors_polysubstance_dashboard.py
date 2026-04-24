@@ -216,6 +216,10 @@ def layout_for(is_mobile: bool = False):
                                 className="hscroll-graph" if is_mobile else ""
                             )
                         ),
+                        html.P(
+                            "Grouped bar chart showing the percentage of cases where each primary substance co-occurs with other substances.",
+                            className="visually-hidden",
+                        ),
                         html.Hr(className="my-3"),
                         html.Label("Filter by Primary Substance:", className="form-label fw-bold"),
                         dcc.Dropdown(
@@ -258,6 +262,10 @@ def layout_for(is_mobile: bool = False):
                                 ),
                                 className="hscroll-graph" if is_mobile else ""
                             )
+                        ),
+                        html.P(
+                            "Sunburst chart showing how selected substances branch into co-occurring substance combinations.",
+                            className="visually-hidden",
                         ),
                     ])
                 ])

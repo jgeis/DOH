@@ -225,11 +225,11 @@ def layout_for(
         [
             dbc.Row([
                 graph_block("wonder-line-deaths", "Deaths by Calendar Year", line_h),
-                #html.P("Line chart of deaths by calendar year.", className="sr-only"),
+                html.P("Line chart showing deaths by calendar year.", className="visually-hidden"),
             ]),
             dbc.Row([
                 graph_block("wonder-bar-deaths", "Deaths by County", bar_h),
-                #html.P("Bar chart of deaths by county.", className="sr-only"),
+                html.P("Bar chart showing deaths by county.", className="visually-hidden"),
             ]),
         ],
         xs=12, md=8

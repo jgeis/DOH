@@ -179,9 +179,12 @@ def layout():
 
                 dbc.Col([
                     graph_block("bar-dose", "Nonfatal Overdoses Related to Drug Poisonings", bar_h),
+                    html.P("Bar chart showing nonfatal overdoses related to drug poisonings.", className="visually-hidden"),
                     graph_block("year-diagnosis-lines-dose", "DOSE Discharges by Year and Substance", line_h),
+                    html.P("Line chart showing DOSE discharges by year and substance.", className="visually-hidden"),
                     dbc.Row([
                         graph_block("map-county", "Discharges by County", map_h),
+                        html.P("Choropleth map showing discharges by county.", className="visually-hidden"),
                     ]),
                 ], xs=12, md=6),
 
@@ -215,6 +218,7 @@ def layout():
                             className="g-2"
                         ),
                         graph_block("sex-pie-dose", "Discharges by Gender", pie_h),
+                        html.P("Pie chart showing discharges by gender.", className="visually-hidden"),
                     ],
                     xs=12, md=3
                 )

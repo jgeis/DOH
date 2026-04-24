@@ -248,14 +248,14 @@ def layout_for(
         [
             dbc.Row([
                 graph_block("bar-deaths", "Deaths by Substance", bar_h),
-                #html.P("Bar chart of deaths by substance.", className="sr-only"),
+                html.P("Bar chart showing deaths by substance.", className="visually-hidden"),
             ]),
             dbc.Row(
                 [
                     dbc.Col(
                         [
                             graph_block("sex-sudors-pie", "Deaths by Gender", pie_h),
-                            #html.P("Pie chart of deaths by gender.", className="sr-only"),
+                            html.P("Pie chart showing deaths by gender.", className="visually-hidden"),
                         ],
                         xs=12,
                         md=6,
@@ -263,7 +263,7 @@ def layout_for(
                     dbc.Col(
                         [
                             graph_block("homeless-sudors-pie", "Homeless Deaths", pie_h),
-                            #html.P("Pie chart of deaths by homeless status.", className="sr-only"),
+                            html.P("Pie chart showing deaths by homeless status.", className="visually-hidden"),
                         ],
                         xs=12,
                         md=6,
@@ -273,6 +273,7 @@ def layout_for(
             ),
             dbc.Row([
                 graph_block("substance-year-line", "Deaths by Substance Over Time", bar_h),
+                html.P("Line chart showing deaths by substance over time.", className="visually-hidden"),
             ]),
         ],
         xs=12, md=6

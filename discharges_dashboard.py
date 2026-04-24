@@ -202,8 +202,11 @@ def layout():
     center_col = dbc.Col(
         [
             graph_block("bar-substances", "Discharges by Substance", bar_h),
+            html.P("Bar chart showing discharges by substance.", className="visually-hidden"),
             graph_block("county-year-lines", "Discharges by County and Year", line_h),
+            html.P("Line chart showing discharges by county and year.", className="visually-hidden"),
             graph_block("sex-year-stacked", "Yearly Discharges by Gender", bar_h),
+            html.P("Stacked bar chart showing yearly discharges by gender.", className="visually-hidden"),
         ],
         xs=12, md=6
     )
@@ -239,6 +242,7 @@ def layout():
                 className="g-2"
             ),
             graph_block("sex-pie", "Discharges by Gender", pie_h),
+            html.P("Pie chart showing discharges by gender.", className="visually-hidden"),
         ],
         xs=12, md=3
     )

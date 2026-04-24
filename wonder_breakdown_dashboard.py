@@ -203,15 +203,15 @@ def layout_for(
         [
             dbc.Row([
                 graph_block("wonder-substance-deaths", "Deaths by Substance", bar_h),
-                # deaths by substance.", className="sr-only"),
+                html.P("Bar chart showing deaths by substance.", className="visually-hidden"),
             ]),
             dbc.Row([
                 graph_block("wonder-race-deaths", "Deaths by Race", bar_h),
-                #html.P("Bar chart of deaths by race.", className="sr-only"),
+                html.P("Bar chart showing deaths by race.", className="visually-hidden"),
             ]),
             dbc.Row([
                 graph_block("wonder-age-group-deaths", "Deaths by Age Group", bar_h),
-                #html.P("Bar chart of deaths by age group.", className="sr-only"),
+                html.P("Bar chart showing deaths by age group.", className="visually-hidden"),
             ]),
         ],
         xs=12, md=6
@@ -220,7 +220,7 @@ def layout_for(
     right_col = dbc.Col(
         [
             graph_block("wonder-gender-deaths", "Deaths by Gender", pie_h),
-            #html.P("Pie chart of deaths by gender.", className="sr-only"),
+            html.P("Pie chart showing deaths by gender.", className="visually-hidden"),
         ],
         xs=12, md=3
     )
