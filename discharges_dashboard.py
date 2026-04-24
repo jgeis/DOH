@@ -81,7 +81,7 @@ race_ethnicity_opts = sort_opts(df_raw["race_ethnicity"])           if "race_eth
 # This link helps keyboard and screen reader users jump straight to the filters.
 skip_link = html.A(
     "Skip to filters",
-    href="#alt-filters",
+    href="#discharges-filters",
     className="visually-hidden-focusable",
     tabIndex=0
 )
@@ -165,7 +165,7 @@ filters_card = dbc.Card(
             className="mt-3",
         ),
     ]),
-    id="alt-filters",
+    id="discharges-filters",
     className="mb-4"
 )
 

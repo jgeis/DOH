@@ -146,7 +146,7 @@ def graph_block(base_id: str, title_text: str, height_px: str):
 # This link helps keyboard and screen reader users jump straight to the filters.
 skip_link = html.A(
     "Skip to filters",
-    href="#alt-filters",
+    href="#sudors-filters",
     className="visually-hidden-focusable",
     tabIndex=0
 )
@@ -221,7 +221,7 @@ filters_card = dbc.Card(
             className="mt-3",
         ),
     ]),
-    id="alt-filters",
+    id="sudors-filters",
     className="mb-4"
 )
 

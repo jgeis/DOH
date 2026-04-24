@@ -173,7 +173,7 @@ def layout_for(is_mobile: bool = False):
     
     return dbc.Container([
         # Store mobile state for callbacks
-        dcc.Store(id="alt-sudors-is-mobile", data=is_mobile),
+        dcc.Store(id="sudors-cooccurrence-is-mobile", data=is_mobile),
         
         html.H2(
             "Polysubstance Co-occurrence Analysis — Alternative Views",
@@ -207,7 +207,7 @@ def layout_for(is_mobile: bool = False):
                             html.Div(
                                 html.Div(
                                     dcc.Graph(
-                                        id="alt-sudors-bar-chart",
+                                        id="sudors-cooccurrence-bar-chart",
                                         config={"displayModeBar": True, "displaylogo": False},
                                         style={"height": "650px" if is_mobile else "500px"}
                                     ),
@@ -219,7 +219,7 @@ def layout_for(is_mobile: bool = False):
                         html.Hr(className="my-3"),
                         html.Label("Filter by Primary Substance:", className="form-label fw-bold"),
                         dcc.Dropdown(
-                            id="alt-sudors-primary-substance",
+                            id="sudors-cooccurrence-primary-substance",
                             options=[{"label": "All substances (no filter)", "value": ""}] + 
                                     [{"label": s, "value": s} for s in sorted(df_raw['substance'].unique())],
                             value="",
@@ -250,7 +250,7 @@ def layout_for(is_mobile: bool = False):
                             html.Div(
                                 html.Div(
                                     dcc.Graph(
-                                        id="alt-sudors-sunburst",
+                                        id="sudors-cooccurrence-sunburst",
                                         config={"displayModeBar": True, "displaylogo": False},
                                         style={"height": "650px" if is_mobile else "500px"}
                                     ),
@@ -272,9 +272,9 @@ layout = layout_for(is_mobile=False)
 # ---------- Callbacks ----------
 
 @callback(
-    Output("alt-sudors-bar-chart", "figure"),
-    Input("alt-sudors-primary-substance", "value"),
-    Input("alt-sudors-is-mobile", "data"),
+    Output("sudors-cooccurrence-bar-chart", "figure"),
+    Input("sudors-cooccurrence-primary-substance", "value"),
+    Input("sudors-cooccurrence-is-mobile", "data"),
 )
 def update_bar_chart(primary_substance, is_mobile):
     """Create grouped bar chart showing co-occurrence percentages."""
@@ -463,8 +463,8 @@ def update_bar_chart(primary_substance, is_mobile):
 
 
 @callback(
-    Output("alt-sudors-sunburst", "figure"),
-    Input("alt-sudors-primary-substance", "value"),
+    Output("sudors-cooccurrence-sunburst", "figure"),
+    Input("sudors-cooccurrence-primary-substance", "value"),
 )
 
 def update_sunburst(primary_substance):

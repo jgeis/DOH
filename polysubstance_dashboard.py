@@ -422,7 +422,7 @@ def layout_for(is_mobile: bool = False):
         ),
 
         # Store mobile state for callbacks
-        dcc.Store(id="alt-is-mobile", data=is_mobile),
+        dcc.Store(id="polysubstance-cooccurrence-is-mobile", data=is_mobile),
         
         html.H2(
             "Polysubstance Discharges — Exploratory View",
@@ -464,7 +464,7 @@ def layout_for(is_mobile: bool = False):
                         dcc.Loading(
                             html.Div(
                                 dcc.Graph(
-                                    id="alt-heatmap",
+                                    id="polysubstance-cooccurrence-heatmap",
                                     config={"displayModeBar": True, "displaylogo": False},
                                     style={
                                         # Fixed height for both mobile and desktop
@@ -503,7 +503,7 @@ def layout_for(is_mobile: bool = False):
                             html.Div(
                                 html.Div(
                                     dcc.Graph(
-                                        id="alt-bar-chart",
+                                        id="polysubstance-cooccurrence-bar-chart",
                                         config={"displayModeBar": True, "displaylogo": False},
                                         style={"height": "650px" if is_mobile else "500px"}
                                     ),
@@ -515,7 +515,7 @@ def layout_for(is_mobile: bool = False):
                         html.Hr(className="my-3"),
                         html.Label("Filter by Primary Substance:", className="form-label fw-bold"),
                         dcc.Dropdown(
-                            id="alt-primary-substance",
+                            id="polysubstance-cooccurrence-primary-substance",
                             options=[{"label": "All substances (no filter)", "value": ""}] + 
                                     [{"label": s, "value": s} for s in sorted(df_raw['substance'].unique())],
                             value="",
@@ -544,7 +544,7 @@ def layout_for(is_mobile: bool = False):
                         ], className="text-muted mb-3"),
                         dcc.Loading(
                             dcc.Graph(
-                                id="alt-network",
+                                id="polysubstance-cooccurrence-network",
                                 config={"displayModeBar": True, "displaylogo": False},
                                 style={"height": "600px"}
                             )
@@ -569,7 +569,7 @@ def layout_for(is_mobile: bool = False):
                         ], className="text-muted mb-3"),
                         dcc.Loading(
                             dcc.Graph(
-                                id="alt-sankey",
+                                id="polysubstance-cooccurrence-sankey",
                                 config={"displayModeBar": True, "displaylogo": False},
                                 style={"height": "700px"}
                             )
@@ -776,9 +776,9 @@ def _reset_filters(n):
 # ---------- Callbacks ----------
 
 @callback(
-    Output("alt-heatmap", "figure"),
-    Input("alt-primary-substance", "value"),  # Not used, but keeps callback structure
-    Input("alt-is-mobile", "data"),
+    Output("polysubstance-cooccurrence-heatmap", "figure"),
+    Input("polysubstance-cooccurrence-primary-substance", "value"),  # Not used, but keeps callback structure
+    Input("polysubstance-cooccurrence-is-mobile", "data"),
 )
 def update_heatmap(_, is_mobile):
     """Create a heatmap showing correlation between substances."""
@@ -838,9 +838,9 @@ def update_heatmap(_, is_mobile):
 
 
 @callback(
-    Output("alt-bar-chart", "figure"),
-    Input("alt-primary-substance", "value"),
-    Input("alt-is-mobile", "data"),
+    Output("polysubstance-cooccurrence-bar-chart", "figure"),
+    Input("polysubstance-cooccurrence-primary-substance", "value"),
+    Input("polysubstance-cooccurrence-is-mobile", "data"),
 )
 def update_bar_chart(primary_substance, is_mobile):
     """Create grouped bar chart showing co-occurrence percentages."""
@@ -1029,8 +1029,8 @@ def update_bar_chart(primary_substance, is_mobile):
 
 
 @callback(
-    Output("alt-network", "figure"),
-    Input("alt-primary-substance", "value"),  # Not used, but keeps callback structure
+    Output("polysubstance-cooccurrence-network", "figure"),
+    Input("polysubstance-cooccurrence-primary-substance", "value"),  # Not used, but keeps callback structure
 )
 def update_network(_):
     """Create a network graph showing substance co-occurrences."""
@@ -1164,8 +1164,8 @@ def update_network(_):
 
 
 @callback(
-    Output("alt-sankey", "figure"),
-    Input("alt-primary-substance", "value"),  # Not used, but keeps callback structure
+    Output("polysubstance-cooccurrence-sankey", "figure"),
+    Input("polysubstance-cooccurrence-primary-substance", "value"),  # Not used, but keeps callback structure
 )
 def update_sankey(_):
     """Create a Sankey diagram showing substance flow patterns."""
