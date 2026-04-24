@@ -427,8 +427,8 @@ def layout_for(is_mobile: bool = False):
                     ]),
                     dbc.CardBody([
                         html.P([
-                            "This heatmap shows how often substances appear together in the same record. ",
-                            "Darker colors indicate stronger co-occurrence patterns.",
+                            "Heatmap showing how often substances appear together in the same polysubstance record. ",
+                            "Darker cells indicate stronger co-occurrence.",
                             html.Br() if is_mobile else "",
                             html.Small("(Scroll horizontally to see full chart)", className="text-muted") if is_mobile else ""
                         ], className="text-muted mb-3"),
@@ -469,8 +469,8 @@ def layout_for(is_mobile: bool = False):
                     ]),
                     dbc.CardBody([
                         html.P([
-                            "When a primary substance is present, this shows what percentage of those cases ",
-                            "also contain each other substance. Use the filter below to focus on one substance.",
+                            "Grouped bar chart showing what percentage of cases with a given primary substance also contain each other substance. ",
+                            "Use the filter below to focus on one substance.",
                             html.Br() if is_mobile else "",
                             html.Small("(Scroll horizontally to see all substances)", className="text-muted") if is_mobile else ""
                         ], className="text-muted mb-3"),
@@ -517,9 +517,9 @@ def layout_for(is_mobile: bool = False):
                     ]),
                     dbc.CardBody([
                         html.P([
-                            "This network shows substances as nodes connected by their co-occurrence frequency. ",
-                            "Thicker lines indicate substances that appear together more often. ",
-                            "Only connections with at least 50 co-occurrences are shown."
+                            "Network graph showing substances as connected nodes. ",
+                            "Thicker lines indicate more frequent co-occurrence. ",
+                            "Only connections with 50 or more cases are shown."
                         ], className="text-muted mb-3"),
                         dcc.Loading(
                             dcc.Graph(
@@ -546,9 +546,9 @@ def layout_for(is_mobile: bool = False):
                     ]),
                     dbc.CardBody([
                         html.P([
-                            "This flow diagram shows how substances connect to each other in polysubstance cases. ",
-                            "The width of each flow represents the number of co-occurrences. ",
-                            "Only the top 8 substances by frequency are shown for clarity."
+                            "Sankey diagram showing flows between the most frequent co-occurring substances in polysubstance cases. ",
+                            "Flow width represents the number of co-occurrences. ",
+                            "Only the top 8 substances by frequency are shown."
                         ], className="text-muted mb-3"),
                         dcc.Loading(
                             dcc.Graph(

@@ -174,12 +174,17 @@ def layout_for(is_mobile: bool = False):
     return dbc.Container([
         # Store mobile state for callbacks
         dcc.Store(id="sudors-cooccurrence-is-mobile", data=is_mobile),
-        
+
+        html.A(
+            "Skip to first chart", href="#sudors-cooccurrence-charts",
+            className="visually-hidden-focusable", tabIndex=0
+        ),
+
         html.H2(
             "Polysubstance Co-occurrence Analysis — Alternative Views",
             className="text-white bg-dark p-3 text-center mb-4"
         ),
-        
+
         # Explanation section
         dbc.Alert([
             html.H5("About These Visualizations", className="alert-heading"),
@@ -188,8 +193,9 @@ def layout_for(is_mobile: bool = False):
                 "Each visualization offers a different perspective on how substances co-occur."
             ]),
         ], color="info", className="mb-4"),
-        
-        # Visualization 1: Grouped Bar Chart
+
+        # Charts target for skip link
+        html.Div(id="sudors-cooccurrence-charts"),
         dbc.Row([
             dbc.Col([
                 dbc.Card([
@@ -198,8 +204,8 @@ def layout_for(is_mobile: bool = False):
                     ]),
                     dbc.CardBody([
                         html.P([
-                            "When a primary substance is present, this shows what percentage of those cases ",
-                            "also contain each other substance. Use the filter below to focus on one substance.",
+                            "Grouped bar chart showing what percentage of cases with a given primary substance also contain each other substance. ",
+                            "Use the filter below to focus on one substance.",
                             html.Br() if is_mobile else "",
                             html.Small("(Scroll horizontally to see all substances)", className="text-muted") if is_mobile else ""
                         ], className="text-muted mb-3"),
@@ -246,7 +252,7 @@ def layout_for(is_mobile: bool = False):
                     ]),
                     dbc.CardBody([
                         html.P([
-                            "This shows a pie chart-like view of cases that also contain another substance.",
+                            "Sunburst chart showing how selected substances branch into co-occurring substance combinations.",
                             html.Br() if is_mobile else "",
                             html.Small("(Scroll horizontally to see all substances)", className="text-muted") if is_mobile else ""
                         ], className="text-muted mb-3"),

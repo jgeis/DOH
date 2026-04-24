@@ -240,7 +240,7 @@ def layout_for(
         skip_link,
         html.Div(
             dbc.Row([left_col, center_col], className="g-3"),
-            id="discharges-section",
+            id="wonder-overview-section",
             style={} if show_deaths else {"display": "none"}
         ),
 
