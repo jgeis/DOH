@@ -1,0 +1,84 @@
+# dashboard_utils.py — Shared utilities for dashboards
+
+import pandas as pd
+import dash_bootstrap_components as dbc
+from dash import html, dcc
+from theme import register_template
+
+# This applies our custom Plotly theme (colors, fonts, etc.)
+register_template()
+
+
+def load_sql_query(name, path="queries.sql"):
+    """
+    This helper looks inside the queries.sql file and pulls out
+    the specific SQL block we want by name.
+
+    Why: this keeps all the SQL in one file instead of hard-coding
+    long queries directly in the Python file.
+    """
+    with open(path, "r", encoding="utf-8") as f:
+        sql = f.read()
+    # The SQL file is split into blocks marked with "-- name:"
+    blocks = sql.split("-- name:")
+    m = {}
+    for b in blocks:
+        # Skip any empty chunks
+        if not b.strip():
+            continue
+        # First line after "-- name:" is the name, the rest is the SQL text
+        lines = b.strip().split("\n")
+        m[lines[0].strip()] = "\n".join(lines[1:]).strip()
+    # If we typed the wrong query name, complain loudly
+    if name not in m:
+        raise KeyError(f"Named query '{name}' not found in {path}.")
+    return m[name]
+
+
+def sort_opts(series):
+    """
+    Turn a column into a sorted list of unique values.
+
+    We also make sure "Unknown" always shows up at the end of the list
+    so the drop-down menus look cleaner.
+    """
+    vals = pd.Series(series.unique()).astype(str)
+    vals = sorted([v for v in vals if v != "Unknown"]) + (["Unknown"] if "Unknown" in vals.values else [])
+    return vals
+
+
+def opts_list(values):
+    """
+    Turn a simple list of values into the format Dash expects for
+    drop-down choices (label + value).
+    """
+    return [{"label": v, "value": v} for v in values]
+
+
+def graph_block(base_id: str, title_text: str, height_px: str):
+    """
+    Make a standard "card" that holds:
+      - a hidden store that remembers if the tools are on/off
+      - a small Tools button that the user clicks
+      - a title for the plot
+      - the actual graph area
+
+    Why: we use this pattern for several plots, so this function keeps
+    the layout consistent and avoids repeating the same code over and over.
+    """
+    return html.Div(
+        [
+            # Header row with the plot title.
+            html.H5(title_text, id=f"{base_id}-title", className="plot-card-header mb-2"),
+
+            # The actual graph. Modebar (tools) is always on now.
+            dcc.Graph(
+                id=base_id,
+                style={"height": height_px, "width": "100%"},
+                config={"displayModeBar": True, "displaylogo": False},
+            ),
+        ],
+        className="mb-4",
+        # This makes sure the tools bar is never cut off visually.
+        style={"overflow": "visible"}
+    )

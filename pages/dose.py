@@ -1,6 +1,6 @@
 from dash import register_page
 
-import app_alt as alt
+import dose_dashboard
 
 register_page(
     __name__,
@@ -9,4 +9,4 @@ register_page(
     title="Drug Overdose Surveillance and Epidemiology (DOSE)",
 )
 
-layout = alt.layout_for(is_mobile=False, show_discharges=False, show_dose=True)
+layout = dose_dashboard.layout

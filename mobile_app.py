@@ -30,7 +30,7 @@ def _safe_import(name, attr=None):
 
 # Try to import the three page modules for the dashboards.
 # These are separate files that hold each page's layout and logic.
-ALT_MOD  = _safe_import("app_alt")
+ALT_MOD  = _safe_import("discharges_dashboard")
 POLY_MOD = _safe_import("polysubstance_dashboard")
 CO_MOD   = _safe_import("cooccurring_dashboard_db")
 

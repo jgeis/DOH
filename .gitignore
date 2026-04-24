@@ -12,6 +12,8 @@ PlotlyDemo.mp4
 *.xlsx
 *.csv 
 credentials.json
+settings.json
+test_queries.sql
 
 # OS stuff
 .DS_Store

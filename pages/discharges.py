@@ -1,6 +1,6 @@
 from dash import register_page
 
-import app_alt as alt
+import discharges_dashboard
 
 register_page(
     __name__,
@@ -9,4 +9,4 @@ register_page(
     title="Discharges related to substance use",
 )
 
-layout = alt.layout_for(is_mobile=False, show_discharges=True, show_dose=False)
+layout = discharges_dashboard.layout
