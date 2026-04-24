@@ -5,6 +5,7 @@ from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
 import json
+import re
 
 register_template()
 
@@ -154,8 +155,8 @@ skip_link = html.A(
 # Why: gives users a quick "at a glance" number when they open the page.
 kpi_card = dbc.Card(
     dbc.CardBody([
-        html.H4("Number of Unintentional or Undetermined Overdose Deaths", className="card-title text-white"),
         html.H2(id="kpi-total-deaths", className="text-white"),
+        html.H4("Number of Unintentional or Undetermined Overdose Deaths", className="card-title text-white"),
     ]),
     className="bg-success text-center mb-4"
 )
@@ -178,6 +179,12 @@ filters_card = dbc.Card(
             placeholder="Homeless", className="mb-2",
             persistence=True, persistence_type="session"
         ),
+        html.Label("Race/Ethnicity", htmlFor="race-filter", tabIndex=5, className="form-label"),
+        dcc.Dropdown(
+            id="race-filter", options=opts_list(race_opts), multi=True,
+            placeholder="Race/Ethnicity", className="mb-2",
+            persistence=True, persistence_type="session"
+        ),
         html.Label("Sex", htmlFor="sex-filter", tabIndex=6, className="form-label"),
         dcc.Dropdown(
             id="sex-filter", options=opts_list(sex_opts), multi=True,
@@ -190,16 +197,10 @@ filters_card = dbc.Card(
             placeholder="Age Group", className="mb-2",
             persistence=True, persistence_type="session"
         ),
-        html.Label("Race", htmlFor="race-filter", tabIndex=5, className="form-label"),
-        dcc.Dropdown(
-            id="race-filter", options=opts_list(race_opts), multi=True,
-            placeholder="Race", className="mb-2",
-            persistence=True, persistence_type="session"
-        ),
-        html.Label("Year", htmlFor="year-filter", tabIndex=3, className="form-label"),
+        html.Label("Calendar Year", htmlFor="year-filter", tabIndex=3, className="form-label"),
         dcc.Dropdown(
             id="year-filter", options=opts_list(year_opts), multi=True,
-            placeholder="Year", className="mb-2",
+            placeholder="Calendar Year", className="mb-2",
             persistence=True, persistence_type="session"
         ),
     ]),
@@ -230,18 +231,35 @@ def layout_for(
         [
             dbc.Row([
                 graph_block("bar-deaths", "Deaths by Substance", bar_h),
-                html.P("Bar chart of deaths by substance.", className="sr-only"),
+                #html.P("Bar chart of deaths by substance.", className="sr-only"),
             ]),
-            graph_block("sex-sudors-pie", "Deaths by Gender", pie_h),
-            html.P("Pie chart of deaths by gender.", className="sr-only"),
-
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            graph_block("sex-sudors-pie", "Deaths by Gender", pie_h),
+                            #html.P("Pie chart of deaths by gender.", className="sr-only"),
+                        ],
+                        xs=12,
+                        md=6,
+                    ),
+                    dbc.Col(
+                        [
+                            graph_block("homeless-sudors-pie", "Homeless Deaths", pie_h),
+                            #html.P("Pie chart of deaths by homeless status.", className="sr-only"),
+                        ],
+                        xs=12,
+                        md=6,
+                    ),
+                ],
+                className="g-2",
+            ),
         ],
         xs=12, md=6
     )
 
     # Right column:
-    # - Two small summary tables (by county and by age group)
-    # - A pie chart for gender
+    # summary tables (by county and by age group)
     #
     # On phones, the two small tables sit side-by-side.
     # On bigger screens, they stack vertically.
@@ -259,17 +277,6 @@ def layout_for(
                             ),
                         ],
                         xs=6, md=12, className="pe-1 mb-3",
-                    ),
-                    dbc.Col(
-                        [
-                            html.H6("Is Homeless", className="mb-2"),
-                            html.Div(
-                                id="table-homeless",
-                                className="mobile-side-table",
-                                style={"overflowX": "auto"}
-                            ),
-                        ],
-                        xs=6, md=12, className="ps-1 mb-3",
                     ),
                     dbc.Col(
                         [
@@ -331,10 +338,10 @@ layout = layout_for(is_mobile=False)
     Output("kpi-total-deaths", "children"),
     Output("bar-deaths", "figure"),
     Output("table-race", "children"),
-    Output("table-homeless", "children"),
     Output("table-calendar", "children"),
     Output("table-sudors-age", "children"),
     Output("sex-sudors-pie", "figure"),
+    Output("homeless-sudors-pie", "figure"),
     Input("substance-filter", "value"),
     Input("homeless-filter", "value"),
     Input("sex-filter", "value"),
@@ -390,6 +397,9 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             .sort_values("count", ascending=True)
         )
 
+        # Show all rows, but suppress low-count bars by plotting zero width.
+        by_sub["plot_count"] = by_sub["count"].apply(lambda x: 0 if x < 10 else x)
+
         def ellipsize(text, max_len=25):
             if text is None:
                 return text
@@ -398,30 +408,29 @@ def update_dashboard(substance, homeless, sex, age, race, year):
         # Cuts off label length after 25 characters
         by_sub["substance_label"] = by_sub["substance"].apply(ellipsize)
 
-        # Hides numbers to "<10" if it is less than or equal to 10
         by_sub["display_count"] = by_sub["count"].apply(
-            lambda x: "<=10" if x <= 10 else f"{int(x):,}"
+            lambda x: "<10*" if x < 10 else f"{int(x):,}"
         )
 
         sud_bar = px.bar(
             by_sub,
-            x="count",
+            x="plot_count",
             y="substance_label",
             barmode="stack",
             text="display_count",
-            labels={"count": "Number of Deaths", "substance_label": "Cause of Death"},
+            labels={"plot_count": "Number of Deaths", "substance_label": "Cause of Death<br>(Not Mutually Exclusive)"},
         )
-        
+
         sud_bar.update_traces(
             textposition="outside",
             cliponaxis=False,
             hovertemplate="Cause of Death: %{customdata}<br>Number of Deaths: %{text}<extra></extra>",
-            customdata=by_sub["substance"]
+            customdata=by_sub["substance"],
         )
 
         sud_bar.update_layout(
             margin=dict(l=0, r=0, t=10, b=80),
-            xaxis=dict(automargin=True),
+            xaxis=dict(automargin=True, rangemode="tozero"),
         )
 
     else:
@@ -450,9 +459,13 @@ def update_dashboard(substance, homeless, sex, age, race, year):
         if categories:
             g[column] = pd.Categorical(g[column], categories=categories, ordered=True)
             g = g.sort_values(column)
+        elif column == "race_ethnicity":
+            g = g.sort_values("count", ascending=False)
+        elif column == "homeless":
+            g = g.sort_values("count", ascending=False)
 
         # Make the counts look nicer with commas
-        g["count"] = g["count"].map(lambda x: "<=10" if x <= 10 else f"{int(x):,}")
+        g["count"] = g["count"].map(lambda x: "<10*" if x < 10 else f"{int(x):,}")
 
         # Use friendly display labels for table headers
         header_labels = {
@@ -467,6 +480,29 @@ def update_dashboard(substance, homeless, sex, age, race, year):
         # Build a styled table for the dashboard
         return dbc.Table.from_dataframe(g, striped=True, bordered=True, hover=True)
 
+    # pin "under 15" at the top and "unknown" at the bottom, with the rest in numeric order in between
+    def age_sort_key(label):
+        text = str(label).strip()
+        lower = text.lower()
+
+        if lower == "under 15":
+            return (0, -1, text)
+        if lower == "unknown":
+            return (2, float("inf"), text)
+
+        match = re.search(r"\d+", text)
+        if match:
+            return (1, int(match.group()), text)
+
+        return (1, float("inf"), text)
+
+    age_table_order = []
+    if "age_cat" in dff.columns:
+        age_table_order = sorted(
+            [v for v in dff["age_cat"].dropna().astype(str).unique()],
+            key=age_sort_key,
+        )
+
 
     # ---------- Pie chart: Deaths by Gender ----------
     if "sex" in dff.columns:
@@ -475,20 +511,50 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             .reset_index(name="count")
             .sort_values("count", ascending=False)
         )
+        pie_df["display_count"] = pie_df["count"].apply(
+            lambda x: "<10*" if x < 10 else f"{int(x):,}"
+        )
         sex_pie = px.pie(
             pie_df,
             names="sex",
             values="count",
-            hole=0.35
+            hole=0.35,
+            custom_data=["display_count"],
         )
         sex_pie.update_traces(
             textposition="inside",
-            texttemplate="%{label}<br>%{percent:.1%} (%{value:,})",
-            hovertemplate="%{label}: %{value:,} (%{percent:.1%})"
+            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
+            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
         )
         sex_pie.update_layout(margin=dict(l=0, r=0, t=10, b=0))
     else:
         sex_pie = px.pie()
+
+    # ---------- Pie chart: Deaths by Homeless Status ----------
+    if "homeless" in dff.columns:
+        homeless_pie_df = (
+            dff.groupby("homeless")["incident_id"].nunique()
+            .reset_index(name="count")
+            .sort_values("count", ascending=False)
+        )
+        homeless_pie_df["display_count"] = homeless_pie_df["count"].apply(
+            lambda x: "<10*" if x < 10 else f"{int(x):,}"
+        )
+        homeless_pie = px.pie(
+            homeless_pie_df,
+            names="homeless",
+            values="count",
+            hole=0.35,
+            custom_data=["display_count"],
+        )
+        homeless_pie.update_traces(
+            textposition="inside",
+            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
+            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
+        )
+        homeless_pie.update_layout(margin=dict(l=0, r=0, t=10, b=0))
+    else:
+        homeless_pie = px.pie()
 
 
     # Return all the updated visuals and tables to Dash
@@ -496,8 +562,8 @@ def update_dashboard(substance, homeless, sex, age, race, year):
         f"{filter_total:,}",
         sud_bar,
         tbl("race_ethnicity"),
-        tbl("homeless"),
         tbl("year"),
-        tbl("age_cat"),
+        tbl("age_cat", age_table_order),
         sex_pie,
+        homeless_pie,
     )
