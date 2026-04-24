@@ -6,9 +6,12 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 import json
+from theme import register_template
 from dashboard_utils import (
     load_sql_query, sort_opts, opts_list, graph_block, make_kpi_card
 )
+
+register_template()
 
 # ----------------------------
 # Data helpers
