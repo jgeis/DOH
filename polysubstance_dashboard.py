@@ -321,58 +321,58 @@ def layout_for(is_mobile: bool = False):
     left = dbc.Col([
         # Big green card showing total polysubstance discharges.
         dbc.Card(dbc.CardBody([
-            html.H1(f"{kpi_total:,}", className="m-0"),
-            html.Div(
-                "Number of Discharges Related to Polysubstance Use",
-                className="text-white-50"
-            ),
+            html.H2(f"{kpi_total:,}", className="text-white"),
+            html.Small("Number of Discharges Related to Polysubstance Use", className="card-title text-white")
         ]), className="bg-success text-center mb-3"),
 
         # Quick button to clear all filter selections in one click.
         dbc.Button(
-            "Reset All Filters", id="reset-btn",
-            className="mb-3", color="secondary", n_clicks=0
+            "Reset All Filters", id="polysubstance-reset-filters-btn",
+            color="secondary",
+            outline=True,
+            className="w-100 mb-3",
+            n_clicks=0,
         ),
 
         # Filter controls grouped inside a card.
         dbc.Card(dbc.CardBody([
             html.H5("Filter Data", tabIndex=2),
 
-            html.Label("Substance Type", htmlFor="f-substance", tabIndex=3, className="form-label"),
+            html.Label("Substance Type", htmlFor="polysubstance-substance-filter", tabIndex=3, className="form-label"),
             dcc.Dropdown(
-                id="f-substance", options=opts(substance_opts), multi=True,
+                id="polysubstance-substance-filter", options=opts(substance_opts), multi=True,
                 placeholder="All", className="mb-3",
                 persistence=True, persistence_type="session"
             ),
 
-            html.Label("Age Group", htmlFor="f-age", tabIndex=4, className="form-label"),
+            html.Label("Age Group", htmlFor="polysubstance-age-filter", tabIndex=4, className="form-label"),
             dcc.Dropdown(
-                id="f-age", options=opts(age_opts), multi=True,
+                id="polysubstance-age-filter", options=opts(age_opts), multi=True,
                 placeholder="All", className="mb-3",
                 persistence=True, persistence_type="session"
             ),
 
-            html.Label("Sex", htmlFor="f-sex", tabIndex=5, className="form-label"),
+            html.Label("Sex", htmlFor="polysubstance-sex-filter", tabIndex=5, className="form-label"),
             dcc.Dropdown(
-                id="f-sex", options=opts(sex_opts), multi=True,
+                id="polysubstance-sex-filter", options=opts(sex_opts), multi=True,
                 placeholder="All", className="mb-3",
                 persistence=True, persistence_type="session"
             ),
 
-            html.Label("County", htmlFor="f-county", tabIndex=6, className="form-label"),
+            html.Label("County", htmlFor="polysubstance-county-filter", tabIndex=6, className="form-label"),
             dcc.Dropdown(
-                id="f-county", options=opts(county_opts), multi=True,
+                id="polysubstance-county-filter", options=opts(county_opts), multi=True,
                 placeholder="All", className="mb-3",
                 persistence=True, persistence_type="session"
             ),
 
-            html.Label("Calendar Year", htmlFor="f-year", tabIndex=7, className="form-label"),
+            html.Label("Calendar Year", htmlFor="polysubstance-year-filter", tabIndex=7, className="form-label"),
             dcc.Dropdown(
-                id="f-year", options=opts(year_opts), multi=True,
+                id="polysubstance-year-filter", options=opts(year_opts), multi=True,
                 placeholder="All", className="mb-0",
                 persistence=True, persistence_type="session"
             ),
-        ]), id="ps-filters"),
+        ]), id="polysubstance-filters"),
     ], xs=12, md=3)
 
     # CENTER: main charts focused on substance and county over time
@@ -417,7 +417,7 @@ def layout_for(is_mobile: bool = False):
     return dbc.Container([
         # Accessibility: a "skip" link so keyboard users can jump right to filters.
         html.A(
-            "Skip to filters", href="#ps-filters",
+            "Skip to filters", href="#polysubstance-filters",
             className="visually-hidden-focusable", tabIndex=0
         ),
 
@@ -595,11 +595,11 @@ layout = layout_for(is_mobile=False)
     Output("pie-county-share", "figure"),
     Output("tbl-age", "children"),
     Output("tbl-sex", "children"),
-    Input("f-substance", "value"),
-    Input("f-age", "value"),
-    Input("f-sex", "value"),
-    Input("f-county", "value"),
-    Input("f-year", "value"),
+    Input("polysubstance-substance-filter", "value"),
+    Input("polysubstance-age-filter", "value"),
+    Input("polysubstance-sex-filter", "value"),
+    Input("polysubstance-county-filter", "value"),
+    Input("polysubstance-year-filter", "value"),
 )
 def update(substance, age, sex, county, year):
     dff = df_raw.copy()
@@ -755,12 +755,12 @@ def update(substance, age, sex, county, year):
 
 # ---------- Reset filters ----------
 @callback(
-    Output("f-substance", "value"),
-    Output("f-age", "value"),
-    Output("f-sex", "value"),
-    Output("f-county", "value"),
-    Output("f-year", "value"),
-    Input("reset-btn", "n_clicks"),
+    Output("polysubstance-substance-filter", "value"),
+    Output("polysubstance-age-filter", "value"),
+    Output("polysubstance-sex-filter", "value"),
+    Output("polysubstance-county-filter", "value"),
+    Output("polysubstance-year-filter", "value"),
+    Input("polysubstance-reset-filters-btn", "n_clicks"),
     prevent_initial_call=True
 )
 def _reset_filters(n):

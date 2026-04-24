@@ -4,19 +4,21 @@ import dash_bootstrap_components as dbc
 
 TAB_PATHS = {
     "/": "Substance Use Dashboards",
-    "/discharges": "Discharges related to substance use",
+    "/discharges": "Any Discharge Related to Substance Use",
     "/sudors": "SUDORS Overdose Deaths",
+    "/sudors-polysubstance": "SUDORS Polysubstance Co-occurrence",
     "/dose": "Drug Overdose Surveillance and Epidemiology (DOSE)",
-    "/polysubstance": "Related to polysubstance use",
-    # "/polysubstance-alt": "Polysubstance Alternates",
+    "/polysubstance": "Related to Polysubstance Use",
+    "/wonder-overview": "CDC WONDER Overdose Deaths Overview",
+    "/wonder-breakdown": "WONDER Overdose Deaths Breakdown",
 }
 
 DEFAULT_PATH = "/discharges"
 
 NAV_GROUPS = {
     "substance": [
-        ("/discharges", "Discharges related to substance use"),
-        ("/polysubstance", "Related to polysubstance use"),
+        ("/discharges", "Any Discharge Related to Substance Use"),
+        ("/polysubstance", "Related to Polysubstance Use"),
         # ("/polysubstance-alt", "Polysubstance Alternates"),
     ],
     # Example future group:

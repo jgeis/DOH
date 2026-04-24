@@ -62,11 +62,20 @@ skip_link = html.A(
     tabIndex=0
 )
 
+reset_filters_button_dose = dbc.Button(
+    "Reset All Filters",
+    id="dose-reset-filters-btn",
+    color="secondary",
+    outline=True,
+    className="w-100 mb-3",
+    n_clicks=0,
+)
+
 # Big green card for DOSE total
 kpi_card_dose = dbc.Card(
     dbc.CardBody([
         html.H2(id="kpi-total-dose-discharges", className="text-white"),
-        html.Small("Distinct discharges per Drug Overdose Surveillance and Epidemiology (DOSE) definitions", className="text-white-50")
+        html.Small("Distinct discharges per Drug Overdose Surveillance and Epidemiology (DOSE) definitions", className="card-title text-white")
     ]),
     className="bg-success text-center mb-4"
 )
@@ -76,59 +85,59 @@ filters_card_dose = dbc.Card(
     dbc.CardBody([
         html.H5("Filter DOSE Data"),
 
-        html.Label("Substance", htmlFor="substance-filter-dose", className="form-label"),
+        html.Label("Substance", htmlFor="dose-substance-filter", className="form-label"),
         dcc.Dropdown(
-            id="substance-filter-dose",
+            id="dose-substance-filter",
             options=opts_list(dose_substance_opts),
             multi=True,
             placeholder="Substance",
             className="mb-2"
         ),
 
-        html.Label("County", htmlFor="county-filter-dose", className="form-label"),
+        html.Label("County", htmlFor="dose-county-filter", className="form-label"),
         dcc.Dropdown(
-            id="county-filter-dose",
+            id="dose-county-filter",
             options=opts_list(dose_county_opts),
             multi=True,
             placeholder="County",
             className="mb-2"
         ),
-        html.Label("City", htmlFor="city-filter-dose", tabIndex=3, className="form-label"),
+        html.Label("City", htmlFor="dose-city-filter", tabIndex=3, className="form-label"),
         dcc.Dropdown(
-            id="city-filter-dose", options=opts_list(dose_city_opts), multi=True,
+            id="dose-city-filter", options=opts_list(dose_city_opts), multi=True,
             placeholder="City", className="mb-2",
             persistence=True, persistence_type="session"
         ),
-        html.Label("Year", htmlFor="year-filter-dose", tabIndex=3, className="form-label"),
+        html.Label("Year", htmlFor="dose-year-filter", tabIndex=3, className="form-label"),
         dcc.Dropdown(
-            id="year-filter-dose", options=opts_list(dose_year_opts), multi=True,
+            id="dose-year-filter", options=opts_list(dose_year_opts), multi=True,
             placeholder="Year", className="mb-2",
             persistence=True, persistence_type="session"
         ),
-        html.Label("Hawaii Resident", htmlFor="hawaii-residency-filter-dose", tabIndex=4, className="form-label"),
+        html.Label("Hawaii Resident", htmlFor="dose-hawaii-residency-filter", tabIndex=4, className="form-label"),
         dcc.Dropdown(
-            id="hawaii-residency-filter-dose", options=opts_list(dose_residency_opts), multi=True,
+            id="dose-hawaii-residency-filter", options=opts_list(dose_residency_opts), multi=True,
             placeholder="Hawaii Resident", className="mb-2",
             persistence=True, persistence_type="session"
         ),
 
-        html.Label("Age Group", htmlFor="age-filter-dose", tabIndex=5, className="form-label"),
+        html.Label("Age Group", htmlFor="dose-age-filter", tabIndex=5, className="form-label"),
         dcc.Dropdown(
-            id="age-filter-dose", options=opts_list(dose_age_opts), multi=True,
+            id="dose-age-filter", options=opts_list(dose_age_opts), multi=True,
             placeholder="Age Group", className="mb-2",
             persistence=True, persistence_type="session"
         ),
 
-        html.Label("Sex", htmlFor="sex-filter-dose", tabIndex=6, className="form-label"),
+        html.Label("Sex", htmlFor="dose-sex-filter", tabIndex=6, className="form-label"),
         dcc.Dropdown(
-            id="sex-filter-dose", options=opts_list(dose_sex_opts), multi=True,
+            id="dose-sex-filter", options=opts_list(dose_sex_opts), multi=True,
             placeholder="Sex", className="mb-2",
             persistence=True, persistence_type="session"
         ),
 
-        html.Label("Race/Ethnicity", htmlFor="race-ethnicity-filter-dose", tabIndex=7, className="form-label"),
+        html.Label("Race/Ethnicity", htmlFor="dose-race-ethnicity-filter", tabIndex=7, className="form-label"),
         dcc.Dropdown(
-            id="race-ethnicity-filter-dose", options=opts_list(dose_race_ethnicity_opts), multi=True,
+            id="dose-race-ethnicity-filter", options=opts_list(dose_race_ethnicity_opts), multi=True,
             placeholder="Race/Ethnicity", className="mb-0",
             persistence=True, persistence_type="session"
         ),
@@ -156,6 +165,7 @@ def layout():
             dbc.Row([
                 dbc.Col([
                     kpi_card_dose,
+                    reset_filters_button_dose,
                     filters_card_dose,
                     html.Div(
                         className="mt-3 text-muted small",
@@ -226,8 +236,24 @@ def layout():
 layout = layout()
 
 # ----------------------------
-# Callback for DOSE
+# Callbacks for DOSE
 # ----------------------------
+
+@callback(
+    Output("dose-substance-filter", "value"),
+    Output("dose-county-filter", "value"),
+    Output("dose-city-filter", "value"),
+    Output("dose-year-filter", "value"),
+    Output("dose-hawaii-residency-filter", "value"),
+    Output("dose-age-filter", "value"),
+    Output("dose-sex-filter", "value"),
+    Output("dose-race-ethnicity-filter", "value"),
+    Input("dose-reset-filters-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def reset_dose_filters(_n_clicks):
+    return None, None, None, None, None, None, None, None
+
 
 @callback(
     Output("kpi-total-dose-discharges", "children"),
@@ -237,14 +263,14 @@ layout = layout()
     Output("table-county-dose", "children"),
     Output("table-age-dose", "children"),
     Output("sex-pie-dose", "figure"),
-    Input("substance-filter-dose", "value"),
-    Input("county-filter-dose", "value"),
-    Input("city-filter-dose", "value"),
-    Input("year-filter-dose", "value"),
-    Input("hawaii-residency-filter-dose", "value"),
-    Input("age-filter-dose", "value"),
-    Input("sex-filter-dose", "value"),
-    Input("race-ethnicity-filter-dose", "value"),
+    Input("dose-substance-filter", "value"),
+    Input("dose-county-filter", "value"),
+    Input("dose-city-filter", "value"),
+    Input("dose-year-filter", "value"),
+    Input("dose-hawaii-residency-filter", "value"),
+    Input("dose-age-filter", "value"),
+    Input("dose-sex-filter", "value"),
+    Input("dose-race-ethnicity-filter", "value"),
 )
 
 def update_dose_section(substance, county, city, year, hawaii_residency, age, sex, race_ethnicity):

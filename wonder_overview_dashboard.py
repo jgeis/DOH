@@ -151,7 +151,7 @@ skip_link = html.A(
 kpi_card = dbc.Card(
     dbc.CardBody([
         html.H2(id="wonder-kpi-deaths", className="text-white"),
-        html.H4("Number of Unintentional/Undetermined Overdose Deaths", className="card-title text-white"),
+        html.Small("Number of Unintentional/Undetermined Overdose Deaths", className="card-title text-white"),
     ]),
     className="bg-success text-center mb-4"
 )

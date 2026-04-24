@@ -86,11 +86,20 @@ skip_link = html.A(
     tabIndex=0
 )
 
+reset_filters_button = dbc.Button(
+    "Reset All Filters",
+    id="discharges-reset-filters-btn",
+    color="secondary",
+    outline=True,
+    className="w-100 mb-3",
+    n_clicks=0,
+)
+
 # Big green card that shows the total number of discharges.
 kpi_card = dbc.Card(
     dbc.CardBody([
-        html.H4("Total Discharges", className="card-title text-white"),
         html.H2(id="kpi-total-discharges", className="text-white"),
+        html.Small("Number of Emergency Discharges Related to Substance Use", className="card-title text-white"),
     ]),
     className="bg-success text-center mb-4"
 )
@@ -100,58 +109,58 @@ filters_card = dbc.Card(
     dbc.CardBody([
         html.H5("Filter Data", tabIndex=1),
 
-        html.Label("Substance", htmlFor="substance-filter", tabIndex=2, className="form-label"),
+        html.Label("Substance", htmlFor="discharges-substance-filter", tabIndex=2, className="form-label"),
         dcc.Dropdown(
-            id="substance-filter", options=opts_list(substance_opts), multi=True,
+            id="discharges-substance-filter", options=opts_list(substance_opts), multi=True,
             placeholder="Substance", className="mb-2",
             persistence=True, persistence_type="session"
         ),
 
-        html.Label("County", htmlFor="county-filter", tabIndex=2, className="form-label"),
+        html.Label("County", htmlFor="discharges-county-filter", tabIndex=2, className="form-label"),
         dcc.Dropdown(
-            id="county-filter", options=opts_list(county_opts), multi=True,
+            id="discharges-county-filter", options=opts_list(county_opts), multi=True,
             placeholder="County", className="mb-2",
             persistence=True, persistence_type="session"
         ),
 
-        html.Label("City", htmlFor="city-filter", tabIndex=3, className="form-label"),
+        html.Label("City", htmlFor="discharges-city-filter", tabIndex=3, className="form-label"),
         dcc.Dropdown(
-            id="city-filter", options=opts_list(city_opts), multi=True,
+            id="discharges-city-filter", options=opts_list(city_opts), multi=True,
             placeholder="City", className="mb-2",
             persistence=True, persistence_type="session"
         ),
 
-        html.Label("Year", htmlFor="year-filter", tabIndex=3, className="form-label"),
+        html.Label("Year", htmlFor="discharges-year-filter", tabIndex=3, className="form-label"),
         dcc.Dropdown(
-            id="year-filter", options=opts_list(year_opts), multi=True,
+            id="discharges-year-filter", options=opts_list(year_opts), multi=True,
             placeholder="Year", className="mb-2",
             persistence=True, persistence_type="session"
         ),
 
-        html.Label("Age Group", htmlFor="age-filter", tabIndex=5, className="form-label"),
+        html.Label("Age Group", htmlFor="discharges-age-filter", tabIndex=5, className="form-label"),
         dcc.Dropdown(
-            id="age-filter", options=opts_list(age_opts), multi=True,
+            id="discharges-age-filter", options=opts_list(age_opts), multi=True,
             placeholder="Age Group", className="mb-2",
             persistence=True, persistence_type="session"
         ),
 
-        html.Label("Sex", htmlFor="sex-filter", tabIndex=6, className="form-label"),
+        html.Label("Sex", htmlFor="discharges-sex-filter", tabIndex=6, className="form-label"),
         dcc.Dropdown(
-            id="sex-filter", options=opts_list(sex_opts), multi=True,
+            id="discharges-sex-filter", options=opts_list(sex_opts), multi=True,
             placeholder="Sex", className="mb-2",
             persistence=True, persistence_type="session"
         ),
 
-        html.Label("Race/Ethnicity", htmlFor="race-ethnicity-filter", tabIndex=7, className="form-label"),
+        html.Label("Race/Ethnicity", htmlFor="discharges-race-ethnicity-filter", tabIndex=7, className="form-label"),
         dcc.Dropdown(
-            id="race-ethnicity-filter", options=opts_list(race_ethnicity_opts), multi=True,
+            id="discharges-race-ethnicity-filter", options=opts_list(race_ethnicity_opts), multi=True,
             placeholder="Race/Ethnicity", className="mb-2",
             persistence=True, persistence_type="session"
         ),
 
-        html.Label("Hawaii Resident", htmlFor="hawaii-residency-filter", tabIndex=4, className="form-label"),
+        html.Label("Hawaii Resident", htmlFor="discharges-hawaii-residency-filter", tabIndex=4, className="form-label"),
         dcc.Dropdown(
-            id="hawaii-residency-filter", options=opts_list(hawaii_residency_opts), multi=True,
+            id="discharges-hawaii-residency-filter", options=opts_list(hawaii_residency_opts), multi=True,
             placeholder="Hawaii Resident", className="mb-0",
             persistence=True, persistence_type="session"
         ),
@@ -182,9 +191,10 @@ def layout():
     bar_h  = "360px"
     pie_h  = "260px"
 
-    # Left column: KPI and filters.
+    # Left column: KPI, reset button, and filters.
     left_col = dbc.Col([
-        kpi_card, 
+        kpi_card,
+        reset_filters_button,
         filters_card,
     ], xs=12, md=3)
 
@@ -246,8 +256,24 @@ def layout():
 layout = layout()
 
 # ----------------------------
-# Callback for discharges
+# Callbacks for discharges
 # ----------------------------
+
+@callback(
+    Output("discharges-substance-filter", "value"),
+    Output("discharges-county-filter", "value"),
+    Output("discharges-city-filter", "value"),
+    Output("discharges-year-filter", "value"),
+    Output("discharges-age-filter", "value"),
+    Output("discharges-sex-filter", "value"),
+    Output("discharges-race-ethnicity-filter", "value"),
+    Output("discharges-hawaii-residency-filter", "value"),
+    Input("discharges-reset-filters-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def reset_discharges_filters(_n_clicks):
+    return None, None, None, None, None, None, None, None
+
 
 @callback(
     Output("kpi-total-discharges", "children"),
@@ -257,14 +283,14 @@ layout = layout()
     Output("table-county", "children"),
     Output("table-age", "children"),
     Output("sex-pie", "figure"),
-    Input("substance-filter", "value"),
-    Input("county-filter", "value"),
-    Input("city-filter", "value"),
-    Input("year-filter", "value"),
-    Input("hawaii-residency-filter", "value"),
-    Input("age-filter", "value"),
-    Input("sex-filter", "value"),
-    Input("race-ethnicity-filter", "value"),
+    Input("discharges-substance-filter", "value"),
+    Input("discharges-county-filter", "value"),
+    Input("discharges-city-filter", "value"),
+    Input("discharges-year-filter", "value"),
+    Input("discharges-hawaii-residency-filter", "value"),
+    Input("discharges-age-filter", "value"),
+    Input("discharges-sex-filter", "value"),
+    Input("discharges-race-ethnicity-filter", "value"),
 )
 
 def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, race_ethnicity):

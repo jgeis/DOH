@@ -156,14 +156,14 @@ skip_link = html.A(
 kpi_card = dbc.Card(
     dbc.CardBody([
         html.H2(id="kpi-total-deaths", className="text-white"),
-        html.H4("Number of Unintentional or Undetermined Overdose Deaths", className="card-title text-white"),
+        html.Small("Number of Unintentional or Undetermined Overdose Deaths", className="card-title text-white")
     ]),
     className="bg-success text-center mb-4"
 )
 
 reset_filters_button = dbc.Button(
     "Reset All Filters",
-    id="reset-filters-btn",
+    id="sudors-reset-filters-btn",
     color="secondary",
     outline=True,
     className="w-100 mb-3",
@@ -176,39 +176,39 @@ filters_card = dbc.Card(
     dbc.CardBody([
         html.H5("Filter Data", tabIndex=1),
 
-        html.Label("Substance", htmlFor="substance-filter", tabIndex=2, className="form-label"),
+        html.Label("Substance", htmlFor="sudors-substance-filter", tabIndex=2, className="form-label"),
         dcc.Dropdown(
-            id="substance-filter", options=opts_list(substance_opts), multi=True,
+            id="sudors-substance-filter", options=opts_list(substance_opts), multi=True,
             placeholder="Substance", className="mb-2",
             persistence=True, persistence_type="session"
         ),
-        html.Label("Homeless", htmlFor="homeless-filter", tabIndex=2, className="form-label"),
+        html.Label("Homeless", htmlFor="sudors-homeless-filter", tabIndex=2, className="form-label"),
         dcc.Dropdown(
-            id="homeless-filter", options=opts_list(homeless_opts), multi=True,
+            id="sudors-homeless-filter", options=opts_list(homeless_opts), multi=True,
             placeholder="Homeless", className="mb-2",
             persistence=True, persistence_type="session"
         ),
-        html.Label("Race/Ethnicity", htmlFor="race-filter", tabIndex=5, className="form-label"),
+        html.Label("Race/Ethnicity", htmlFor="sudors-race-filter", tabIndex=5, className="form-label"),
         dcc.Dropdown(
-            id="race-filter", options=opts_list(race_opts), multi=True,
+            id="sudors-race-filter", options=opts_list(race_opts), multi=True,
             placeholder="Race/Ethnicity", className="mb-2",
             persistence=True, persistence_type="session"
         ),
-        html.Label("Sex", htmlFor="sex-filter", tabIndex=6, className="form-label"),
+        html.Label("Sex", htmlFor="sudors-sex-filter", tabIndex=6, className="form-label"),
         dcc.Dropdown(
-            id="sex-filter", options=opts_list(sex_opts), multi=True,
+            id="sudors-sex-filter", options=opts_list(sex_opts), multi=True,
             placeholder="Sex", className="mb-0",
             persistence=True, persistence_type="session"
         ),
-        html.Label("Age Group", htmlFor="age-filter", tabIndex=5, className="form-label"),
+        html.Label("Age Group", htmlFor="sudors-age-filter", tabIndex=5, className="form-label"),
         dcc.Dropdown(
-            id="age-filter", options=opts_list(age_opts), multi=True,
+            id="sudors-age-filter", options=opts_list(age_opts), multi=True,
             placeholder="Age Group", className="mb-2",
             persistence=True, persistence_type="session"
         ),
-        html.Label("Calendar Year", htmlFor="year-filter", tabIndex=3, className="form-label"),
+        html.Label("Calendar Year", htmlFor="sudors-year-filter", tabIndex=3, className="form-label"),
         dcc.Dropdown(
-            id="year-filter", options=opts_list(year_opts), multi=True,
+            id="sudors-year-filter", options=opts_list(year_opts), multi=True,
             placeholder="Calendar Year", className="mb-2",
             persistence=True, persistence_type="session"
         ),
@@ -360,13 +360,13 @@ layout = layout_for(is_mobile=False)
 # ----------------------------
 
 @callback(
-    Output("substance-filter", "value"),
-    Output("homeless-filter", "value"),
-    Output("race-filter", "value"),
-    Output("sex-filter", "value"),
-    Output("age-filter", "value"),
-    Output("year-filter", "value"),
-    Input("reset-filters-btn", "n_clicks"),
+    Output("sudors-substance-filter", "value"),
+    Output("sudors-homeless-filter", "value"),
+    Output("sudors-race-filter", "value"),
+    Output("sudors-sex-filter", "value"),
+    Output("sudors-age-filter", "value"),
+    Output("sudors-year-filter", "value"),
+    Input("sudors-reset-filters-btn", "n_clicks"),
     prevent_initial_call=True,
 )
 def reset_all_filters(_n_clicks):
@@ -382,12 +382,12 @@ def reset_all_filters(_n_clicks):
     Output("sex-sudors-pie", "figure"),
     Output("homeless-sudors-pie", "figure"),
     Output("substance-year-line", "figure"),
-    Input("substance-filter", "value"),
-    Input("homeless-filter", "value"),
-    Input("sex-filter", "value"),
-    Input("age-filter", "value"),
-    Input("race-filter", "value"),
-    Input("year-filter", "value"),
+    Input("sudors-substance-filter", "value"),
+    Input("sudors-homeless-filter", "value"),
+    Input("sudors-sex-filter", "value"),
+    Input("sudors-age-filter", "value"),
+    Input("sudors-race-filter", "value"),
+    Input("sudors-year-filter", "value"),
 )
 
 def update_dashboard(substance, homeless, sex, age, race, year):
