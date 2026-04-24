@@ -307,9 +307,17 @@ def update_dashboard(county, year):
     if "county" in dff.columns:    dff = apply_filter(dff, "county", county)
     if "year" in dff.columns:      dff = apply_filter(dff, "year", year)
 
-    # Count unique discharges (each record_id represents one discharge).
-    # Used to update the total on the KPI card when user selects the filter
-    filter_total = dff["deaths"].sum()
+    # KPI should reflect the statewide total only.
+    # We still honor the selected year filter, but do not sum county + statewide together.
+    kpi_df = df_raw.copy()
+    if "year" in kpi_df.columns:
+        kpi_df = apply_filter(kpi_df, "year", year)
+    if "county" in kpi_df.columns:
+        statewide_mask = kpi_df["county"].astype(str).str.strip().str.lower() == "statewide"
+        if statewide_mask.any():
+            kpi_df = kpi_df[statewide_mask]
+
+    filter_total = kpi_df["deaths"].sum()
 
     # ---------- Line chart: Deaths by Calendar Year (by county) ----------
     if {"county", "year"}.issubset(dff.columns):
