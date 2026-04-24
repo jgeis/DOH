@@ -150,10 +150,19 @@ skip_link = html.A(
 # Why: gives users a quick "at a glance" number when they open the page.
 kpi_card = dbc.Card(
     dbc.CardBody([
-        html.H4("Number of Unintentional/Undetermined Overdose Deaths", className="card-title text-white"),
         html.H2(id="wonder-kpi-deaths", className="text-white"),
+        html.H4("Number of Unintentional/Undetermined Overdose Deaths", className="card-title text-white"),
     ]),
     className="bg-success text-center mb-4"
+)
+
+reset_filters_button = dbc.Button(
+    "Reset All Filters",
+    id="wonder-reset-filters-btn",
+    color="secondary",
+    outline=True,
+    className="w-100 mb-3",
+    n_clicks=0,
 )
 
 # Card holding all the filter controls down the left side.
@@ -196,8 +205,8 @@ def layout_for(
     line_h  = "55vh" if is_mobile else "360px"
     bar_h  = "55vh" if is_mobile else "360px"
 
-    # Left column: KPI and filters.
-    left_col = dbc.Col([kpi_card, filters_card], xs=12, md=3)
+    # Left column: KPI, reset button, and filters.
+    left_col = dbc.Col([kpi_card, reset_filters_button, filters_card], xs=12, md=3)
 
     # Center column: the main line and bar charts.
     center_col = dbc.Col(
@@ -238,6 +247,16 @@ layout = layout_for(is_mobile=False)
 # ----------------------------
 # Figures + tables (no plotly titles)
 # ----------------------------
+
+@callback(
+    Output("wonder-county-filter", "value"),
+    Output("wonder-year-filter", "value"),
+    Input("wonder-reset-filters-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def reset_all_filters(_n_clicks):
+    # Reset both filters to default empty state.
+    return None, None
 
 @callback(
     Output("wonder-kpi-deaths", "children"),
