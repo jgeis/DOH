@@ -172,18 +172,30 @@ filters_card = dbc.Card(
         html.H5("Filter Data", tabIndex=1),
 
         html.Label("County", htmlFor="wonder-county-filter", className="form-label"),
-        dcc.Dropdown(
+        dcc.Checklist(
             id="wonder-county-filter",
             options=opts_list(wonder_county_opts),
-            multi=True,
-            placeholder="County",
-            className="mb-2"
+            value=[],
+            className="mb-2",
+            labelStyle={"display": "block", "marginBottom": "0.25rem"},
+            inputStyle={"marginRight": "0.4rem"},
         ),
         html.Label("Year", htmlFor="wonder-year-filter", tabIndex=3, className="form-label"),
-        dcc.Dropdown(
-            id="wonder-year-filter", options=opts_list(wonder_year_opts), multi=True,
-            placeholder="Year", className="mb-2",
+        dcc.Checklist(
+            id="wonder-year-filter", options=opts_list(wonder_year_opts),
+            value=[],
+            className="mb-2",
+            labelStyle={"display": "block", "marginBottom": "0.25rem"},
+            inputStyle={"marginRight": "0.4rem"},
             persistence=True, persistence_type="session"
+        ),
+        html.Div(
+            [
+                html.P("* Values less than 10 are suppressed for privacy reasons and are displayed as <10.", className="small text-muted mb-1"),
+                html.P("† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).", className="small text-muted mb-1"),
+                html.P("‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).", className="small text-muted mb-0"),
+            ],
+            className="mt-3",
         ),
     ]),
     id="alt-filters",
@@ -213,11 +225,11 @@ def layout_for(
         [
             dbc.Row([
                 graph_block("wonder-line-deaths", "Deaths by Year", line_h),
-                html.P("Line chart of deaths by year.", className="sr-only"),
+                #html.P("Line chart of deaths by year.", className="sr-only"),
             ]),
             dbc.Row([
                 graph_block("wonder-bar-deaths", "Deaths by County", bar_h),
-                html.P("Bar chart of deaths by county.", className="sr-only"),
+                #html.P("Bar chart of deaths by county.", className="sr-only"),
             ]),
         ],
         xs=12, md=8
@@ -256,7 +268,7 @@ layout = layout_for(is_mobile=False)
 )
 def reset_all_filters(_n_clicks):
     # Reset both filters to default empty state.
-    return None, None
+    return [], []
 
 @callback(
     Output("wonder-kpi-deaths", "children"),

@@ -146,18 +146,30 @@ filters_card = dbc.Card(
         html.H5("Filter Data", tabIndex=1),
 
         html.Label("County", htmlFor="wonder-breakdown-county-filter", className="form-label"),
-        dcc.Dropdown(
+        dcc.RadioItems(
             id="wonder-breakdown-county-filter",
             options=opts_list(wonder_county_opts),
-            multi=True,
-            placeholder="County",
-            className="mb-2"
+            value=None,
+            className="mb-2",
+            labelStyle={"display": "block", "marginBottom": "0.25rem"},
+            inputStyle={"marginRight": "0.4rem"},
         ),
         html.Label("Year", htmlFor="wonder-breakdown-year-filter", tabIndex=3, className="form-label"),
-        dcc.Dropdown(
-            id="wonder-breakdown-year-filter", options=opts_list(wonder_year_opts), multi=True,
-            placeholder="Year", className="mb-2",
+        dcc.RadioItems(
+            id="wonder-breakdown-year-filter", options=opts_list(wonder_year_opts),
+            value=None,
+            className="mb-2",
+            labelStyle={"display": "block", "marginBottom": "0.25rem"},
+            inputStyle={"marginRight": "0.4rem"},
             persistence=True, persistence_type="session"
+        ),
+        html.Div(
+            [
+                html.P("Values less than 10 are suppressed for privacy reasons and are displayed as <10.", className="small text-muted mb-1"),
+                html.P("† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).", className="small text-muted mb-1"),
+                html.P("‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).", className="small text-muted mb-0"),
+            ],
+            className="mt-3",
         ),
     ]),
     id="alt-filters",
@@ -187,15 +199,15 @@ def layout_for(
         [
             dbc.Row([
                 graph_block("wonder-substance-deaths", "Deaths by Substance", bar_h),
-                html.P("Bar chart of deaths by substance.", className="sr-only"),
+                # deaths by substance.", className="sr-only"),
             ]),
             dbc.Row([
                 graph_block("wonder-race-deaths", "Deaths by Race", bar_h),
-                html.P("Bar chart of deaths by race.", className="sr-only"),
+                #html.P("Bar chart of deaths by race.", className="sr-only"),
             ]),
             dbc.Row([
                 graph_block("wonder-age-group-deaths", "Deaths by Age Group", bar_h),
-                html.P("Bar chart of deaths by age group.", className="sr-only"),
+                #html.P("Bar chart of deaths by age group.", className="sr-only"),
             ]),
         ],
         xs=12, md=6
@@ -204,7 +216,7 @@ def layout_for(
     right_col = dbc.Col(
         [
             graph_block("wonder-gender-deaths", "Deaths by Gender", pie_h),
-            html.P("Pie chart of deaths by gender.", className="sr-only"),
+            #html.P("Pie chart of deaths by gender.", className="sr-only"),
         ],
         xs=12, md=3
     )
