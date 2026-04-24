@@ -5,8 +5,8 @@ import polysubstance_dashboard as poly
 register_page(
     __name__,
     path="/polysubstance",
-    name="Related to polysubstance use",
-    title="Related to polysubstance use",
+    name="Related to Polysubstance Use",
+    title="Related to Polysubstance Use",
 )
 
 layout = poly.layout
