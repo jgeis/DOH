@@ -311,25 +311,25 @@ def update_dashboard(county, year):
     # Used to update the total on the KPI card when user selects the filter
     filter_total = dff["deaths"].sum()
 
-    # ---------- Line chart: Deaths by Year ----------
+    # ---------- Line chart: Deaths by Calendar Year (by county) ----------
     if {"county", "year"}.issubset(dff.columns):
         by_year = (
-            dff.groupby("year", as_index=False)["deaths"]
+            dff.groupby(["year", "county"], as_index=False)["deaths"]
             .sum()
-            .sort_values("year")
+            .sort_values(["year", "county"])
         )
 
         year_line = px.line(
             by_year,
             x="year",
             y="deaths",
+            color="county",
             markers=True,
-            text="deaths",
-            labels={"year": "Calendar Year", "deaths": "Number of Deaths"},
+            labels={"year": "Calendar Year", "deaths": "Number of Deaths", "county": "County"},
         )
 
         year_line.update_traces(
-            textposition="top center",
+            hovertemplate="Year %{x}<br>County: %{fullData.name}<br>Deaths: %{y:,}<extra></extra>",
         )
 
         year_line.update_layout(
@@ -345,7 +345,7 @@ def update_dashboard(county, year):
         by_county = (
             dff.groupby("county", as_index=False)["deaths"]
             .sum()
-            .sort_values("county")
+            .sort_values("deaths", ascending=False)
         )
 
         county_bar = px.bar(
@@ -364,6 +364,7 @@ def update_dashboard(county, year):
         county_bar.update_layout(
             margin=dict(l=0, r=0, t=10, b=80),
             xaxis=dict(automargin=True),
+            yaxis=dict(autorange="reversed"),
         )
 
     else:
