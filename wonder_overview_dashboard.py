@@ -4,6 +4,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
+from dashboard_utils import make_kpi_card
 import json
 
 register_template()
@@ -148,12 +149,9 @@ skip_link = html.A(
 
 # Big green card that shows the total number of discharges.
 # Why: gives users a quick "at a glance" number when they open the page.
-kpi_card = dbc.Card(
-    dbc.CardBody([
-        html.H2(id="wonder-kpi-deaths", className="text-white"),
-        html.Small("Number of Unintentional/Undetermined Overdose Deaths", className="card-title text-white"),
-    ]),
-    className="bg-success text-center mb-4"
+kpi_card = make_kpi_card(
+    label="Number of Unintentional or Undetermined Overdose Deaths",
+    count_id="wonder-kpi-deaths",
 )
 
 reset_filters_button = dbc.Button(

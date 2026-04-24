@@ -6,7 +6,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from dashboard_utils import (
-    load_sql_query, sort_opts, opts_list, graph_block
+    load_sql_query, sort_opts, opts_list, graph_block, make_kpi_card
 )
 
 # ----------------------------
@@ -96,12 +96,9 @@ reset_filters_button = dbc.Button(
 )
 
 # Big green card that shows the total number of discharges.
-kpi_card = dbc.Card(
-    dbc.CardBody([
-        html.H2(id="kpi-total-discharges", className="text-white"),
-        html.Small("Number of Emergency Discharges Related to Substance Use", className="card-title text-white"),
-    ]),
-    className="bg-success text-center mb-4"
+kpi_card = make_kpi_card(
+    label="Number of Emergency Discharges Related to Substance Use",
+    count_id="kpi-total-discharges",
 )
 
 # Card holding all the filter controls down the left side.

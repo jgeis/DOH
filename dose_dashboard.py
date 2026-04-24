@@ -7,7 +7,7 @@ from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 import json
 from dashboard_utils import (
-    load_sql_query, sort_opts, opts_list, graph_block
+    load_sql_query, sort_opts, opts_list, graph_block, make_kpi_card
 )
 
 # ----------------------------
@@ -72,12 +72,9 @@ reset_filters_button_dose = dbc.Button(
 )
 
 # Big green card for DOSE total
-kpi_card_dose = dbc.Card(
-    dbc.CardBody([
-        html.H2(id="kpi-total-dose-discharges", className="text-white"),
-        html.Small("Distinct discharges per Drug Overdose Surveillance and Epidemiology (DOSE) definitions", className="card-title text-white")
-    ]),
-    className="bg-success text-center mb-4"
+kpi_card_dose = make_kpi_card(
+    label="Distinct discharges per Drug Overdose Surveillance and Epidemiology (DOSE) definitions",
+    count_id="kpi-total-dose-discharges",
 )
 
 # Card holding all the DOSE filter controls

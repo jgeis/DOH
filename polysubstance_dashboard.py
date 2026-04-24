@@ -17,6 +17,7 @@ import plotly.io as pio
 
 from theme import register_template
 from db_utils import execute_query
+from dashboard_utils import make_kpi_card
 
 # This applies our custom Plotly look (colors, fonts, etc.) everywhere in this app.
 register_template()  # set your Plotly template globally
@@ -320,10 +321,10 @@ def layout_for(is_mobile: bool = False):
     # LEFT: KPI + filters
     left = dbc.Col([
         # Big green card showing total polysubstance discharges.
-        dbc.Card(dbc.CardBody([
-            html.H2(f"{kpi_total:,}", className="text-white"),
-            html.Small("Number of Discharges Related to Polysubstance Use", className="card-title text-white")
-        ]), className="bg-success text-center mb-3"),
+        make_kpi_card(
+            label="Number of Discharges Related to Polysubstance Use",
+            count=kpi_total,
+        ),
 
         # Quick button to clear all filter selections in one click.
         dbc.Button(

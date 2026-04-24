@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 
 from theme import register_template
 from db_utils import execute_query
+from dashboard_utils import make_kpi_card
 
 register_template()
 
@@ -77,6 +78,9 @@ def load_sudors_dataframe_from_db():
 # Load the full dataset once at startup.
 # The callbacks will reuse this instead of hitting the database every time.
 df_raw = load_sudors_dataframe_from_db()
+
+# Total unique incidents for the static KPI card.
+kpi_total_sudors_poly = df_raw["incident_id"].nunique() if "incident_id" in df_raw.columns else 0
 
 
 # ---------- Helper functions ----------
@@ -196,6 +200,18 @@ def layout_for(is_mobile: bool = False):
 
         # Charts target for skip link
         html.Div(id="sudors-cooccurrence-charts"),
+
+        # KPI card
+        dbc.Row([
+            dbc.Col(
+                make_kpi_card(
+                    label="Number of Unintentional or Undetermined Overdose Deaths (Polysubstance)",
+                    count=kpi_total_sudors_poly,
+                ),
+                xs=12, md=4,
+            ),
+        ], className="mb-2"),
+
         dbc.Row([
             dbc.Col([
                 dbc.Card([

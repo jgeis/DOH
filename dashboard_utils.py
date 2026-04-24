@@ -82,3 +82,29 @@ def graph_block(base_id: str, title_text: str, height_px: str):
         # This makes sure the tools bar is never cut off visually.
         style={"overflow": "visible"}
     )
+
+
+def make_kpi_card(label: str, count_id: str | None = None, count: int | None = None) -> dbc.Card:
+    """
+    Build the standard big green KPI card shown at the top-left of every page.
+
+    Use `count_id` when the number is updated dynamically by a Dash callback
+    (the callback should target that element ID). Use `count` for a pre-computed
+    static total that never changes with filters.
+
+    Args:
+        label:    Descriptive text shown beneath the number (e.g. "Number of Discharges").
+        count_id: HTML id for the <h2> element so a callback can update it at runtime.
+        count:    Static integer to display directly in the card (formatted with commas).
+    """
+    if count_id is not None:
+        value_el = html.H2(id=count_id, className="text-white")
+    else:
+        value_el = html.H2(f"{count:,}" if count is not None else "—", className="text-white")
+    return dbc.Card(
+        dbc.CardBody([
+            value_el,
+            html.Small(label, className="card-title text-white"),
+        ]),
+        className="bg-success text-center mb-4",
+    )
