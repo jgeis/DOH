@@ -252,13 +252,6 @@ filters_card = dbc.Card(
             persistence=True, persistence_type="session"
         ),
 
-        html.Label("Hawaii Resident", htmlFor="hawaii-residency-filter", tabIndex=4, className="form-label"),
-        dcc.Dropdown(
-            id="hawaii-residency-filter", options=opts_list(hawaii_residency_opts), multi=True,
-            placeholder="Hawaii Resident", className="mb-2",
-            persistence=True, persistence_type="session"
-        ),
-
         html.Label("Age Group", htmlFor="age-filter", tabIndex=5, className="form-label"),
         dcc.Dropdown(
             id="age-filter", options=opts_list(age_opts), multi=True,
@@ -276,8 +269,24 @@ filters_card = dbc.Card(
         html.Label("Race/Ethnicity", htmlFor="race-ethnicity-filter", tabIndex=7, className="form-label"),
         dcc.Dropdown(
             id="race-ethnicity-filter", options=opts_list(race_ethnicity_opts), multi=True,
-            placeholder="Race/Ethnicity", className="mb-0",
+            placeholder="Race/Ethnicity", className="mb-2",
             persistence=True, persistence_type="session"
+        ),
+
+        html.Label("Hawaii Resident", htmlFor="hawaii-residency-filter", tabIndex=4, className="form-label"),
+        dcc.Dropdown(
+            id="hawaii-residency-filter", options=opts_list(hawaii_residency_opts), multi=True,
+            placeholder="Hawaii Resident", className="mb-0",
+            persistence=True, persistence_type="session"
+        ),
+
+        html.Div(
+            [
+                html.P("* Values less than 10 are suppressed for privacy reasons and are displayed as <10.", className="small text-muted mb-1"),
+                html.P("† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).", className="small text-muted mb-1"),
+                html.P("‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).", className="small text-muted mb-0"),
+            ],
+            className="mt-3",
         ),
     ]),
     id="alt-filters",
@@ -369,20 +378,23 @@ def layout_for(
 
 
     # Left column: KPI and filters.
-    left_col = dbc.Col([kpi_card, filters_card], xs=12, md=3)
+    left_col = dbc.Col([
+        kpi_card, 
+        filters_card,
+    ], xs=12, md=3)
 
     # Center column: the main line and bar charts.
     center_col = dbc.Col(
         [
             graph_block("bar-substances", "Discharges by Substance", bar_h),
-            html.P("Bar chart of discharges by substance.", className="sr-only"),
+            #html.P("Bar chart of discharges by substance.", className="sr-only"),
             
             graph_block("county-year-lines", "Discharges by County and Year", line_h),
             # Screen-reader description only; not visible on screen.
-            html.P("Line chart of discharges by county over time. Use the legend to toggle counties.", className="sr-only"),
+            #html.P("Line chart of discharges by county over time. Use the legend to toggle counties.", className="sr-only"),
             
             graph_block("sex-year-stacked", "Yearly Discharges by Gender", bar_h),
-            html.P("Stacked bar chart of yearly discharges by gender. Use the legend to toggle categories.", className="sr-only"),
+            #html.P("Stacked bar chart of yearly discharges by gender. Use the legend to toggle categories.", className="sr-only"),
 
         ],
         xs=12, md=6
@@ -424,7 +436,7 @@ def layout_for(
                 className="g-2"
             ),
             graph_block("sex-pie", "Discharges by Gender", pie_h),
-            html.P("Pie chart of discharges by gender.", className="sr-only"),
+            #html.P("Pie chart of discharges by gender.", className="sr-only"),
         ],
         xs=12, md=3
     )
@@ -461,22 +473,30 @@ def layout_for(
                     ),
                     # Filters
                     filters_card_dose,
+                    html.Div(
+                        className="mt-3 text-muted small",
+                        children=[
+                            html.P("* Values less than 10 are suppressed for privacy reasons and are displayed as <10.", className="mb-2"),
+                            html.P("† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).", className="mb-2"),
+                            html.P("‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).", className="mb-0"),
+                        ]
+                    )
                 ], xs=12, md=3),
 
                 dbc.Col([
                     # Graph of overdoses relating to drug poisonings
                     graph_block("bar-dose", "Nonfatal Overdoses Related to Drug Poisonings", bar_h),
-                    html.P("Bar chart of discharges of nonfatal overdoses relating to drug poisonings.", className="sr-only"),
+                    #html.P("Bar chart of discharges of nonfatal overdoses relating to drug poisonings.", className="sr-only"),
 
                     # Line graph of year and substances
                     graph_block("year-diagnosis-lines-dose", "DOSE Discharges by Year and Substance", line_h),
                     # Screen-reader description only; not visible on screen.
-                    html.P("Line chart of discharges by substance over time. Use the legend to toggle substances.", className="sr-only"),
+                    #html.P("Line chart of discharges by substance over time. Use the legend to toggle substances.", className="sr-only"),
                 
                     dbc.Row([
                         # Map of overdoses relating to county
                         graph_block("map-county", "Discharges by County", map_h),
-                        html.P("Map of discharges by county. Use the legend to toggle categories.", className="sr-only"),
+                        #html.P("Map of discharges by county. Use the legend to toggle categories.", className="sr-only"),
                     ]),
                 ], xs=12, md=6),
 
@@ -510,14 +530,25 @@ def layout_for(
                             className="g-2"
                         ),
                         graph_block("sex-pie-dose", "Discharges by Gender", pie_h),
-                        html.P("Pie chart of DOSE discharges by gender.", className="sr-only"),
+                        #html.P("Pie chart of DOSE discharges by gender.", className="sr-only"),
                     ],
                     xs=12, md=3
                 )
             ], className="g-3"),
             id="dose-section",
             style={} if show_dose else {"display": "none"}
-        )
+        ),
+        html.Hr(
+            className="my-5",
+            style={} 
+        ),
+        html.P(
+            "This section presents emergency department (ED) discharge data categorized according to CDC's Drug Overdose "
+            "Surveillance and Epidemiology (DOSE) definitions and tracks nonfatal overdoses by specific types—such as opioids, "
+            "stimulants, and other substances—using standardized CDC criteria to ensure accuracy and comparability. Data elements "
+            "include patient demographics (i.e., age, sex at birth), discharge outcomes, and temporal trends by month and year.",
+            className="mt-4 text-muted small"
+        ),
 
     ], fluid=True, className="p-2")
 
@@ -618,7 +649,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             text="display_count",
             labels={"count": "Number of Discharges", "substance_label": "Substance Type"},
         )
-        
+
         sub_bar.update_traces(
             textposition="outside",
             cliponaxis=False,
@@ -724,7 +755,6 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
     """
     # for map graph - now handled in DOSE callback
 
-
     # ---------- Helper for the summary tables ----------
     def tbl(column, categories=None):
         """
@@ -743,10 +773,12 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         # Count unique discharges per category
         g = dff.groupby(column)["record_id"].nunique().reset_index(name="count")
 
-        # Use the given category order if provided
+        # Use the given category order if provided, otherwise sort by count descending
         if categories:
             g[column] = pd.Categorical(g[column], categories=categories, ordered=True)
             g = g.sort_values(column)
+        else:
+            g = g.sort_values("count", ascending=False)
 
         # Make the counts look nicer with commas
         g["count"] = g["count"].map(lambda x: f"{int(x):,}")
@@ -785,7 +817,13 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         sex_pie = px.pie()
 
     # Extract age groups dynamically from the filtered data
-    age_groups = sorted([v for v in dff["age_group"].unique() if v != "Unknown"]) + (["Unknown"] if "Unknown" in dff["age_group"].values else []) if "age_group" in dff.columns and not dff.empty else None
+    if "age_group" in dff.columns and not dff.empty:
+        _ag_sorted = sorted([v for v in dff["age_group"].unique() if v not in ("<18", "Unknown")])
+        _ag_prefix = ["<18"] if "<18" in dff["age_group"].values else []
+        _ag_unknown = ["Unknown"] if "Unknown" in dff["age_group"].values else []
+        age_groups = _ag_prefix + _ag_sorted + _ag_unknown
+    else:
+        age_groups = None
 
     # Return all the updated visuals and tables to Dash
     return (
@@ -941,10 +979,12 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         # Count unique discharges per category
         g = dose_df.groupby(column)["record_id"].nunique().reset_index(name="count")
 
-        # Use the given category order if provided
+        # Use the given category order if provided, otherwise sort by count descending
         if categories:
             g[column] = pd.Categorical(g[column], categories=categories, ordered=True)
             g = g.sort_values(column)
+        else:
+            g = g.sort_values("count", ascending=False)
 
         # Suppress counts below 11 per disclosure rules
         g["count"] = g["count"].map(lambda x: "<11" if x < 11 else f"{int(x):,}")
@@ -988,7 +1028,13 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         dose_sex_pie = px.pie()
 
     # Extract age groups dynamically from the filtered DOSE data
-    dose_age_groups = sorted([v for v in dose_df["age_group"].unique() if v != "Unknown"]) + (["Unknown"] if "Unknown" in dose_df["age_group"].values else []) if "age_group" in dose_df.columns and not dose_df.empty else None
+    if "age_group" in dose_df.columns and not dose_df.empty:
+        _dag_sorted = sorted([v for v in dose_df["age_group"].unique() if v not in ("<18", "Unknown")])
+        _dag_prefix = ["<18"] if "<18" in dose_df["age_group"].values else []
+        _dag_unknown = ["Unknown"] if "Unknown" in dose_df["age_group"].values else []
+        dose_age_groups = _dag_prefix + _dag_sorted + _dag_unknown
+    else:
+        dose_age_groups = None
 
     # ---------- Map: Discharges by ZIP Code ----------
     try:
