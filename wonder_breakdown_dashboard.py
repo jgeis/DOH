@@ -4,6 +4,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
+import re
 
 register_template()
 
@@ -67,6 +68,9 @@ def sort_opts(series):
 # Why: this makes the code more flexible if the data shape changes later.
 wonder_county_opts  = sort_opts(df_raw_gender["county"])                           if "county"  in df_raw_gender.columns else []
 wonder_year_opts    = sorted(df_raw_gender["year"].dropna().unique().tolist())     if "year"    in df_raw_gender.columns else []
+
+DEFAULT_COUNTY = "Statewide" if "Statewide" in wonder_county_opts else (wonder_county_opts[0] if wonder_county_opts else None)
+DEFAULT_YEAR = wonder_year_opts[-1] if wonder_year_opts else None
 
 def opts_list(values):
     """
@@ -149,15 +153,15 @@ filters_card = dbc.Card(
         dcc.RadioItems(
             id="wonder-breakdown-county-filter",
             options=opts_list(wonder_county_opts),
-            value=None,
+            value=DEFAULT_COUNTY,
             className="mb-2",
             labelStyle={"display": "block", "marginBottom": "0.25rem"},
             inputStyle={"marginRight": "0.4rem"},
         ),
-        html.Label("Year", htmlFor="wonder-breakdown-year-filter", tabIndex=3, className="form-label"),
+        html.Label("Calendar Year", htmlFor="wonder-breakdown-year-filter", tabIndex=3, className="form-label"),
         dcc.RadioItems(
             id="wonder-breakdown-year-filter", options=opts_list(wonder_year_opts),
-            value=None,
+            value=DEFAULT_YEAR,
             className="mb-2",
             labelStyle={"display": "block", "marginBottom": "0.25rem"},
             inputStyle={"marginRight": "0.4rem"},
@@ -165,7 +169,7 @@ filters_card = dbc.Card(
         ),
         html.Div(
             [
-                html.P("Values less than 10 are suppressed for privacy reasons and are displayed as <10.", className="small text-muted mb-1"),
+                html.P("* Values less than 10 are suppressed for privacy reasons and are displayed as <10.", className="small text-muted mb-1"),
                 html.P("† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).", className="small text-muted mb-1"),
                 html.P("‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).", className="small text-muted mb-0"),
             ],
@@ -253,8 +257,8 @@ layout = layout_for(is_mobile=False)
     prevent_initial_call=True,
 )
 def reset_all_filters(_n_clicks):
-    # Reset both filters to default empty state.
-    return None, None
+    # Reset both filters to default values.
+    return DEFAULT_COUNTY, DEFAULT_YEAR
 
 @callback(
     Output("wonder-breakdown-kpi-deaths", "children"),
@@ -316,7 +320,10 @@ def update_dashboard(county, year):
         by_sub = (
             dff_substance.groupby("substance", as_index=False)["deaths"]
             .sum()
-            .sort_values("substance")
+            .sort_values("deaths", ascending=False)
+        )
+        by_sub["display_count"] = by_sub["deaths"].apply(
+            lambda x: "<10*" if x < 10 else f"{int(x):,}"
         )
 
         sub_bar = px.bar(
@@ -324,17 +331,23 @@ def update_dashboard(county, year):
             x="deaths",
             y="substance",
             barmode="stack",
-            text="deaths",
+            text="display_count",
             labels={"deaths": "Number of Deaths", "substance": "Substance"},
         )
 
         sub_bar.update_traces(
             textposition="outside",
+            cliponaxis=False,
+            hovertemplate="%{y}: %{text}<extra></extra>",
         )
 
+        max_deaths = by_sub["deaths"].max() if not by_sub.empty else 0
+        x_max = max(10, int(max_deaths * 1.15))
+
         sub_bar.update_layout(
-            margin=dict(l=0, r=0, t=10, b=80),
-            xaxis=dict(automargin=True),
+            margin=dict(l=140, r=50, t=10, b=80),
+            xaxis=dict(automargin=True, range=[0, x_max]),
+            yaxis=dict(autorange="reversed"),
         )
 
     else:
@@ -346,7 +359,10 @@ def update_dashboard(county, year):
         by_race = (
             dff_race.groupby("race", as_index=False)["deaths"]
             .sum()
-            .sort_values("race")
+            .sort_values("deaths", ascending=False)
+        )
+        by_race["display_count"] = by_race["deaths"].apply(
+            lambda x: "<10*" if x < 10 else f"{int(x):,}"
         )
 
         race_bar = px.bar(
@@ -354,17 +370,19 @@ def update_dashboard(county, year):
             x="deaths",
             y="race",
             barmode="stack",
-            text="deaths",
+            text="display_count",
             labels={"deaths": "Number of Deaths", "race": "Race"},
         )
 
         race_bar.update_traces(
             textposition="outside",
+            hovertemplate="%{y}: %{text}<extra></extra>",
         )
 
         race_bar.update_layout(
             margin=dict(l=0, r=0, t=10, b=80),
             xaxis=dict(automargin=True),
+            yaxis=dict(autorange="reversed"),
         )
 
     else:
@@ -375,7 +393,28 @@ def update_dashboard(county, year):
         by_age_group = (
             dff_age_group.groupby("age_group", as_index=False)["deaths"]
             .sum()
-            .sort_values("age_group")
+        )
+
+        def age_group_sort_key(label):
+            text = str(label).strip()
+            lower = text.lower()
+
+            normalized = lower.replace(" ", "")
+            if normalized in {"<1", "under1"}:
+                return -2
+
+            if lower.startswith("under"):
+                return -1
+            if lower == "unknown":
+                return 10**9
+
+            m = re.search(r"\d+", text)
+            return int(m.group()) if m else 10**8
+
+        by_age_group["_age_sort"] = by_age_group["age_group"].apply(age_group_sort_key)
+        by_age_group = by_age_group.sort_values("_age_sort").drop(columns=["_age_sort"])
+        by_age_group["display_count"] = by_age_group["deaths"].apply(
+            lambda x: "<10*" if x < 10 else f"{int(x):,}"
         )
 
         age_group_bar = px.bar(
@@ -383,17 +422,19 @@ def update_dashboard(county, year):
             x="deaths",
             y="age_group",
             barmode="stack",
-            text="deaths",
-            labels={"deaths": "Number of Deaths", "age_group": "Age_group"},
+            text="display_count",
+            labels={"deaths": "Number of Deaths", "age_group": "Age Group"},
         )
 
         age_group_bar.update_traces(
             textposition="outside",
+            hovertemplate="%{y}: %{text}<extra></extra>",
         )
 
         age_group_bar.update_layout(
             margin=dict(l=0, r=0, t=10, b=80),
             xaxis=dict(automargin=True),
+            yaxis=dict(autorange="reversed"),
         )
 
     else:
@@ -406,16 +447,20 @@ def update_dashboard(county, year):
             .sum()
             .sort_values("gender")
         )
+        by_gender["display_count"] = by_gender["deaths"].apply(
+            lambda x: "<10*" if x < 10 else f"{int(x):,}"
+        )
         gender_pie = px.pie(
             by_gender,
             names="gender",
             values="deaths",
-            hole=0.35
+            hole=0.35,
+            custom_data=["display_count"],
         )
         gender_pie.update_traces(
             textposition="inside",
-            texttemplate="%{label}<br>%{percent:.1%} (%{value:,})",
-            hovertemplate="%{label}: %{value:,} (%{percent:.1%})"
+            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
+            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
         )
         gender_pie.update_layout(margin=dict(l=0, r=0, t=10, b=0))
     else:

@@ -180,7 +180,7 @@ filters_card = dbc.Card(
             labelStyle={"display": "block", "marginBottom": "0.25rem"},
             inputStyle={"marginRight": "0.4rem"},
         ),
-        html.Label("Year", htmlFor="wonder-year-filter", tabIndex=3, className="form-label"),
+        html.Label("Calendar Year", htmlFor="wonder-year-filter", tabIndex=3, className="form-label"),
         dcc.Checklist(
             id="wonder-year-filter", options=opts_list(wonder_year_opts),
             value=[],
@@ -224,8 +224,8 @@ def layout_for(
     center_col = dbc.Col(
         [
             dbc.Row([
-                graph_block("wonder-line-deaths", "Deaths by Year", line_h),
-                #html.P("Line chart of deaths by year.", className="sr-only"),
+                graph_block("wonder-line-deaths", "Deaths by Calendar Year", line_h),
+                #html.P("Line chart of deaths by calendar year.", className="sr-only"),
             ]),
             dbc.Row([
                 graph_block("wonder-bar-deaths", "Deaths by County", bar_h),
