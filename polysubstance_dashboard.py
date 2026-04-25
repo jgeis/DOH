@@ -254,6 +254,7 @@ polysubstance_sidebar_text = [
     "This page highlights patterns where multiple substances appear in the same discharge record.",
 ]
 
+# Filter display order is managed centrally in dashboard_utils.make_filters_card.
 filters_card = make_filters_card(
     card_id="polysubstance-filters",
     title="Filter Data",

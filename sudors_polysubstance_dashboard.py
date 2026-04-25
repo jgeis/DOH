@@ -91,6 +91,7 @@ reset_filters_button = dbc.Button(
     n_clicks=0,
 )
 
+# Filter display order is managed centrally in dashboard_utils.make_filters_card.
 filters_card = make_filters_card(
     card_id="sudors-cooccurrence-filters",
     title="Filter Data",

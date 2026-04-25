@@ -9,6 +9,51 @@ import re
 
 STATEWIDE_COUNTY = "Statewide"
 
+
+# Global preferred order for sidebar filters.
+# Unknown/new labels are intentionally placed after these.
+FILTER_LABEL_ORDER = [
+    "Substance",
+    "Substance Type",
+    "Primary Substance",
+    "Substance Use Diagnosis",
+    "Mental Health Diagnosis",
+    "Calendar Year",
+    "Year",
+    "County of Death",
+    "County",
+    "City",
+    "Age Group",
+    "Sex",
+    "Race/Ethnicity",
+    "Hawaii Resident",
+    "Homeless",
+]
+
+
+def _normalize_filter_label(label: str) -> str:
+    """Normalize filter labels so ordering is resilient to punctuation/case variants."""
+    text = re.sub(r"[^a-z0-9]+", " ", str(label).strip().lower())
+    return " ".join(text.split())
+
+
+_FILTER_LABEL_RANK = {
+    _normalize_filter_label(label): idx
+    for idx, label in enumerate(FILTER_LABEL_ORDER)
+}
+
+
+def _ordered_filters(filters):
+    """Return filters ordered by FILTER_LABEL_ORDER, preserving relative order for unknown labels."""
+    indexed = list(enumerate(filters))
+
+    def _sort_key(item):
+        original_idx, (label_text, _control) = item
+        rank = _FILTER_LABEL_RANK.get(_normalize_filter_label(label_text), len(_FILTER_LABEL_RANK))
+        return rank, original_idx
+
+    return [flt for _idx, flt in sorted(indexed, key=_sort_key)]
+
 # This applies our custom Plotly theme (colors, fonts, etc.)
 register_template()
 
@@ -298,10 +343,12 @@ def make_filters_card(
         props["className"] = _normalize_spacing_class(props.get("className"), is_last)
         return control_component.__class__(**props)
 
+    ordered = _ordered_filters(filters)
+
     children = [html.H5(title, tabIndex=start_tab_index)]
 
-    total = len(filters)
-    for idx, (label_text, control) in enumerate(filters, start=1):
+    total = len(ordered)
+    for idx, (label_text, control) in enumerate(ordered, start=1):
         is_last = idx == total
         normalized_control = _with_enforced_spacing(control, is_last)
         control_id = getattr(normalized_control, "id", None)

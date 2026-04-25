@@ -116,6 +116,7 @@ kpi_card = make_kpi_card(
 )
 
 # Card holding all the filter controls down the left side.
+# Filter display order is managed centrally in dashboard_utils.make_filters_card.
 filters_card = make_filters_card(
     card_id="discharges-filters",
     title="Filter Data",

@@ -92,6 +92,7 @@ kpi_card_dose = make_kpi_card(
 )
 
 # Card holding all the DOSE filter controls
+# Filter display order is managed centrally in dashboard_utils.make_filters_card.
 filters_card_dose = make_filters_card(
     card_id="dose-filters",
     title="Filter DOSE Data",

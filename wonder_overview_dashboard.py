@@ -171,6 +171,7 @@ reset_filters_button = dbc.Button(
 
 # Card holding all the filter controls down the left side.
 # Each filter uses the options we built from the data above.
+# Filter display order is managed centrally in dashboard_utils.make_filters_card.
 filters_card = make_filters_card(
     card_id="wonder-overview-filters",
     title="Filter Data",
