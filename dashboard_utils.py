@@ -6,6 +6,9 @@ from dash import html, dcc
 from theme import register_template
 import re
 
+
+STATEWIDE_COUNTY = "Statewide"
+
 # This applies our custom Plotly theme (colors, fonts, etc.)
 register_template()
 
@@ -54,6 +57,116 @@ def opts_list(values):
     drop-down choices (label + value).
     """
     return [{"label": v, "value": v} for v in values]
+
+
+def with_statewide_county(values) -> list[str]:
+    """
+    Return county values with a synthetic "Statewide" option prepended.
+
+    This does not modify database data; it only affects UI/filter choices.
+    """
+    cleaned = [str(v).strip() for v in values if str(v).strip()]
+    non_statewide = [v for v in cleaned if v.lower() != STATEWIDE_COUNTY.lower()]
+    return [STATEWIDE_COUNTY] + non_statewide
+
+
+def statewide_first(values) -> list[str]:
+    """
+    Return values in the same order, but move "Statewide" to the front if present.
+
+    Unlike `with_statewide_county`, this does not inject synthetic values.
+    """
+    cleaned = [str(v).strip() for v in values if str(v).strip()]
+    unique = list(dict.fromkeys(cleaned))
+    has_statewide = any(v.lower() == STATEWIDE_COUNTY.lower() for v in unique)
+    if not has_statewide:
+        return unique
+    non_statewide = [v for v in unique if v.lower() != STATEWIDE_COUNTY.lower()]
+    return [STATEWIDE_COUNTY] + non_statewide
+
+
+def apply_county_filter(frame: pd.DataFrame, county_value, county_col: str = "county") -> pd.DataFrame:
+    """
+    Apply county filtering with support for synthetic "Statewide" semantics.
+
+    Rules:
+      - Empty selection => no county filtering
+      - Selection includes "Statewide" => no county filtering
+      - Otherwise => filter to selected county/countries
+    """
+    if county_col not in frame.columns:
+        return frame
+
+    if county_value is None or (isinstance(county_value, (list, tuple, set)) and len(county_value) == 0):
+        return frame
+
+    selected = county_value if isinstance(county_value, (list, tuple, set)) else [county_value]
+    normalized = [str(v).strip().lower() for v in selected if str(v).strip()]
+
+    if not normalized:
+        return frame
+
+    if STATEWIDE_COUNTY.lower() in normalized:
+        return frame
+
+    selected_set = set(normalized)
+    mask = frame[county_col].astype(str).str.strip().str.lower().isin(selected_set)
+    return frame[mask]
+
+
+def county_output_should_include_statewide(county_value) -> bool:
+    """
+    Decide whether county-based outputs should include a synthetic "Statewide" row.
+
+    Include it when:
+      - no county filter is selected, or
+      - county selection explicitly includes "Statewide".
+    """
+    if county_value is None:
+        return True
+
+    selected = county_value if isinstance(county_value, (list, tuple, set)) else [county_value]
+    if len(selected) == 0:
+        return True
+
+    normalized = [str(v).strip().lower() for v in selected if str(v).strip()]
+    if not normalized:
+        return True
+
+    return STATEWIDE_COUNTY.lower() in normalized
+
+
+def append_statewide_aggregate_rows(
+    grouped_df: pd.DataFrame,
+    value_col: str,
+    county_col: str = "county",
+) -> pd.DataFrame:
+    """
+    Append synthetic statewide aggregate rows to a county-grouped DataFrame.
+
+    The function preserves any non-county grouping columns (e.g., year),
+    summing `value_col` across counties for each grouping combination.
+    """
+    if grouped_df.empty or county_col not in grouped_df.columns or value_col not in grouped_df.columns:
+        return grouped_df
+
+    base = grouped_df[
+        grouped_df[county_col].astype(str).str.strip().str.lower() != STATEWIDE_COUNTY.lower()
+    ].copy()
+
+    if base.empty:
+        return grouped_df
+
+    non_county_group_cols = [c for c in base.columns if c not in {county_col, value_col}]
+
+    if non_county_group_cols:
+        statewide = base.groupby(non_county_group_cols, as_index=False)[value_col].sum()
+    else:
+        statewide = pd.DataFrame({value_col: [base[value_col].sum()]})
+
+    statewide[county_col] = STATEWIDE_COUNTY
+    statewide = statewide[base.columns.tolist()]
+    return pd.concat([base, statewide], ignore_index=True)
 
 
 def graph_block(base_id: str, title_text: str, height_px: str):

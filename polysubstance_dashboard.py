@@ -17,7 +17,14 @@ import plotly.io as pio
 
 from theme import register_template
 from db_utils import execute_query
-from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, dropdown_filter
+from dashboard_utils import (
+    make_kpi_card,
+    make_left_sidebar,
+    make_filters_card,
+    dropdown_filter,
+    statewide_first,
+    apply_county_filter,
+)
 
 # This applies our custom Plotly look (colors, fonts, etc.) everywhere in this app.
 register_template()  # set your Plotly template globally
@@ -233,7 +240,7 @@ def opts(values):
 
 # Build the dropdown choices for each filter, only if those columns exist.
 substance_opts = sort_opts(df_raw["substance"]) if "substance" in df_raw.columns else []
-county_opts    = sort_opts(df_raw["county"])    if "county"    in df_raw.columns else []
+county_opts    = sort_opts(df_raw["county"]) if "county" in df_raw.columns else []
 age_opts       = sort_opts(df_raw["age_group"]) if "age_group" in df_raw.columns else []
 sex_opts       = sort_opts(df_raw["sex"])       if "sex"       in df_raw.columns else []
 year_opts      = sorted(df_raw["year"].dropna().unique().tolist()) if "year" in df_raw.columns else []
@@ -259,7 +266,7 @@ filters_card = make_filters_card(
 
 
 # ---------- small helpers ----------
-def _apply_filter(frame, col, val):
+def _apply_filter(frame: pd.DataFrame, col: str, val) -> pd.DataFrame:
     """
     Helper to apply a filter to a column.
 
@@ -578,7 +585,7 @@ def update(substance, age, sex, county, year):
     if "substance" in dff.columns:     dff = _apply_filter(dff, "substance", substance)
     if "age_group" in dff.columns:     dff = _apply_filter(dff, "age_group", age)
     if "sex" in dff.columns:           dff = _apply_filter(dff, "sex", sex)
-    if "county" in dff.columns:        dff = _apply_filter(dff, "county", county)
+    if "county" in dff.columns:        dff = apply_county_filter(dff, county)
     if "year" in dff.columns: dff = _apply_filter(dff, "year", year)
 
     # ---------- Bar: Top substances ----------
@@ -623,10 +630,19 @@ def update(substance, age, sex, county, year):
     # ---------- Stacked Bar: Year × County ----------
     if {"year", "county", "record_id"}.issubset(dff.columns) and not dff.empty:
         yearly_counts = (
-            dff.drop_duplicates("record_id")
+            dff.drop_duplicates(subset=["record_id"])
                .groupby(["year", "county"])["record_id"]
                .nunique().reset_index(name="discharges")
         )
+
+        county_order = statewide_first(sort_opts(yearly_counts["county"]))
+        yearly_counts["county"] = pd.Categorical(
+            yearly_counts["county"],
+            categories=county_order,
+            ordered=True,
+        )
+        yearly_counts = yearly_counts.sort_values(["year", "county"])
+
         # Show the counts inside each bar segment
         yearly_counts["label"] = yearly_counts["discharges"].map(lambda x: f"{int(x):,}")
 
@@ -635,6 +651,7 @@ def update(substance, age, sex, county, year):
             x="year", y="discharges",
             color="county",
             barmode="stack",
+            category_orders={"county": county_order},
             labels={"year": "Year", "discharges": "Discharges"},
             text="label",
         )
@@ -667,14 +684,24 @@ def update(substance, age, sex, county, year):
         fig_year_county = px.bar()
 
     # ---------- Pie chart: county share ----------
-    uniq = dff.drop_duplicates("record_id")
+    uniq = dff.drop_duplicates(subset=["record_id"])
     if {"county", "record_id"}.issubset(uniq.columns) and not uniq.empty:
         county_counts = uniq.groupby("county")["record_id"].nunique().reset_index(name="discharges")
+
+        county_order = statewide_first(sort_opts(county_counts["county"]))
+        county_counts["county"] = pd.Categorical(
+            county_counts["county"],
+            categories=county_order,
+            ordered=True,
+        )
+        county_counts = county_counts.sort_values("county")
+
         fig_tree = px.pie(
             county_counts,
             names="county",
             values="discharges",
             hole=0.35,
+            category_orders={"county": county_order},
         )
         fig_tree.update_traces(
             texttemplate="%{label}<br>%{percent:.1%} (%{value:,})",

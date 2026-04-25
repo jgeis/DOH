@@ -4,7 +4,13 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
-from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, checklist_filter
+from dashboard_utils import (
+    make_kpi_card,
+    make_left_sidebar,
+    make_filters_card,
+    checklist_filter,
+    statewide_first,
+)
 import json
 
 register_template()
@@ -330,6 +336,9 @@ def update_dashboard(county, year):
             .sum()
             .sort_values(["year", "county"])
         )
+        county_order = statewide_first(sort_opts(by_year["county"]))
+        by_year["county"] = pd.Categorical(by_year["county"], categories=county_order, ordered=True)
+        by_year = by_year.sort_values(["year", "county"])
         by_year["display_count"] = by_year["deaths"].apply(
             lambda x: "<10" if x < 10 else f"{int(x):,}"
         )
@@ -341,6 +350,7 @@ def update_dashboard(county, year):
             color="county",
             markers=True,
             text="display_count",
+            category_orders={"county": county_order},
             labels={"year": "Calendar Year", "deaths": "Number of Deaths", "county": "County"},
         )
 
@@ -364,6 +374,11 @@ def update_dashboard(county, year):
             .sum()
             .sort_values("deaths", ascending=False)
         )
+
+        if "county" in by_county.columns:
+            statewide_rows = by_county[by_county["county"].astype(str).str.strip().str.lower() == "statewide"]
+            other_rows = by_county[by_county["county"].astype(str).str.strip().str.lower() != "statewide"]
+            by_county = pd.concat([statewide_rows, other_rows], ignore_index=True)
 
         county_bar = px.bar(
             by_county,

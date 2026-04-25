@@ -11,6 +11,10 @@ from dashboard_utils import (
     load_sql_query,
     sort_opts,
     opts_list,
+    statewide_first,
+    apply_county_filter,
+    county_output_should_include_statewide,
+    append_statewide_aggregate_rows,
     graph_block,
     make_kpi_card,
     make_left_sidebar,
@@ -51,7 +55,7 @@ total_dose_unique = df_dose_raw["record_id"].nunique()
 
 # Build the lists of choices for DOSE filters
 dose_substance_opts = sort_opts(df_dose_raw["substance"])                       if "substance"  in df_dose_raw.columns else []
-dose_county_opts    = sort_opts(df_dose_raw["county"])                          if "county"     in df_dose_raw.columns else []
+dose_county_opts    = sort_opts(df_dose_raw["county"])                           if "county"     in df_dose_raw.columns else []
 dose_city_opts      = sort_opts(df_dose_raw["city"])                            if "city"       in df_dose_raw.columns else []
 dose_zip_opts       = sort_opts(df_dose_raw["zip"])                             if "zip"        in df_dose_raw.columns else []
 dose_year_opts      = sorted(df_dose_raw["year"].dropna().unique().tolist())    if "year"       in df_dose_raw.columns else []
@@ -257,13 +261,15 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
 
     # Only apply filters for columns that actually exist.
     if "substance" in dose_df.columns:          dose_df = apply_filter(dose_df, "substance", substance)
-    if "county" in dose_df.columns:             dose_df = apply_filter(dose_df, "county", county)
+    if "county" in dose_df.columns:             dose_df = apply_county_filter(dose_df, county)
     if "city" in dose_df.columns:               dose_df = apply_filter(dose_df, "city", city)
     if "year" in dose_df.columns:               dose_df = apply_filter(dose_df, "year", year)
     if "hawaii_residency" in dose_df.columns:   dose_df = apply_filter(dose_df, "hawaii_residency", hawaii_residency)
     if "age_group" in dose_df.columns:          dose_df = apply_filter(dose_df, "age_group", age)
     if "sex" in dose_df.columns:                dose_df = apply_filter(dose_df, "sex", sex)
     if "race_ethnicity" in dose_df.columns:     dose_df = apply_filter(dose_df, "race_ethnicity", race_ethnicity)
+
+    include_statewide_county_outputs = county_output_should_include_statewide(county)
     
     filter_dose_total = dose_df["record_id"].nunique()
     kpi_dose_display = "<11" if filter_dose_total < 11 else f"{filter_dose_total:,}"
@@ -345,6 +351,12 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             )
 
         g = dose_df.groupby(column)["record_id"].nunique().reset_index(name="count")
+
+        if column == "county" and include_statewide_county_outputs:
+            g = append_statewide_aggregate_rows(g, value_col="count", county_col="county")
+
+        if column == "county":
+            categories = statewide_first(sort_opts(g[column]))
 
         if categories:
             g[column] = pd.Categorical(g[column], categories=categories, ordered=True)

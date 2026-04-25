@@ -4,7 +4,12 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
-from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, radio_filter
+from dashboard_utils import (
+    make_kpi_card,
+    make_left_sidebar,
+    make_filters_card,
+    radio_filter,
+)
 import re
 
 register_template()

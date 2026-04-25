@@ -10,6 +10,10 @@ from dashboard_utils import (
     load_sql_query,
     sort_opts,
     opts_list,
+    statewide_first,
+    apply_county_filter,
+    county_output_should_include_statewide,
+    append_statewide_aggregate_rows,
     graph_block,
     make_kpi_card,
     make_left_sidebar,
@@ -275,13 +279,15 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
 
     # Only apply filters for columns that actually exist.
     if "substance" in dff.columns:          dff = apply_filter(dff, "substance", substance)
-    if "county" in dff.columns:             dff = apply_filter(dff, "county", county)
+    if "county" in dff.columns:             dff = apply_county_filter(dff, county)
     if "city" in dff.columns:               dff = apply_filter(dff, "city", city)
     if "year" in dff.columns:               dff = apply_filter(dff, "year", year)
     if "hawaii_residency" in dff.columns:   dff = apply_filter(dff, "hawaii_residency", hawaii_residency)
     if "age_group" in dff.columns:          dff = apply_filter(dff, "age_group", age)
     if "sex" in dff.columns:                dff = apply_filter(dff, "sex", sex)
     if "race_ethnicity" in dff.columns:     dff = apply_filter(dff, "race_ethnicity", race_ethnicity)
+
+    include_statewide_county_outputs = county_output_should_include_statewide(county)
 
     filter_total = dff["record_id"].nunique()
 
@@ -332,7 +338,10 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             dff.groupby(["year", "county"])["record_id"].nunique()
             .reset_index(name="count")
         )
-        counties = sort_opts(dff["county"]) if "county" in dff.columns else []
+        if include_statewide_county_outputs:
+            by_cy = append_statewide_aggregate_rows(by_cy, value_col="count", county_col="county")
+
+        counties = statewide_first(sort_opts(by_cy["county"])) if "county" in by_cy.columns else []
         if counties:
             by_cy["county"] = pd.Categorical(by_cy["county"], categories=counties, ordered=True)
 
@@ -407,6 +416,12 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             )
 
         g = dff.groupby(column)["record_id"].nunique().reset_index(name="count")
+
+        if column == "county" and include_statewide_county_outputs:
+            g = append_statewide_aggregate_rows(g, value_col="count", county_col="county")
+
+        if column == "county":
+            categories = statewide_first(sort_opts(g[column]))
 
         if categories:
             g[column] = pd.Categorical(g[column], categories=categories, ordered=True)
