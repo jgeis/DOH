@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
-from dashboard_utils import make_kpi_card, make_left_sidebar
+from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, dropdown_filter
 import json
 import re
 
@@ -170,49 +170,17 @@ reset_filters_button = dbc.Button(
 
 # Card holding all the filter controls down the left side.
 # Each filter uses the options we built from the data above.
-filters_card = dbc.Card(
-    dbc.CardBody([
-        html.H5("Filter Data", tabIndex=1),
-
-        html.Label("Substance", htmlFor="sudors-substance-filter", tabIndex=2, className="form-label"),
-        dcc.Dropdown(
-            id="sudors-substance-filter", options=opts_list(substance_opts), multi=True,
-            placeholder="Substance", className="mb-2",
-            persistence="sudors-substance-filter", persistence_type="session"
-        ),
-        html.Label("Homeless", htmlFor="sudors-homeless-filter", tabIndex=2, className="form-label"),
-        dcc.Dropdown(
-            id="sudors-homeless-filter", options=opts_list(homeless_opts), multi=True,
-            placeholder="Homeless", className="mb-2",
-            persistence="sudors-homeless-filter", persistence_type="session"
-        ),
-        html.Label("Race/Ethnicity", htmlFor="sudors-race-filter", tabIndex=5, className="form-label"),
-        dcc.Dropdown(
-            id="sudors-race-filter", options=opts_list(race_opts), multi=True,
-            placeholder="Race/Ethnicity", className="mb-2",
-            persistence="sudors-race-filter", persistence_type="session"
-        ),
-        html.Label("Sex", htmlFor="sudors-sex-filter", tabIndex=6, className="form-label"),
-        dcc.Dropdown(
-            id="sudors-sex-filter", options=opts_list(sex_opts), multi=True,
-            placeholder="Sex", className="mb-0",
-            persistence="sudors-sex-filter", persistence_type="session"
-        ),
-        html.Label("Age Group", htmlFor="sudors-age-filter", tabIndex=5, className="form-label"),
-        dcc.Dropdown(
-            id="sudors-age-filter", options=opts_list(age_opts), multi=True,
-            placeholder="Age Group", className="mb-2",
-            persistence="sudors-age-filter", persistence_type="session"
-        ),
-        html.Label("Calendar Year", htmlFor="sudors-year-filter", tabIndex=3, className="form-label"),
-        dcc.Dropdown(
-            id="sudors-year-filter", options=opts_list(year_opts), multi=True,
-            placeholder="Calendar Year", className="mb-2",
-            persistence="sudors-year-filter", persistence_type="session"
-        ),
-    ]),
-    id="sudors-filters",
-    className="mb-4"
+filters_card = make_filters_card(
+    card_id="sudors-filters",
+    title="Filter Data",
+    filters=[
+        dropdown_filter("Substance", "sudors-substance-filter", options=opts_list(substance_opts), multi=True, placeholder="Substance"),
+        dropdown_filter("Homeless", "sudors-homeless-filter", options=opts_list(homeless_opts), multi=True, placeholder="Homeless"),
+        dropdown_filter("Race/Ethnicity", "sudors-race-filter", options=opts_list(race_opts), multi=True, placeholder="Race/Ethnicity"),
+        dropdown_filter("Sex", "sudors-sex-filter", options=opts_list(sex_opts), multi=True, placeholder="Sex"),
+        dropdown_filter("Age Group", "sudors-age-filter", options=opts_list(age_opts), multi=True, placeholder="Age Group"),
+        dropdown_filter("Calendar Year", "sudors-year-filter", options=opts_list(year_opts), multi=True, placeholder="Calendar Year"),
+    ],
 )
 
 sudors_sidebar_text = [

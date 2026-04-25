@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
-from dashboard_utils import make_kpi_card, make_left_sidebar
+from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, checklist_filter
 import json
 
 register_template()
@@ -165,34 +165,31 @@ reset_filters_button = dbc.Button(
 
 # Card holding all the filter controls down the left side.
 # Each filter uses the options we built from the data above.
-filters_card = dbc.Card(
-    dbc.CardBody([
-        html.H5("Filter Data", tabIndex=1),
-
-        html.Label("County", htmlFor="wonder-county-filter", className="form-label"),
-        dcc.Checklist(
-            id="wonder-county-filter",
+filters_card = make_filters_card(
+    card_id="wonder-overview-filters",
+    title="Filter Data",
+    filters=[
+        checklist_filter(
+            "County",
+            "wonder-county-filter",
             options=opts_list(wonder_county_opts),
             value=[],
-            className="mb-2",
             labelStyle={"display": "block", "marginBottom": "0.25rem"},
             inputStyle={"marginRight": "0.4rem"},
             persistence="wonder-overview-county-filter",
             persistence_type="session",
         ),
-        html.Label("Calendar Year", htmlFor="wonder-year-filter", tabIndex=3, className="form-label"),
-        dcc.Checklist(
-            id="wonder-year-filter", options=opts_list(wonder_year_opts),
+        checklist_filter(
+            "Calendar Year",
+            "wonder-year-filter",
+            options=opts_list(wonder_year_opts),
             value=[],
-            className="mb-2",
             labelStyle={"display": "block", "marginBottom": "0.25rem"},
             inputStyle={"marginRight": "0.4rem"},
             persistence="wonder-overview-year-filter",
             persistence_type="session",
         ),
-    ]),
-    id="wonder-overview-filters",
-    className="mb-4"
+    ],
 )
 
 wonder_overview_sidebar_text = [

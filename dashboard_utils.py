@@ -4,6 +4,7 @@ import pandas as pd
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 from theme import register_template
+import re
 
 # This applies our custom Plotly theme (colors, fonts, etc.)
 register_template()
@@ -151,3 +152,79 @@ def make_left_sidebar(
         else:
             children.append(helper_text)
     return dbc.Col(children, xs=xs, md=md)
+
+
+def make_filters_card(
+    card_id: str,
+    filters,
+    title: str = "Filter Data",
+    start_tab_index: int = 1,
+    class_name: str = "mb-4",
+) -> dbc.Card:
+    """
+    Build a standardized filters card with consistent label formatting and tab order.
+
+    Args:
+        card_id: ID for the outer filters card.
+        filters: Iterable of (label_text, dash_component) tuples in visual order.
+        title: Heading shown at the top of the filters card.
+        start_tab_index: Tab index used for the heading; labels start at +1 in order.
+        class_name: CSS class name for the outer card.
+    """
+    def _normalize_spacing_class(existing_class: str | None, is_last: bool) -> str:
+        """Replace any existing mb-* class with mb-2/mb-0 based on position."""
+        desired = "mb-0" if is_last else "mb-2"
+        tokens = (existing_class or "").split()
+        tokens = [t for t in tokens if not re.fullmatch(r"mb-\d+", t)]
+        tokens.append(desired)
+        return " ".join(tokens).strip()
+
+    def _with_enforced_spacing(control_component, is_last: bool):
+        """Clone a Dash component with normalized className spacing."""
+        props = control_component.to_plotly_json().get("props", {})
+        props["className"] = _normalize_spacing_class(props.get("className"), is_last)
+        return control_component.__class__(**props)
+
+    children = [html.H5(title, tabIndex=start_tab_index)]
+
+    total = len(filters)
+    for idx, (label_text, control) in enumerate(filters, start=1):
+        is_last = idx == total
+        normalized_control = _with_enforced_spacing(control, is_last)
+        control_id = getattr(normalized_control, "id", None)
+        children.append(
+            html.Label(
+                label_text,
+                htmlFor=control_id,
+                tabIndex=start_tab_index + idx,
+                className="form-label",
+            )
+        )
+        children.append(normalized_control)
+
+    return dbc.Card(dbc.CardBody(children), id=card_id, className=class_name)
+
+
+def dropdown_filter(label: str, control_id: str, **kwargs):
+    """
+    Convenience builder for dropdown filters used by make_filters_card.
+
+    If persistence is not provided, defaults to the control id.
+    """
+    kwargs.setdefault("persistence", control_id)
+    kwargs.setdefault("persistence_type", "session")
+    return label, dcc.Dropdown(id=control_id, **kwargs)
+
+
+def checklist_filter(label: str, control_id: str, **kwargs):
+    """Convenience builder for checklist filters used by make_filters_card."""
+    kwargs.setdefault("persistence", control_id)
+    kwargs.setdefault("persistence_type", "session")
+    return label, dcc.Checklist(id=control_id, **kwargs)
+
+
+def radio_filter(label: str, control_id: str, **kwargs):
+    """Convenience builder for radio-item filters used by make_filters_card."""
+    kwargs.setdefault("persistence", control_id)
+    kwargs.setdefault("persistence_type", "session")
+    return label, dcc.RadioItems(id=control_id, **kwargs)

@@ -7,7 +7,14 @@ from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
 from dashboard_utils import (
-    load_sql_query, sort_opts, opts_list, graph_block, make_kpi_card, make_left_sidebar
+    load_sql_query,
+    sort_opts,
+    opts_list,
+    graph_block,
+    make_kpi_card,
+    make_left_sidebar,
+    make_filters_card,
+    dropdown_filter,
 )
 
 register_template()
@@ -105,68 +112,19 @@ kpi_card = make_kpi_card(
 )
 
 # Card holding all the filter controls down the left side.
-filters_card = dbc.Card(
-    dbc.CardBody([
-        html.H5("Filter Data", tabIndex=1),
-
-        html.Label("Substance", htmlFor="discharges-substance-filter", tabIndex=1, className="form-label"),
-        dcc.Dropdown(
-            id="discharges-substance-filter", options=opts_list(substance_opts), multi=True,
-            placeholder="Substance", className="mb-2",
-            persistence="discharges-substance-filter", persistence_type="session"
-        ),
-
-        html.Label("County", htmlFor="discharges-county-filter", tabIndex=2, className="form-label"),
-        dcc.Dropdown(
-            id="discharges-county-filter", options=opts_list(county_opts), multi=True,
-            placeholder="County", className="mb-2",
-            persistence="discharges-county-filter", persistence_type="session"
-        ),
-
-        html.Label("City", htmlFor="discharges-city-filter", tabIndex=3, className="form-label"),
-        dcc.Dropdown(
-            id="discharges-city-filter", options=opts_list(city_opts), multi=True,
-            placeholder="City", className="mb-2",
-            persistence="discharges-city-filter", persistence_type="session"
-        ),
-
-        html.Label("Year", htmlFor="discharges-year-filter", tabIndex=4, className="form-label"),
-        dcc.Dropdown(
-            id="discharges-year-filter", options=opts_list(year_opts), multi=True,
-            placeholder="Year", className="mb-2",
-            persistence="discharges-year-filter", persistence_type="session"
-        ),
-
-        html.Label("Age Group", htmlFor="discharges-age-filter", tabIndex=5, className="form-label"),
-        dcc.Dropdown(
-            id="discharges-age-filter", options=opts_list(age_opts), multi=True,
-            placeholder="Age Group", className="mb-2",
-            persistence="discharges-age-filter", persistence_type="session"
-        ),
-
-        html.Label("Sex", htmlFor="discharges-sex-filter", tabIndex=6, className="form-label"),
-        dcc.Dropdown(
-            id="discharges-sex-filter", options=opts_list(sex_opts), multi=True,
-            placeholder="Sex", className="mb-2",
-            persistence="discharges-sex-filter", persistence_type="session"
-        ),
-
-        html.Label("Race/Ethnicity", htmlFor="discharges-race-ethnicity-filter", tabIndex=7, className="form-label"),
-        dcc.Dropdown(
-            id="discharges-race-ethnicity-filter", options=opts_list(race_ethnicity_opts), multi=True,
-            placeholder="Race/Ethnicity", className="mb-2",
-            persistence="discharges-race-ethnicity-filter", persistence_type="session"
-        ),
-
-        html.Label("Hawaii Resident", htmlFor="discharges-hawaii-residency-filter", tabIndex=8, className="form-label"),
-        dcc.Dropdown(
-            id="discharges-hawaii-residency-filter", options=opts_list(hawaii_residency_opts), multi=True,
-            placeholder="Hawaii Resident", className="mb-0",
-            persistence="discharges-hawaii-residency-filter", persistence_type="session"
-        ),
-    ]),
-    id="discharges-filters",
-    className="mb-4"
+filters_card = make_filters_card(
+    card_id="discharges-filters",
+    title="Filter Data",
+    filters=[
+        dropdown_filter("Substance", "discharges-substance-filter", options=opts_list(substance_opts), multi=True, placeholder="Substance"),
+        dropdown_filter("County", "discharges-county-filter", options=opts_list(county_opts), multi=True, placeholder="County"),
+        dropdown_filter("City", "discharges-city-filter", options=opts_list(city_opts), multi=True, placeholder="City"),
+        dropdown_filter("Year", "discharges-year-filter", options=opts_list(year_opts), multi=True, placeholder="Year"),
+        dropdown_filter("Age Group", "discharges-age-filter", options=opts_list(age_opts), multi=True, placeholder="Age Group"),
+        dropdown_filter("Sex", "discharges-sex-filter", options=opts_list(sex_opts), multi=True, placeholder="Sex"),
+        dropdown_filter("Race/Ethnicity", "discharges-race-ethnicity-filter", options=opts_list(race_ethnicity_opts), multi=True, placeholder="Race/Ethnicity"),
+        dropdown_filter("Hawaii Resident", "discharges-hawaii-residency-filter", options=opts_list(hawaii_residency_opts), multi=True, placeholder="Hawaii Resident"),
+    ],
 )
 
 discharges_sidebar_text = [

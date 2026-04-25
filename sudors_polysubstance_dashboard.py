@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 
 from theme import register_template
 from db_utils import execute_query
-from dashboard_utils import make_kpi_card, make_left_sidebar
+from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, dropdown_filter
 
 register_template()
 
@@ -91,12 +91,13 @@ reset_filters_button = dbc.Button(
     n_clicks=0,
 )
 
-filters_card = dbc.Card(
-    dbc.CardBody([
-        html.H5("Filter Data", tabIndex=1),
-        html.Label("Primary Substance", htmlFor="sudors-cooccurrence-primary-substance", className="form-label"),
-        dcc.Dropdown(
-            id="sudors-cooccurrence-primary-substance",
+filters_card = make_filters_card(
+    card_id="sudors-cooccurrence-filters",
+    title="Filter Data",
+    filters=[
+        dropdown_filter(
+            "Primary Substance",
+            "sudors-cooccurrence-primary-substance",
             options=[{"label": "All substances (no filter)", "value": ""}] +
                     [{"label": s, "value": s} for s in sorted(df_raw["substance"].unique())],
             value="",
@@ -105,9 +106,7 @@ filters_card = dbc.Card(
             persistence="sudors-cooccurrence-primary-substance",
             persistence_type="session",
         ),
-    ]),
-    id="sudors-cooccurrence-filters",
-    className="mb-4",
+    ],
 )
 
 sudors_poly_sidebar_text = [

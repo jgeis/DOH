@@ -17,7 +17,7 @@ import plotly.io as pio
 
 from theme import register_template
 from db_utils import execute_query
-from dashboard_utils import make_kpi_card, make_left_sidebar
+from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, dropdown_filter
 
 # This applies our custom Plotly look (colors, fonts, etc.) everywhere in this app.
 register_template()  # set your Plotly template globally
@@ -245,6 +245,18 @@ polysubstance_sidebar_text = [
     "This page highlights patterns where multiple substances appear in the same discharge record.",
 ]
 
+filters_card = make_filters_card(
+    card_id="polysubstance-filters",
+    title="Filter Data",
+    filters=[
+        dropdown_filter("Substance Type", "polysubstance-substance-filter", options=opts(substance_opts), multi=True, placeholder="All"),
+        dropdown_filter("Age Group", "polysubstance-age-filter", options=opts(age_opts), multi=True, placeholder="All"),
+        dropdown_filter("Sex", "polysubstance-sex-filter", options=opts(sex_opts), multi=True, placeholder="All"),
+        dropdown_filter("County", "polysubstance-county-filter", options=opts(county_opts), multi=True, placeholder="All"),
+        dropdown_filter("Calendar Year", "polysubstance-year-filter", options=opts(year_opts), multi=True, placeholder="All"),
+    ],
+)
+
 
 # ---------- small helpers ----------
 def _apply_filter(frame, col, val):
@@ -335,44 +347,7 @@ def layout_for(is_mobile: bool = False):
             className="w-100 mb-3",
             n_clicks=0,
         ),
-        dbc.Card(dbc.CardBody([
-            html.H5("Filter Data", tabIndex=2),
-
-            html.Label("Substance Type", htmlFor="polysubstance-substance-filter", tabIndex=3, className="form-label"),
-            dcc.Dropdown(
-                id="polysubstance-substance-filter", options=opts(substance_opts), multi=True,
-                placeholder="All", className="mb-3",
-                persistence="polysubstance-substance-filter", persistence_type="session"
-            ),
-
-            html.Label("Age Group", htmlFor="polysubstance-age-filter", tabIndex=4, className="form-label"),
-            dcc.Dropdown(
-                id="polysubstance-age-filter", options=opts(age_opts), multi=True,
-                placeholder="All", className="mb-3",
-                persistence="polysubstance-age-filter", persistence_type="session"
-            ),
-
-            html.Label("Sex", htmlFor="polysubstance-sex-filter", tabIndex=5, className="form-label"),
-            dcc.Dropdown(
-                id="polysubstance-sex-filter", options=opts(sex_opts), multi=True,
-                placeholder="All", className="mb-3",
-                persistence="polysubstance-sex-filter", persistence_type="session"
-            ),
-
-            html.Label("County", htmlFor="polysubstance-county-filter", tabIndex=6, className="form-label"),
-            dcc.Dropdown(
-                id="polysubstance-county-filter", options=opts(county_opts), multi=True,
-                placeholder="All", className="mb-3",
-                persistence="polysubstance-county-filter", persistence_type="session"
-            ),
-
-            html.Label("Calendar Year", htmlFor="polysubstance-year-filter", tabIndex=7, className="form-label"),
-            dcc.Dropdown(
-                id="polysubstance-year-filter", options=opts(year_opts), multi=True,
-                placeholder="All", className="mb-0",
-                persistence="polysubstance-year-filter", persistence_type="session"
-            ),
-        ]), id="polysubstance-filters"),
+        filters_card,
         helper_text=polysubstance_sidebar_text,
         xs=12,
         md=3,
@@ -478,14 +453,20 @@ def layout_for(is_mobile: bool = False):
                             html.Small("(Scroll horizontally to see all substances)", className="text-muted") if is_mobile else ""
                         ], className="text-muted mb-3"),
                         html.Hr(className="my-3"),
-                        html.Label("Filter by Primary Substance:", className="form-label fw-bold"),
+                        html.Label(
+                            "Primary Substance",
+                            htmlFor="polysubstance-cooccurrence-primary-substance",
+                            className="form-label",
+                        ),
                         dcc.Dropdown(
                             id="polysubstance-cooccurrence-primary-substance",
                             options=[{"label": "All substances (no filter)", "value": ""}] + 
                                     [{"label": s, "value": s} for s in sorted(df_raw['substance'].unique())],
                             value="",
                             clearable=False,
-                            className="mb-2"
+                            className="mb-2",
+                            persistence="polysubstance-cooccurrence-primary-substance",
+                            persistence_type="session",
                         ),
                         html.Small("Select a specific substance to see what co-occurs with it, or choose 'All substances' to see the full overview.", 
                                    className="text-muted"),

@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
-from dashboard_utils import make_kpi_card, make_left_sidebar
+from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, radio_filter
 import re
 
 register_template()
@@ -143,34 +143,31 @@ reset_filters_button = dbc.Button(
 
 # Card holding all the filter controls down the left side.
 # Each filter uses the options we built from the data above.
-filters_card = dbc.Card(
-    dbc.CardBody([
-        html.H5("Filter Data", tabIndex=1),
-
-        html.Label("County", htmlFor="wonder-breakdown-county-filter", className="form-label"),
-        dcc.RadioItems(
-            id="wonder-breakdown-county-filter",
+filters_card = make_filters_card(
+    card_id="wonder-breakdown-filters",
+    title="Filter Data",
+    filters=[
+        radio_filter(
+            "County",
+            "wonder-breakdown-county-filter",
             options=opts_list(wonder_county_opts),
             value=DEFAULT_COUNTY,
-            className="mb-2",
             labelStyle={"display": "block", "marginBottom": "0.25rem"},
             inputStyle={"marginRight": "0.4rem"},
             persistence="wonder-breakdown-county-filter",
             persistence_type="session",
         ),
-        html.Label("Calendar Year", htmlFor="wonder-breakdown-year-filter", tabIndex=3, className="form-label"),
-        dcc.RadioItems(
-            id="wonder-breakdown-year-filter", options=opts_list(wonder_year_opts),
+        radio_filter(
+            "Calendar Year",
+            "wonder-breakdown-year-filter",
+            options=opts_list(wonder_year_opts),
             value=DEFAULT_YEAR,
-            className="mb-2",
             labelStyle={"display": "block", "marginBottom": "0.25rem"},
             inputStyle={"marginRight": "0.4rem"},
             persistence="wonder-breakdown-year-filter",
             persistence_type="session",
         ),
-    ]),
-    id="wonder-breakdown-filters",
-    className="mb-4"
+    ],
 )
 
 wonder_breakdown_sidebar_text = [

@@ -8,7 +8,14 @@ import plotly.express as px
 import json
 from theme import register_template
 from dashboard_utils import (
-    load_sql_query, sort_opts, opts_list, graph_block, make_kpi_card, make_left_sidebar
+    load_sql_query,
+    sort_opts,
+    opts_list,
+    graph_block,
+    make_kpi_card,
+    make_left_sidebar,
+    make_filters_card,
+    dropdown_filter,
 )
 
 register_template()
@@ -81,73 +88,19 @@ kpi_card_dose = make_kpi_card(
 )
 
 # Card holding all the DOSE filter controls
-filters_card_dose = dbc.Card(
-    dbc.CardBody([
-        html.H5("Filter DOSE Data"),
-
-        html.Label("Substance", htmlFor="dose-substance-filter", className="form-label"),
-        dcc.Dropdown(
-            id="dose-substance-filter",
-            options=opts_list(dose_substance_opts),
-            multi=True,
-            placeholder="Substance",
-            className="mb-2",
-            persistence="dose-substance-filter",
-            persistence_type="session",
-        ),
-
-        html.Label("County", htmlFor="dose-county-filter", className="form-label"),
-        dcc.Dropdown(
-            id="dose-county-filter",
-            options=opts_list(dose_county_opts),
-            multi=True,
-            placeholder="County",
-            className="mb-2",
-            persistence="dose-county-filter",
-            persistence_type="session",
-        ),
-        html.Label("City", htmlFor="dose-city-filter", tabIndex=3, className="form-label"),
-        dcc.Dropdown(
-            id="dose-city-filter", options=opts_list(dose_city_opts), multi=True,
-            placeholder="City", className="mb-2",
-            persistence="dose-city-filter", persistence_type="session"
-        ),
-        html.Label("Year", htmlFor="dose-year-filter", tabIndex=3, className="form-label"),
-        dcc.Dropdown(
-            id="dose-year-filter", options=opts_list(dose_year_opts), multi=True,
-            placeholder="Year", className="mb-2",
-            persistence="dose-year-filter", persistence_type="session"
-        ),
-        html.Label("Hawaii Resident", htmlFor="dose-hawaii-residency-filter", tabIndex=4, className="form-label"),
-        dcc.Dropdown(
-            id="dose-hawaii-residency-filter", options=opts_list(dose_residency_opts), multi=True,
-            placeholder="Hawaii Resident", className="mb-2",
-            persistence="dose-hawaii-residency-filter", persistence_type="session"
-        ),
-
-        html.Label("Age Group", htmlFor="dose-age-filter", tabIndex=5, className="form-label"),
-        dcc.Dropdown(
-            id="dose-age-filter", options=opts_list(dose_age_opts), multi=True,
-            placeholder="Age Group", className="mb-2",
-            persistence="dose-age-filter", persistence_type="session"
-        ),
-
-        html.Label("Sex", htmlFor="dose-sex-filter", tabIndex=6, className="form-label"),
-        dcc.Dropdown(
-            id="dose-sex-filter", options=opts_list(dose_sex_opts), multi=True,
-            placeholder="Sex", className="mb-2",
-            persistence="dose-sex-filter", persistence_type="session"
-        ),
-
-        html.Label("Race/Ethnicity", htmlFor="dose-race-ethnicity-filter", tabIndex=7, className="form-label"),
-        dcc.Dropdown(
-            id="dose-race-ethnicity-filter", options=opts_list(dose_race_ethnicity_opts), multi=True,
-            placeholder="Race/Ethnicity", className="mb-0",
-            persistence="dose-race-ethnicity-filter", persistence_type="session"
-        ),
-    ]),
-    id="dose-filters",
-    className="mb-4"
+filters_card_dose = make_filters_card(
+    card_id="dose-filters",
+    title="Filter DOSE Data",
+    filters=[
+        dropdown_filter("Substance", "dose-substance-filter", options=opts_list(dose_substance_opts), multi=True, placeholder="Substance"),
+        dropdown_filter("County", "dose-county-filter", options=opts_list(dose_county_opts), multi=True, placeholder="County"),
+        dropdown_filter("City", "dose-city-filter", options=opts_list(dose_city_opts), multi=True, placeholder="City"),
+        dropdown_filter("Year", "dose-year-filter", options=opts_list(dose_year_opts), multi=True, placeholder="Year"),
+        dropdown_filter("Hawaii Resident", "dose-hawaii-residency-filter", options=opts_list(dose_residency_opts), multi=True, placeholder="Hawaii Resident"),
+        dropdown_filter("Age Group", "dose-age-filter", options=opts_list(dose_age_opts), multi=True, placeholder="Age Group"),
+        dropdown_filter("Sex", "dose-sex-filter", options=opts_list(dose_sex_opts), multi=True, placeholder="Sex"),
+        dropdown_filter("Race/Ethnicity", "dose-race-ethnicity-filter", options=opts_list(dose_race_ethnicity_opts), multi=True, placeholder="Race/Ethnicity"),
+    ],
 )
 
 dose_sidebar_text = [
