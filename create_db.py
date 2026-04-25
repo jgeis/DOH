@@ -18,8 +18,6 @@ df_wonder_race = pd.read_csv("data/wonder_race.csv")
 df_wonder_age_group = pd.read_csv("data/wonder_age_group.csv")
 df_wonder_gender = pd.read_csv("data/wonder_gender.csv")
 
-df_sudors_demo = df_sudors_demo.dropna()
-
 # Clean column names (lowercase and strip whitespace)
 df_diag_su.columns = df_diag_su.columns.str.lower().str.strip()
 df_diag_mh.columns = df_diag_mh.columns.str.lower().str.strip()

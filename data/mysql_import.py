@@ -9,11 +9,11 @@ from sqlalchemy import create_engine, inspect
 dir = os.path.dirname(os.path.abspath(__file__))
 
 # Build the exact paths to the files by combining the script's directory and the filenames
-#CSV_FILE = 'dose_data.csv'
-#CSV_FILE = 'discharge_data_view_demographics.csv'
-#CSV_FILE = 'discharge_data_view_diag_mh.csv'
-#CSV_FILE = 'discharge_data_view_diag_su.csv'
-#CSV_FILE = 'discharge_data_view_diagnosis.csv'
+#CSV_FILENAME = 'dose_data.csv'
+#CSV_FILENAME = 'discharge_data_view_demographics.csv'
+#CSV_FILENAME = 'discharge_data_view_diag_mh.csv'
+#CSV_FILENAME = 'discharge_data_view_diag_su.csv'
+#CSV_FILENAME = 'discharge_data_view_diagnosis.csv'
 #CSV_FILENAME = 'discharge_data_view.csv'
 #CSV_FILENAME = 'sudors_data_view_demographics$.csv'
 CSV_FILENAME = 'sudors_data_view_diag_su$.csv'
