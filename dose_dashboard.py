@@ -20,6 +20,7 @@ from dashboard_utils import (
     make_left_sidebar,
     make_filters_card,
     dropdown_filter,
+    format_count_display,
 )
 
 register_template()
@@ -110,7 +111,7 @@ filters_card_dose = make_filters_card(
 
 dose_sidebar_text = [
     "DOSE focuses on nonfatal overdose-related emergency department discharges.",
-    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10.",
+    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*.",
     "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
     "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
 ]
@@ -273,7 +274,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
     include_statewide_county_outputs = county_output_should_include_statewide(county)
     
     filter_dose_total = dose_df["record_id"].nunique()
-    kpi_dose_display = "<11" if filter_dose_total < 11 else f"{filter_dose_total:,}"
+    kpi_dose_display = format_count_display(filter_dose_total)
 
     # ---------- Bar chart: Nonfatal overdoses related to poisonings ----------
     if {"substance"}.issubset(dose_df.columns):
@@ -290,9 +291,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         
         by_dose["substance_label"] = by_dose["substance"].apply(ellipsize)
 
-        by_dose["display_count"] = by_dose["count"].apply(
-            lambda x: "<11" if x < 11 else f"{int(x):,}"
-        )
+        by_dose["display_count"] = by_dose["count"].apply(format_count_display)
 
         dose_bar = px.bar(
             by_dose,
@@ -331,8 +330,10 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             markers=True,
             labels={"year": "Year", "count": "Discharges", "substance": "Substance"},
         )
+        by_year_substance["display_count"] = by_year_substance["count"].apply(format_count_display)
         dose_line.update_traces(
-            hovertemplate="Year %{x}<br>%{y:,} discharges<extra></extra>"
+            customdata=by_year_substance[["display_count"]],
+            hovertemplate="Year %{x}<br>%{customdata[0]} discharges<extra></extra>"
         )
         dose_line.update_layout(
             margin=dict(l=0, r=20, t=10, b=0),
@@ -365,7 +366,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         else:
             g = g.sort_values("count", ascending=False)
 
-        g["count"] = g["count"].map(lambda x: "<11" if x < 11 else f"{int(x):,}")
+        g["count"] = g["count"].map(format_count_display)
 
         header_labels = {
             "age_group": "Age Group",
@@ -383,9 +384,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             .reset_index(name="count")
             .sort_values("count", ascending=False)
         )
-        pie_df["display_count"] = pie_df["count"].apply(
-            lambda x: "<11" if x < 11 else f"{int(x):,}"
-        )
+        pie_df["display_count"] = pie_df["count"].apply(format_count_display)
         dose_sex_pie = px.pie(
             pie_df,
             names="sex",
@@ -431,7 +430,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         print(f"[MAP] Sample ZIPs: {by_zip['zip'].head(3).tolist()}")
         
         if not by_zip.empty:
-            by_zip["display_count"] = by_zip["count"].apply(lambda x: "<11" if x < 11 else str(x))
+            by_zip["display_count"] = by_zip["count"].apply(format_count_display)
             
             map_fig = px.choropleth_mapbox(
                 by_zip,

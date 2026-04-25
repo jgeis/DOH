@@ -10,6 +10,7 @@ from dashboard_utils import (
     make_filters_card,
     checklist_filter,
     statewide_first,
+    format_count_display,
 )
 import json
 
@@ -201,7 +202,7 @@ filters_card = make_filters_card(
 
 wonder_overview_sidebar_text = [
     "Overview trends summarize overdose deaths over time and by county.",
-    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10.",
+    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*.",
     "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
     "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
 ]
@@ -340,9 +341,7 @@ def update_dashboard(county, year):
         county_order = statewide_first(sort_opts(by_year["county"]))
         by_year["county"] = pd.Categorical(by_year["county"], categories=county_order, ordered=True)
         by_year = by_year.sort_values(["year", "county"])
-        by_year["display_count"] = by_year["deaths"].apply(
-            lambda x: "<10" if x < 10 else f"{int(x):,}"
-        )
+        by_year["display_count"] = by_year["deaths"].apply(format_count_display)
 
         year_line = px.line(
             by_year,
@@ -381,12 +380,13 @@ def update_dashboard(county, year):
             other_rows = by_county[by_county["county"].astype(str).str.strip().str.lower() != "statewide"]
             by_county = pd.concat([statewide_rows, other_rows], ignore_index=True)
 
+        by_county["display_count"] = by_county["deaths"].apply(format_count_display)
         county_bar = px.bar(
             by_county,
             x="deaths",
             y="county",
             barmode="stack",
-            text="deaths",
+            text="display_count",
             labels={"deaths": "Number of Deaths", "county": "County of Death"},
         )
 
@@ -405,7 +405,7 @@ def update_dashboard(county, year):
 
     # Return all the updated visuals and tables to Dash
     return (
-        f"{filter_total:,}",
+        format_count_display(filter_total),
         year_line,
         county_bar
     )

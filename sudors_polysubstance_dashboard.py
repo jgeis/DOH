@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 
 from theme import register_template
 from db_utils import execute_query
-from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, dropdown_filter
+from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, dropdown_filter, format_count_display
 
 register_template()
 
@@ -390,8 +390,8 @@ def update_bar_chart(primary_substance, is_mobile):
         )
         
         # Create formatted hover text
-        co_data['Count_formatted'] = co_data['Count'].apply(lambda x: f"{int(x):,}")
-        co_data['Total_formatted'] = co_data['Total'].apply(lambda x: f"{int(x):,}")
+        co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
+        co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
         
         # Mobile: vertical bars (x=substance, y=percentage), Desktop: horizontal bars (x=percentage, y=substance)
         if is_mobile:
@@ -459,8 +459,8 @@ def update_bar_chart(primary_substance, is_mobile):
         )
         
         # Create formatted hover text
-        co_data['Count_formatted'] = co_data['Count'].apply(lambda x: f"{int(x):,}")
-        co_data['Total_formatted'] = co_data['Total'].apply(lambda x: f"{int(x):,}")
+        co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
+        co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
         
         fig = px.bar(
             co_data,

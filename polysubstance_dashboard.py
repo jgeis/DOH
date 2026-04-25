@@ -27,6 +27,7 @@ from dashboard_utils import (
     apply_county_filter,
     county_output_should_include_statewide,
     append_statewide_aggregate_rows,
+    format_count_display,
 )
 
 # This applies our custom Plotly look (colors, fonts, etc.) everywhere in this app.
@@ -595,6 +596,8 @@ def update(substance, age, sex, county, year):
 
         sub_counts["substance_wrapped"] = sub_counts["substance"].apply(_wrap_label)
 
+        sub_counts["display_count"] = sub_counts["discharges"].apply(format_count_display)
+
         fig_sub = px.bar(
             sub_counts,
             x="discharges",
@@ -604,10 +607,9 @@ def update(substance, age, sex, county, year):
                 "discharges": "Number of Discharges",
                 "substance_wrapped": "Substance Type",
             },
-            text="discharges",
+            text="display_count",
         )
         fig_sub.update_traces(
-            texttemplate="%{text:,}",
             textposition="outside",
             cliponaxis=False
         )
@@ -654,8 +656,10 @@ def update(substance, age, sex, county, year):
             category_orders={"county": county_order},
             labels={"year": "Year", "discharges": "Discharges"},
         )
+        yearly_counts["display_count"] = yearly_counts["discharges"].apply(format_count_display)
         fig_year_county.update_traces(
-            hovertemplate="Year %{x}<br>County: %{fullData.name}<br>Discharges: %{y:,}<extra></extra>"
+            customdata=yearly_counts[["display_count"]],
+            hovertemplate="Year %{x}<br>County: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
         )
 
         fig_year_county.update_layout(
@@ -686,9 +690,11 @@ def update(substance, age, sex, county, year):
             hole=0.35,
             category_orders={"county": county_order},
         )
+        county_counts["display_count"] = county_counts["discharges"].apply(format_count_display)
         fig_tree.update_traces(
-            texttemplate="%{label}<br>%{percent:.1%} (%{value:,})",
-            hovertemplate="%{label}: %{value:,} (%{percent:.1%})<extra></extra>"
+            customdata=county_counts[["display_count"]],
+            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
+            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
         )
         fig_tree.update_layout(
             margin=dict(l=0, r=0, t=50, b=0)   # <-- extra top space
@@ -707,7 +713,7 @@ def update(substance, age, sex, county, year):
             g[col] = pd.Categorical(g[col], categories=ordered, ordered=True)
             g = g.sort_values(col)
 
-        g["discharges"] = g["discharges"].map(lambda x: f"{int(x):,}")
+        g["discharges"] = g["discharges"].map(format_count_display)
 
         header_labels = {
             "age_group": "Age Group",
@@ -874,8 +880,8 @@ def update_bar_chart(primary_substance, is_mobile):
         )
         
         # Create formatted hover text
-        co_data['Count_formatted'] = co_data['Count'].apply(lambda x: f"{int(x):,}")
-        co_data['Total_formatted'] = co_data['Total'].apply(lambda x: f"{int(x):,}")
+        co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
+        co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
         
         # Mobile: vertical bars (x=substance, y=percentage), Desktop: horizontal bars (x=percentage, y=substance)
         if is_mobile:
@@ -943,8 +949,8 @@ def update_bar_chart(primary_substance, is_mobile):
         )
         
         # Create formatted hover text
-        co_data['Count_formatted'] = co_data['Count'].apply(lambda x: f"{int(x):,}")
-        co_data['Total_formatted'] = co_data['Total'].apply(lambda x: f"{int(x):,}")
+        co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
+        co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
         
         fig = px.bar(
             co_data,

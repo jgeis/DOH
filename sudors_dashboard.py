@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
-from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, dropdown_filter, sort_opts
+from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, dropdown_filter, sort_opts, format_count_display
 import json
 import re
 
@@ -175,7 +175,7 @@ filters_card = make_filters_card(
 
 sudors_sidebar_text = [
     "Fatal overdose deaths are shown for unintentional and undetermined intent cases.",
-    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10.",
+    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*.",
     "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
     "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
 ]
@@ -411,9 +411,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
         # Cuts off label length after 25 characters
         by_sub["substance_label"] = by_sub["substance"].apply(ellipsize)
 
-        by_sub["display_count"] = by_sub["count"].apply(
-            lambda x: "<10*" if x < 10 else f"{int(x):,}"
-        )
+        by_sub["display_count"] = by_sub["count"].apply(format_count_display)
 
         sud_bar = px.bar(
             by_sub,
@@ -468,7 +466,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             g = g.sort_values("count", ascending=False)
 
         # Make the counts look nicer with commas
-        g["count"] = g["count"].map(lambda x: "<10*" if x < 10 else f"{int(x):,}")
+        g["count"] = g["count"].map(format_count_display)
 
         # Use friendly display labels for table headers
         header_labels = {
@@ -514,9 +512,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             .reset_index(name="count")
             .sort_values("count", ascending=False)
         )
-        pie_df["display_count"] = pie_df["count"].apply(
-            lambda x: "<10*" if x < 10 else f"{int(x):,}"
-        )
+        pie_df["display_count"] = pie_df["count"].apply(format_count_display)
         sex_pie = px.pie(
             pie_df,
             names="sex",
@@ -540,9 +536,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             .reset_index(name="count")
             .sort_values("count", ascending=False)
         )
-        homeless_pie_df["display_count"] = homeless_pie_df["count"].apply(
-            lambda x: "<10*" if x < 10 else f"{int(x):,}"
-        )
+        homeless_pie_df["display_count"] = homeless_pie_df["count"].apply(format_count_display)
         homeless_pie = px.pie(
             homeless_pie_df,
             names="homeless",
@@ -575,8 +569,10 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             markers=True,
             labels={"year": "Year", "count": "Number of Deaths", "substance": "Substance"},
         )
+        by_year_substance["display_count"] = by_year_substance["count"].apply(format_count_display)
         line_fig.update_traces(
-            hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Deaths: %{y:,}<extra></extra>"
+            customdata=by_year_substance[["display_count"]],
+            hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Deaths: %{customdata[0]}<extra></extra>"
         )
         line_fig.update_layout(
             margin=dict(l=10, r=10, t=80, b=70),
@@ -597,7 +593,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
 
     # Return all the updated visuals and tables to Dash
     return (
-        f"{filter_total:,}",
+        format_count_display(filter_total),
         sud_bar,
         tbl("race_ethnicity"),
         tbl("year"),

@@ -9,6 +9,7 @@ from dashboard_utils import (
     make_left_sidebar,
     make_filters_card,
     radio_filter,
+    format_count_display,
 )
 import re
 
@@ -178,7 +179,7 @@ filters_card = make_filters_card(
 
 wonder_breakdown_sidebar_text = [
     "Breakdown charts split overdose deaths by substance, race, age group, and gender.",
-    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10.",
+    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*.",
     "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
     "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
 ]
@@ -332,9 +333,7 @@ def update_dashboard(county, year):
             .sum()
             .sort_values("deaths", ascending=False)
         )
-        by_sub["display_count"] = by_sub["deaths"].apply(
-            lambda x: "<10*" if x < 10 else f"{int(x):,}"
-        )
+        by_sub["display_count"] = by_sub["deaths"].apply(format_count_display)
 
         sub_bar = px.bar(
             by_sub,
@@ -371,9 +370,7 @@ def update_dashboard(county, year):
             .sum()
             .sort_values("deaths", ascending=False)
         )
-        by_race["display_count"] = by_race["deaths"].apply(
-            lambda x: "<10*" if x < 10 else f"{int(x):,}"
-        )
+        by_race["display_count"] = by_race["deaths"].apply(format_count_display)
 
         race_bar = px.bar(
             by_race,
@@ -423,9 +420,7 @@ def update_dashboard(county, year):
 
         by_age_group["_age_sort"] = by_age_group["age_group"].apply(age_group_sort_key)
         by_age_group = by_age_group.sort_values("_age_sort").drop(columns=["_age_sort"])
-        by_age_group["display_count"] = by_age_group["deaths"].apply(
-            lambda x: "<10*" if x < 10 else f"{int(x):,}"
-        )
+        by_age_group["display_count"] = by_age_group["deaths"].apply(format_count_display)
 
         age_group_bar = px.bar(
             by_age_group,
@@ -457,9 +452,7 @@ def update_dashboard(county, year):
             .sum()
             .sort_values("gender")
         )
-        by_gender["display_count"] = by_gender["deaths"].apply(
-            lambda x: "<10*" if x < 10 else f"{int(x):,}"
-        )
+        by_gender["display_count"] = by_gender["deaths"].apply(format_count_display)
         gender_pie = px.pie(
             by_gender,
             names="gender",
@@ -478,7 +471,7 @@ def update_dashboard(county, year):
 
     # Return all the updated visuals and tables to Dash
     return (
-        f"{filter_total:,}",
+        format_count_display(filter_total),
         sub_bar,
         race_bar,
         age_group_bar,

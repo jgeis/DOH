@@ -8,6 +8,8 @@ import re
 
 
 STATEWIDE_COUNTY = "Statewide"
+COUNT_SUPPRESSION_THRESHOLD = 10
+SUPPRESSED_COUNT_LABEL = "<10*"
 
 
 # Global preferred order for sidebar filters.
@@ -113,6 +115,25 @@ def sort_opts(series):
     middle = sorted([v for v in vals if "<" not in v and v != "Unknown"])
     ordered = less_than + middle + (["Unknown"] if has_unknown else [])
     return ordered
+
+
+def format_count_display(value, threshold: int = COUNT_SUPPRESSION_THRESHOLD, suppressed_label: str = SUPPRESSED_COUNT_LABEL) -> str:
+    """
+    Format a count for UI display with small-number suppression.
+
+    Values where 0 < value < threshold are shown as '<10*' by default.
+    """
+    if value is None or pd.isna(value):
+        return "0"
+
+    try:
+        numeric = int(value)
+    except (TypeError, ValueError):
+        return str(value)
+
+    if 0 < numeric < threshold:
+        return suppressed_label
+    return f"{numeric:,}"
 
 
 def opts_list(values):
@@ -278,7 +299,7 @@ def make_kpi_card(label: str, count_id: str | None = None, count: int | None = N
     if count_id is not None:
         value_el = html.H2(id=count_id, className="text-white")
     else:
-        value_el = html.H2(f"{count:,}" if count is not None else "—", className="text-white")
+        value_el = html.H2(format_count_display(count) if count is not None else "—", className="text-white")
     return dbc.Card(
         dbc.CardBody([
             value_el,

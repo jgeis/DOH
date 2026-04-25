@@ -19,6 +19,7 @@ from dashboard_utils import (
     make_left_sidebar,
     make_filters_card,
     dropdown_filter,
+    format_count_display,
 )
 
 register_template()
@@ -134,7 +135,7 @@ filters_card = make_filters_card(
 
 discharges_sidebar_text = [
     "Emergency department discharges are shown for selected substance-use-related visits.",
-    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10.",
+    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*.",
     "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
     "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
 ]
@@ -306,9 +307,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             return text if len(text) <= max_len else text[:max_len] + "..."
 
         by_sub["substance_label"] = by_sub["substance"].apply(ellipsize)
-        by_sub["display_count"] = by_sub["count"].apply(
-            lambda x: "<10" if x <= 10 else f"{int(x):,}"
-        )
+        by_sub["display_count"] = by_sub["count"].apply(format_count_display)
 
         sub_bar = px.bar(
             by_sub,
@@ -354,8 +353,10 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             markers=True,
             labels={"year": "Year", "count": "Discharges", "county": "County"},
         )
+        by_cy["display_count"] = by_cy["count"].apply(format_count_display)
         line_fig.update_traces(
-            hovertemplate="Year %{x}<br>%{y:,} discharges<extra></extra>"
+            customdata=by_cy[["display_count"]],
+            hovertemplate="Year %{x}<br>%{customdata[0]} discharges<extra></extra>"
         )
         line_fig.update_layout(
             margin=dict(l=0, r=20, t=10, b=0),
@@ -378,7 +379,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             color="sex",
             barmode="stack",
             labels={"year": "Year", "count": "Discharges", "sex": "Gender"},
-            text=by_ys["count"].map(lambda x: f"{int(x):,}")
+            text=by_ys["count"].map(format_count_display)
         )
         sex_bar.update_traces(
             textposition="inside",
@@ -391,7 +392,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             sex_bar.add_annotation(
                 x=row["year"],
                 y=row["count"],
-                text=f"{int(row['count']):,}",
+                text=format_count_display(row["count"]),
                 showarrow=False,
                 yshift=10,
                 font=dict(size=12)
@@ -430,7 +431,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         else:
             g = g.sort_values("count", ascending=False)
 
-        g["count"] = g["count"].map(lambda x: f"{int(x):,}")
+        g["count"] = g["count"].map(format_count_display)
 
         header_labels = {
             "age_group": "Age Group",
@@ -454,10 +455,12 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             values="count",
             hole=0.35
         )
+        pie_df["display_count"] = pie_df["count"].apply(format_count_display)
         sex_pie.update_traces(
+            customdata=pie_df[["display_count"]],
             textposition="inside",
-            texttemplate="%{label}<br>%{percent:.1%} (%{value:,})",
-            hovertemplate="%{label}: %{value:,} (%{percent:.1%})"
+            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
+            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})"
         )
         sex_pie.update_layout(margin=dict(l=0, r=0, t=10, b=0))
     else:
@@ -474,7 +477,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
 
     # Return all the updated visuals and tables to Dash
     return (
-        f"{filter_total:,}",
+        format_count_display(filter_total),
         sub_bar,
         line_fig,
         sex_bar,
