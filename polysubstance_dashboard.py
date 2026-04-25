@@ -24,6 +24,8 @@ from dashboard_utils import (
     dropdown_filter,
     statewide_first,
     apply_county_filter,
+    county_output_should_include_statewide,
+    append_statewide_aggregate_rows,
 )
 
 # This applies our custom Plotly look (colors, fonts, etc.) everywhere in this app.
@@ -367,7 +369,7 @@ def layout_for(is_mobile: bool = False):
         html.P("Horizontal bar chart showing the top substances among polysubstance records.", className="visually-hidden"),
 
         graph_block("stack-year-county", "Discharges by Year and County", h_stack),
-        html.P("Stacked bar chart showing discharges by year and county.", className="visually-hidden"),
+        html.P("Line chart showing discharges by year and county.", className="visually-hidden"),
     ], xs=12, md=6)
 
     # RIGHT: county share chart + two small summary tables
@@ -588,6 +590,8 @@ def update(substance, age, sex, county, year):
     if "county" in dff.columns:        dff = apply_county_filter(dff, county)
     if "year" in dff.columns: dff = _apply_filter(dff, "year", year)
 
+    include_statewide_on_line = county_output_should_include_statewide(county)
+
     # ---------- Bar: Top substances ----------
     if {"substance", "record_id"}.issubset(dff.columns) and not dff.empty:
         sub_counts = (
@@ -627,13 +631,20 @@ def update(substance, age, sex, county, year):
     else:
         fig_sub = px.bar()
 
-    # ---------- Stacked Bar: Year × County ----------
+    # ---------- Line: Year × County ----------
     if {"year", "county", "record_id"}.issubset(dff.columns) and not dff.empty:
         yearly_counts = (
             dff.drop_duplicates(subset=["record_id"])
                .groupby(["year", "county"])["record_id"]
                .nunique().reset_index(name="discharges")
         )
+
+        if include_statewide_on_line:
+            yearly_counts = append_statewide_aggregate_rows(
+                yearly_counts,
+                value_col="discharges",
+                county_col="county",
+            )
 
         county_order = statewide_first(sort_opts(yearly_counts["county"]))
         yearly_counts["county"] = pd.Categorical(
@@ -643,45 +654,25 @@ def update(substance, age, sex, county, year):
         )
         yearly_counts = yearly_counts.sort_values(["year", "county"])
 
-        # Show the counts inside each bar segment
-        yearly_counts["label"] = yearly_counts["discharges"].map(lambda x: f"{int(x):,}")
-
-        fig_year_county = px.bar(
+        fig_year_county = px.line(
             yearly_counts,
             x="year", y="discharges",
             color="county",
-            barmode="stack",
+            markers=True,
             category_orders={"county": county_order},
             labels={"year": "Year", "discharges": "Discharges"},
-            text="label",
         )
         fig_year_county.update_traces(
-            textposition="inside",
-            insidetextanchor="middle",
-            cliponaxis=False,
-            textfont_size=12
+            hovertemplate="Year %{x}<br>County: %{fullData.name}<br>Discharges: %{y:,}<extra></extra>"
         )
-
-        # Calculate total discharges per year to show on top of each stacked bar
-        yearly_totals = yearly_counts.groupby("year")["discharges"].sum().reset_index()
-        for _, row in yearly_totals.iterrows():
-            fig_year_county.add_annotation(
-                x=row["year"],
-                y=row["discharges"],
-                text=f"{int(row['discharges']):,}",
-                showarrow=False,
-                yshift=10,
-                font=dict(size=12)
-            )
 
         fig_year_county.update_layout(
             margin=dict(l=0, r=12, t=50, b=0),   # <-- extra top space
             xaxis=dict(dtick=1, automargin=True),
-            uniformtext_minsize=12,
-            uniformtext_mode="show",
+            yaxis=dict(rangemode="tozero"),
         )
     else:
-        fig_year_county = px.bar()
+        fig_year_county = px.line()
 
     # ---------- Pie chart: county share ----------
     uniq = dff.drop_duplicates(subset=["record_id"])

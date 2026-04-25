@@ -99,7 +99,7 @@ filters_card_dose = make_filters_card(
         dropdown_filter("Substance", "dose-substance-filter", options=opts_list(dose_substance_opts), multi=True, placeholder="Substance"),
         dropdown_filter("County", "dose-county-filter", options=opts_list(dose_county_opts), multi=True, placeholder="County"),
         dropdown_filter("City", "dose-city-filter", options=opts_list(dose_city_opts), multi=True, placeholder="City"),
-        dropdown_filter("Year", "dose-year-filter", options=opts_list(dose_year_opts), multi=True, placeholder="Year"),
+        dropdown_filter("Calendar Year", "dose-year-filter", options=opts_list(dose_year_opts), multi=True, placeholder="Calendar Year"),
         dropdown_filter("Hawaii Resident", "dose-hawaii-residency-filter", options=opts_list(dose_residency_opts), multi=True, placeholder="Hawaii Resident"),
         dropdown_filter("Age Group", "dose-age-filter", options=opts_list(dose_age_opts), multi=True, placeholder="Age Group"),
         dropdown_filter("Sex", "dose-sex-filter", options=opts_list(dose_sex_opts), multi=True, placeholder="Sex"),
