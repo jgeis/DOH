@@ -8,7 +8,7 @@ import plotly.express as px
 import json
 from theme import register_template
 from dashboard_utils import (
-    load_sql_query, sort_opts, opts_list, graph_block, make_kpi_card
+    load_sql_query, sort_opts, opts_list, graph_block, make_kpi_card, make_left_sidebar
 )
 
 register_template()
@@ -91,7 +91,9 @@ filters_card_dose = dbc.Card(
             options=opts_list(dose_substance_opts),
             multi=True,
             placeholder="Substance",
-            className="mb-2"
+            className="mb-2",
+            persistence="dose-substance-filter",
+            persistence_type="session",
         ),
 
         html.Label("County", htmlFor="dose-county-filter", className="form-label"),
@@ -100,51 +102,60 @@ filters_card_dose = dbc.Card(
             options=opts_list(dose_county_opts),
             multi=True,
             placeholder="County",
-            className="mb-2"
+            className="mb-2",
+            persistence="dose-county-filter",
+            persistence_type="session",
         ),
         html.Label("City", htmlFor="dose-city-filter", tabIndex=3, className="form-label"),
         dcc.Dropdown(
             id="dose-city-filter", options=opts_list(dose_city_opts), multi=True,
             placeholder="City", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="dose-city-filter", persistence_type="session"
         ),
         html.Label("Year", htmlFor="dose-year-filter", tabIndex=3, className="form-label"),
         dcc.Dropdown(
             id="dose-year-filter", options=opts_list(dose_year_opts), multi=True,
             placeholder="Year", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="dose-year-filter", persistence_type="session"
         ),
         html.Label("Hawaii Resident", htmlFor="dose-hawaii-residency-filter", tabIndex=4, className="form-label"),
         dcc.Dropdown(
             id="dose-hawaii-residency-filter", options=opts_list(dose_residency_opts), multi=True,
             placeholder="Hawaii Resident", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="dose-hawaii-residency-filter", persistence_type="session"
         ),
 
         html.Label("Age Group", htmlFor="dose-age-filter", tabIndex=5, className="form-label"),
         dcc.Dropdown(
             id="dose-age-filter", options=opts_list(dose_age_opts), multi=True,
             placeholder="Age Group", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="dose-age-filter", persistence_type="session"
         ),
 
         html.Label("Sex", htmlFor="dose-sex-filter", tabIndex=6, className="form-label"),
         dcc.Dropdown(
             id="dose-sex-filter", options=opts_list(dose_sex_opts), multi=True,
             placeholder="Sex", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="dose-sex-filter", persistence_type="session"
         ),
 
         html.Label("Race/Ethnicity", htmlFor="dose-race-ethnicity-filter", tabIndex=7, className="form-label"),
         dcc.Dropdown(
             id="dose-race-ethnicity-filter", options=opts_list(dose_race_ethnicity_opts), multi=True,
             placeholder="Race/Ethnicity", className="mb-0",
-            persistence=True, persistence_type="session"
+            persistence="dose-race-ethnicity-filter", persistence_type="session"
         ),
     ]),
     id="dose-filters",
     className="mb-4"
 )
+
+dose_sidebar_text = [
+    "DOSE focuses on nonfatal overdose-related emergency department discharges.",
+    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10.",
+    "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
+    "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
+]
 
 # ----------------------------
 # Layout
@@ -159,23 +170,20 @@ def layout():
     pie_h  = "260px"
     map_h  = "500px"
 
+    left_col = make_left_sidebar(
+        kpi_card_dose,
+        reset_filters_button_dose,
+        filters_card_dose,
+        helper_text=dose_sidebar_text,
+        xs=12,
+        md=3,
+    )
+
     return dbc.Container([
         skip_link,
         html.Div(
             dbc.Row([
-                dbc.Col([
-                    kpi_card_dose,
-                    reset_filters_button_dose,
-                    filters_card_dose,
-                    html.Div(
-                        className="mt-3 text-muted small",
-                        children=[
-                            html.P("* Values less than 10 are suppressed for privacy reasons and are displayed as <10.", className="mb-2"),
-                            html.P("† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).", className="mb-2"),
-                            html.P("‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).", className="mb-0"),
-                        ]
-                    )
-                ], xs=12, md=3),
+                left_col,
 
                 dbc.Col([
                     graph_block("bar-dose", "Nonfatal Overdoses Related to Drug Poisonings", bar_h),

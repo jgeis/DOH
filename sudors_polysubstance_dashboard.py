@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 
 from theme import register_template
 from db_utils import execute_query
-from dashboard_utils import make_kpi_card
+from dashboard_utils import make_kpi_card, make_left_sidebar
 
 register_template()
 
@@ -81,6 +81,38 @@ df_raw = load_sudors_dataframe_from_db()
 
 # Total unique incidents for the static KPI card.
 kpi_total_sudors_poly = df_raw["incident_id"].nunique() if "incident_id" in df_raw.columns else 0
+
+reset_filters_button = dbc.Button(
+    "Reset All Filters",
+    id="sudors-cooccurrence-reset-filters-btn",
+    color="secondary",
+    outline=True,
+    className="w-100 mb-3",
+    n_clicks=0,
+)
+
+filters_card = dbc.Card(
+    dbc.CardBody([
+        html.H5("Filter Data", tabIndex=1),
+        html.Label("Primary Substance", htmlFor="sudors-cooccurrence-primary-substance", className="form-label"),
+        dcc.Dropdown(
+            id="sudors-cooccurrence-primary-substance",
+            options=[{"label": "All substances (no filter)", "value": ""}] +
+                    [{"label": s, "value": s} for s in sorted(df_raw["substance"].unique())],
+            value="",
+            clearable=False,
+            className="mb-0",
+            persistence="sudors-cooccurrence-primary-substance",
+            persistence_type="session",
+        ),
+    ]),
+    id="sudors-cooccurrence-filters",
+    className="mb-4",
+)
+
+sudors_poly_sidebar_text = [
+    "Use the primary substance filter to focus the co-occurrence chart views.",
+]
 
 
 # ---------- Helper functions ----------
@@ -174,21 +206,19 @@ def build_sunburst_cooccurrence_data(df):
 # ---------- Layout ----------
 def layout_for(is_mobile: bool = False):
     """Build the full page layout with co-occurrence visualizations."""
-    
-    return dbc.Container([
-        # Store mobile state for callbacks
-        dcc.Store(id="sudors-cooccurrence-is-mobile", data=is_mobile),
-
-        html.A(
-            "Skip to first chart", href="#sudors-cooccurrence-charts",
-            className="visually-hidden-focusable", tabIndex=0
+    left_col = make_left_sidebar(
+        make_kpi_card(
+            label="Number of Unintentional or Undetermined Overdose Deaths (Polysubstance)",
+            count=kpi_total_sudors_poly,
         ),
+        reset_filters_button,
+        filters_card,
+        helper_text=sudors_poly_sidebar_text,
+        xs=12,
+        md=3,
+    )
 
-        html.H2(
-            "Polysubstance Co-occurrence Analysis — Alternative Views",
-            className="text-white bg-dark p-3 text-center mb-4"
-        ),
-
+    content_col = dbc.Col([
         # Explanation section
         dbc.Alert([
             html.H5("About These Visualizations", className="alert-heading"),
@@ -201,17 +231,6 @@ def layout_for(is_mobile: bool = False):
         # Charts target for skip link
         html.Div(id="sudors-cooccurrence-charts"),
 
-        # KPI card
-        dbc.Row([
-            dbc.Col(
-                make_kpi_card(
-                    label="Number of Unintentional or Undetermined Overdose Deaths (Polysubstance)",
-                    count=kpi_total_sudors_poly,
-                ),
-                xs=12, md=4,
-            ),
-        ], className="mb-2"),
-
         dbc.Row([
             dbc.Col([
                 dbc.Card([
@@ -221,7 +240,7 @@ def layout_for(is_mobile: bool = False):
                     dbc.CardBody([
                         html.P([
                             "Grouped bar chart showing what percentage of cases with a given primary substance also contain each other substance. ",
-                            "Use the filter below to focus on one substance.",
+                            "Use the filter in the left panel to focus on one substance.",
                             html.Br() if is_mobile else "",
                             html.Small("(Scroll horizontally to see all substances)", className="text-muted") if is_mobile else ""
                         ], className="text-muted mb-3"),
@@ -242,18 +261,6 @@ def layout_for(is_mobile: bool = False):
                             "Grouped bar chart showing the percentage of cases where each primary substance co-occurs with other substances.",
                             className="visually-hidden",
                         ),
-                        html.Hr(className="my-3"),
-                        html.Label("Filter by Primary Substance:", className="form-label fw-bold"),
-                        dcc.Dropdown(
-                            id="sudors-cooccurrence-primary-substance",
-                            options=[{"label": "All substances (no filter)", "value": ""}] + 
-                                    [{"label": s, "value": s} for s in sorted(df_raw['substance'].unique())],
-                            value="",
-                            clearable=False,
-                            className="mb-2"
-                        ),
-                        html.Small("Select a specific substance to see what co-occurs with it, or choose 'All substances' to see the full overview.", 
-                                   className="text-muted")
                     ])
                 ])
             ], md=12, className="mb-4")
@@ -293,10 +300,36 @@ def layout_for(is_mobile: bool = False):
                 ])
             ], md=12, className="mb-4")
         ]),
+    ], xs=12, md=9)
+
+    return dbc.Container([
+        # Store mobile state for callbacks
+        dcc.Store(id="sudors-cooccurrence-is-mobile", data=is_mobile),
+
+        html.A(
+            "Skip to filters", href="#sudors-cooccurrence-filters",
+            className="visually-hidden-focusable", tabIndex=0
+        ),
+
+        html.H2(
+            "Polysubstance Co-occurrence Analysis — Alternative Views",
+            className="text-white bg-dark p-3 text-center mb-4"
+        ),
+
+        dbc.Row([left_col, content_col], className="g-3"),
 
     ], fluid=True)
 
 layout = layout_for(is_mobile=False)
+
+
+@callback(
+    Output("sudors-cooccurrence-primary-substance", "value"),
+    Input("sudors-cooccurrence-reset-filters-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def reset_cooccurrence_filters(_n_clicks):
+    return ""
 
 
 # ---------- Callbacks ----------

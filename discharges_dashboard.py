@@ -7,7 +7,7 @@ from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
 from dashboard_utils import (
-    load_sql_query, sort_opts, opts_list, graph_block, make_kpi_card
+    load_sql_query, sort_opts, opts_list, graph_block, make_kpi_card, make_left_sidebar
 )
 
 register_template()
@@ -109,74 +109,72 @@ filters_card = dbc.Card(
     dbc.CardBody([
         html.H5("Filter Data", tabIndex=1),
 
-        html.Label("Substance", htmlFor="discharges-substance-filter", tabIndex=2, className="form-label"),
+        html.Label("Substance", htmlFor="discharges-substance-filter", tabIndex=1, className="form-label"),
         dcc.Dropdown(
             id="discharges-substance-filter", options=opts_list(substance_opts), multi=True,
             placeholder="Substance", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="discharges-substance-filter", persistence_type="session"
         ),
 
         html.Label("County", htmlFor="discharges-county-filter", tabIndex=2, className="form-label"),
         dcc.Dropdown(
             id="discharges-county-filter", options=opts_list(county_opts), multi=True,
             placeholder="County", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="discharges-county-filter", persistence_type="session"
         ),
 
         html.Label("City", htmlFor="discharges-city-filter", tabIndex=3, className="form-label"),
         dcc.Dropdown(
             id="discharges-city-filter", options=opts_list(city_opts), multi=True,
             placeholder="City", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="discharges-city-filter", persistence_type="session"
         ),
 
-        html.Label("Year", htmlFor="discharges-year-filter", tabIndex=3, className="form-label"),
+        html.Label("Year", htmlFor="discharges-year-filter", tabIndex=4, className="form-label"),
         dcc.Dropdown(
             id="discharges-year-filter", options=opts_list(year_opts), multi=True,
             placeholder="Year", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="discharges-year-filter", persistence_type="session"
         ),
 
         html.Label("Age Group", htmlFor="discharges-age-filter", tabIndex=5, className="form-label"),
         dcc.Dropdown(
             id="discharges-age-filter", options=opts_list(age_opts), multi=True,
             placeholder="Age Group", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="discharges-age-filter", persistence_type="session"
         ),
 
         html.Label("Sex", htmlFor="discharges-sex-filter", tabIndex=6, className="form-label"),
         dcc.Dropdown(
             id="discharges-sex-filter", options=opts_list(sex_opts), multi=True,
             placeholder="Sex", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="discharges-sex-filter", persistence_type="session"
         ),
 
         html.Label("Race/Ethnicity", htmlFor="discharges-race-ethnicity-filter", tabIndex=7, className="form-label"),
         dcc.Dropdown(
             id="discharges-race-ethnicity-filter", options=opts_list(race_ethnicity_opts), multi=True,
             placeholder="Race/Ethnicity", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="discharges-race-ethnicity-filter", persistence_type="session"
         ),
 
-        html.Label("Hawaii Resident", htmlFor="discharges-hawaii-residency-filter", tabIndex=4, className="form-label"),
+        html.Label("Hawaii Resident", htmlFor="discharges-hawaii-residency-filter", tabIndex=8, className="form-label"),
         dcc.Dropdown(
             id="discharges-hawaii-residency-filter", options=opts_list(hawaii_residency_opts), multi=True,
             placeholder="Hawaii Resident", className="mb-0",
-            persistence=True, persistence_type="session"
-        ),
-
-        html.Div(
-            [
-                html.P("* Values less than 10 are suppressed for privacy reasons and are displayed as <10.", className="small text-muted mb-1"),
-                html.P("† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).", className="small text-muted mb-1"),
-                html.P("‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).", className="small text-muted mb-0"),
-            ],
-            className="mt-3",
+            persistence="discharges-hawaii-residency-filter", persistence_type="session"
         ),
     ]),
     id="discharges-filters",
     className="mb-4"
 )
+
+discharges_sidebar_text = [
+    "Emergency department discharges are shown for selected substance-use-related visits.",
+    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10.",
+    "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
+    "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
+]
 
 # ----------------------------
 # Layout
@@ -192,11 +190,14 @@ def layout():
     pie_h  = "260px"
 
     # Left column: KPI, reset button, and filters.
-    left_col = dbc.Col([
+    left_col = make_left_sidebar(
         kpi_card,
         reset_filters_button,
         filters_card,
-    ], xs=12, md=3)
+        helper_text=discharges_sidebar_text,
+        xs=12,
+        md=3,
+    )
 
     # Center column: the main line and bar charts.
     center_col = dbc.Col(

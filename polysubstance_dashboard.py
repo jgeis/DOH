@@ -17,7 +17,7 @@ import plotly.io as pio
 
 from theme import register_template
 from db_utils import execute_query
-from dashboard_utils import make_kpi_card
+from dashboard_utils import make_kpi_card, make_left_sidebar
 
 # This applies our custom Plotly look (colors, fonts, etc.) everywhere in this app.
 register_template()  # set your Plotly template globally
@@ -241,6 +241,10 @@ year_opts      = sorted(df_raw["year"].dropna().unique().tolist()) if "year" in 
 # Total number of unique records, used for the big KPI card.
 kpi_total = df_raw["record_id"].nunique() if "record_id" in df_raw.columns else 0
 
+polysubstance_sidebar_text = [
+    "This page highlights patterns where multiple substances appear in the same discharge record.",
+]
+
 
 # ---------- small helpers ----------
 def _apply_filter(frame, col, val):
@@ -319,14 +323,11 @@ def layout_for(is_mobile: bool = False):
     h_tree = "46vh" if is_mobile else "280px"
 
     # LEFT: KPI + filters
-    left = dbc.Col([
-        # Big green card showing total polysubstance discharges.
+    left = make_left_sidebar(
         make_kpi_card(
             label="Number of Discharges Related to Polysubstance Use",
             count=kpi_total,
         ),
-
-        # Quick button to clear all filter selections in one click.
         dbc.Button(
             "Reset All Filters", id="polysubstance-reset-filters-btn",
             color="secondary",
@@ -334,8 +335,6 @@ def layout_for(is_mobile: bool = False):
             className="w-100 mb-3",
             n_clicks=0,
         ),
-
-        # Filter controls grouped inside a card.
         dbc.Card(dbc.CardBody([
             html.H5("Filter Data", tabIndex=2),
 
@@ -343,38 +342,41 @@ def layout_for(is_mobile: bool = False):
             dcc.Dropdown(
                 id="polysubstance-substance-filter", options=opts(substance_opts), multi=True,
                 placeholder="All", className="mb-3",
-                persistence=True, persistence_type="session"
+                persistence="polysubstance-substance-filter", persistence_type="session"
             ),
 
             html.Label("Age Group", htmlFor="polysubstance-age-filter", tabIndex=4, className="form-label"),
             dcc.Dropdown(
                 id="polysubstance-age-filter", options=opts(age_opts), multi=True,
                 placeholder="All", className="mb-3",
-                persistence=True, persistence_type="session"
+                persistence="polysubstance-age-filter", persistence_type="session"
             ),
 
             html.Label("Sex", htmlFor="polysubstance-sex-filter", tabIndex=5, className="form-label"),
             dcc.Dropdown(
                 id="polysubstance-sex-filter", options=opts(sex_opts), multi=True,
                 placeholder="All", className="mb-3",
-                persistence=True, persistence_type="session"
+                persistence="polysubstance-sex-filter", persistence_type="session"
             ),
 
             html.Label("County", htmlFor="polysubstance-county-filter", tabIndex=6, className="form-label"),
             dcc.Dropdown(
                 id="polysubstance-county-filter", options=opts(county_opts), multi=True,
                 placeholder="All", className="mb-3",
-                persistence=True, persistence_type="session"
+                persistence="polysubstance-county-filter", persistence_type="session"
             ),
 
             html.Label("Calendar Year", htmlFor="polysubstance-year-filter", tabIndex=7, className="form-label"),
             dcc.Dropdown(
                 id="polysubstance-year-filter", options=opts(year_opts), multi=True,
                 placeholder="All", className="mb-0",
-                persistence=True, persistence_type="session"
+                persistence="polysubstance-year-filter", persistence_type="session"
             ),
         ]), id="polysubstance-filters"),
-    ], xs=12, md=3)
+        helper_text=polysubstance_sidebar_text,
+        xs=12,
+        md=3,
+    )
 
     # CENTER: main charts focused on substance and county over time
     center = dbc.Col([

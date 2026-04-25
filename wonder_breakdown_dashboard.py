@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
-from dashboard_utils import make_kpi_card
+from dashboard_utils import make_kpi_card, make_left_sidebar
 import re
 
 register_template()
@@ -155,6 +155,8 @@ filters_card = dbc.Card(
             className="mb-2",
             labelStyle={"display": "block", "marginBottom": "0.25rem"},
             inputStyle={"marginRight": "0.4rem"},
+            persistence="wonder-breakdown-county-filter",
+            persistence_type="session",
         ),
         html.Label("Calendar Year", htmlFor="wonder-breakdown-year-filter", tabIndex=3, className="form-label"),
         dcc.RadioItems(
@@ -163,20 +165,20 @@ filters_card = dbc.Card(
             className="mb-2",
             labelStyle={"display": "block", "marginBottom": "0.25rem"},
             inputStyle={"marginRight": "0.4rem"},
-            persistence=True, persistence_type="session"
-        ),
-        html.Div(
-            [
-                html.P("* Values less than 10 are suppressed for privacy reasons and are displayed as <10.", className="small text-muted mb-1"),
-                html.P("† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).", className="small text-muted mb-1"),
-                html.P("‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).", className="small text-muted mb-0"),
-            ],
-            className="mt-3",
+            persistence="wonder-breakdown-year-filter",
+            persistence_type="session",
         ),
     ]),
     id="wonder-breakdown-filters",
     className="mb-4"
 )
+
+wonder_breakdown_sidebar_text = [
+    "Breakdown charts split overdose deaths by substance, race, age group, and gender.",
+    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10.",
+    "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
+    "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
+]
 
 def layout_for(
     is_mobile: bool = False,
@@ -194,7 +196,14 @@ def layout_for(
     pie_h  = "46vh" if is_mobile else "260px"
 
     # Left column: KPI, reset button, and filters.
-    left_col = dbc.Col([kpi_card, reset_filters_button, filters_card], xs=12, md=3)
+    left_col = make_left_sidebar(
+        kpi_card,
+        reset_filters_button,
+        filters_card,
+        helper_text=wonder_breakdown_sidebar_text,
+        xs=12,
+        md=3,
+    )
 
     # Center column: the main line and bar charts.
     center_col = dbc.Col(

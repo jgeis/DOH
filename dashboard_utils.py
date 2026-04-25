@@ -108,3 +108,46 @@ def make_kpi_card(label: str, count_id: str | None = None, count: int | None = N
         ]),
         className="bg-success text-center mb-4",
     )
+
+
+def make_sidebar_helper_text(text: str | list[str] | tuple[str, ...]) -> html.Div:
+    """
+    Build the standardized helper text block shown under the filters card.
+
+    Accepts either one string or multiple strings. Multiple strings are
+    rendered as separate paragraphs with compact spacing.
+    """
+    lines = [text] if isinstance(text, str) else list(text)
+    return html.Div(
+        [
+            html.P(line, className=("mb-0" if i == len(lines) - 1 else "mb-2"))
+            for i, line in enumerate(lines)
+        ],
+        className="mt-3 text-muted small",
+    )
+
+
+def make_left_sidebar(
+    kpi_card_component,
+    reset_filters_button,
+    filters_card,
+    helper_text: str | list[str] | tuple[str, ...] | None = None,
+    xs: int = 12,
+    md: int = 3,
+) -> dbc.Col:
+    """
+    Build the standardized left sidebar column used by dashboards.
+
+    Order is always:
+      1) KPI card
+      2) Reset button
+      3) Filters card
+      4) Optional helper text block
+    """
+    children = [kpi_card_component, reset_filters_button, filters_card]
+    if helper_text:
+        if isinstance(helper_text, (str, list, tuple)):
+            children.append(make_sidebar_helper_text(helper_text))
+        else:
+            children.append(helper_text)
+    return dbc.Col(children, xs=xs, md=md)

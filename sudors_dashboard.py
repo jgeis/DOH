@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
-from dashboard_utils import make_kpi_card
+from dashboard_utils import make_kpi_card, make_left_sidebar
 import json
 import re
 
@@ -178,50 +178,49 @@ filters_card = dbc.Card(
         dcc.Dropdown(
             id="sudors-substance-filter", options=opts_list(substance_opts), multi=True,
             placeholder="Substance", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="sudors-substance-filter", persistence_type="session"
         ),
         html.Label("Homeless", htmlFor="sudors-homeless-filter", tabIndex=2, className="form-label"),
         dcc.Dropdown(
             id="sudors-homeless-filter", options=opts_list(homeless_opts), multi=True,
             placeholder="Homeless", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="sudors-homeless-filter", persistence_type="session"
         ),
         html.Label("Race/Ethnicity", htmlFor="sudors-race-filter", tabIndex=5, className="form-label"),
         dcc.Dropdown(
             id="sudors-race-filter", options=opts_list(race_opts), multi=True,
             placeholder="Race/Ethnicity", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="sudors-race-filter", persistence_type="session"
         ),
         html.Label("Sex", htmlFor="sudors-sex-filter", tabIndex=6, className="form-label"),
         dcc.Dropdown(
             id="sudors-sex-filter", options=opts_list(sex_opts), multi=True,
             placeholder="Sex", className="mb-0",
-            persistence=True, persistence_type="session"
+            persistence="sudors-sex-filter", persistence_type="session"
         ),
         html.Label("Age Group", htmlFor="sudors-age-filter", tabIndex=5, className="form-label"),
         dcc.Dropdown(
             id="sudors-age-filter", options=opts_list(age_opts), multi=True,
             placeholder="Age Group", className="mb-2",
-            persistence=True, persistence_type="session"
+            persistence="sudors-age-filter", persistence_type="session"
         ),
         html.Label("Calendar Year", htmlFor="sudors-year-filter", tabIndex=3, className="form-label"),
         dcc.Dropdown(
             id="sudors-year-filter", options=opts_list(year_opts), multi=True,
             placeholder="Calendar Year", className="mb-2",
-            persistence=True, persistence_type="session"
-        ),
-        html.Div(
-            [
-                html.P("* Values less than 10 are suppressed for privacy reasons and are displayed as <10.", className="small text-muted mb-1"),
-                html.P("† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).", className="small text-muted mb-1"),
-                html.P("‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).", className="small text-muted mb-0"),
-            ],
-            className="mt-3",
+            persistence="sudors-year-filter", persistence_type="session"
         ),
     ]),
     id="sudors-filters",
     className="mb-4"
 )
+
+sudors_sidebar_text = [
+    "Fatal overdose deaths are shown for unintentional and undetermined intent cases.",
+    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10.",
+    "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
+    "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
+]
 
 def layout_for(
     is_mobile: bool = False,
@@ -239,7 +238,14 @@ def layout_for(
     pie_h  = "46vh" if is_mobile else "260px"
 
     # Left column: KPI, reset button, and filters.
-    left_col = dbc.Col([kpi_card, reset_filters_button, filters_card], xs=12, md=3)
+    left_col = make_left_sidebar(
+        kpi_card,
+        reset_filters_button,
+        filters_card,
+        helper_text=sudors_sidebar_text,
+        xs=12,
+        md=3,
+    )
 
     # Center column: the main line and bar charts.
     center_col = dbc.Col(
