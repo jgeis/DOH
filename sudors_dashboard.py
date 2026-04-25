@@ -216,16 +216,16 @@ def layout_for(
                 [
                     dbc.Col(
                         [
-                            graph_block("sex-sudors-pie", "Deaths by Gender", pie_h),
-                            html.P("Pie chart showing deaths by gender.", className="visually-hidden"),
+                            graph_block("sex-sudors-pie", "Sex at Birth", pie_h),
+                            html.P("Pie chart showing sex at birth.", className="visually-hidden"),
                         ],
                         xs=12,
                         md=6,
                     ),
                     dbc.Col(
                         [
-                            graph_block("homeless-sudors-pie", "Homeless Deaths", pie_h),
-                            html.P("Pie chart showing deaths by homeless status.", className="visually-hidden"),
+                            graph_block("homeless-sudors-pie", "Homeless status", pie_h),
+                            html.P("Pie chart showing homeless status.", className="visually-hidden"),
                         ],
                         xs=12,
                         md=6,
@@ -252,7 +252,7 @@ def layout_for(
                 [
                     dbc.Col(
                         [
-                            html.H6("By Race/Ethnicity", className="mb-2"),
+                            #html.H6("By Race/Ethnicity", className="mb-2"),
                             html.Div(
                                 id="table-race",
                                 className="mobile-side-table",
@@ -263,7 +263,7 @@ def layout_for(
                     ),
                     dbc.Col(
                         [
-                            html.H6("Calendar Year", className="mb-2"),
+                            #html.H6("Calendar Year", className="mb-2"),
                             html.Div(
                                 id="table-calendar",
                                 className="mobile-side-table",
@@ -274,7 +274,7 @@ def layout_for(
                     ),
                     dbc.Col(
                         [
-                            html.H6("By Age", className="mb-2"),
+                            #html.H6("By Age", className="mb-2"),
                             html.Div(
                                 id="table-sudors-age",
                                 className="mobile-side-table",
@@ -384,7 +384,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
     if "substance" in dff.columns:      dff = apply_filter(dff, "substance", substance)
     if "homeless" in dff.columns:       dff = apply_filter(dff, "homeless", homeless)
     if "sex" in dff.columns:            dff = apply_filter(dff, "sex", sex)
-    if "age" in dff.columns:            dff = apply_filter(dff, "age", age)
+    if "age_cat" in dff.columns:        dff = apply_filter(dff, "age_cat", age)
     if "race_ethnicity" in dff.columns: dff = apply_filter(dff, "race_ethnicity", race)
     if "year" in dff.columns:           dff = apply_filter(dff, "year", year)
 
@@ -470,10 +470,10 @@ def update_dashboard(substance, homeless, sex, age, race, year):
 
         # Use friendly display labels for table headers
         header_labels = {
-            "race_ethnicity": "Race",
-            "homeless": "Homeless",
-            "year": "Year",
-            "age_cat": "Age",
+            "race_ethnicity": "Race/Ethnicity",
+            "homeless": "Is Homeless",
+            "year": "Calendar Year",
+            "age_cat": "Age Group",
         }
         display_column = header_labels.get(column, column)
         g = g.rename(columns={column: display_column, "count": "Deaths"})
@@ -505,7 +505,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
         )
 
 
-    # ---------- Pie chart: Deaths by Gender ----------
+    # ---------- Pie chart: Deaths by Sex at Birth ----------
     if "sex" in dff.columns:
         pie_df = (
             dff.groupby("sex")["incident_id"].nunique()
