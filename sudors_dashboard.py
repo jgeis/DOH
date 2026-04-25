@@ -175,12 +175,12 @@ filters_card = make_filters_card(
     card_id="sudors-filters",
     title="Filter Data",
     filters=[
-        dropdown_filter("Substance", "sudors-substance-filter", options=opts_list(substance_opts), multi=True, placeholder="Substance"),
-        dropdown_filter("Homeless", "sudors-homeless-filter", options=opts_list(homeless_opts), multi=True, placeholder="Homeless"),
-        dropdown_filter("Race/Ethnicity", "sudors-race-filter", options=opts_list(race_opts), multi=True, placeholder="Race/Ethnicity"),
-        dropdown_filter("Sex", "sudors-sex-filter", options=opts_list(sex_opts), multi=True, placeholder="Sex"),
-        dropdown_filter("Age Group", "sudors-age-filter", options=opts_list(age_opts), multi=True, placeholder="Age Group"),
-        dropdown_filter("Calendar Year", "sudors-year-filter", options=opts_list(year_opts), multi=True, placeholder="Calendar Year"),
+        dropdown_filter("Substance", "sudors-substance-filter", options=opts_list(substance_opts), multi=True, placeholder="All"),
+        dropdown_filter("Homeless", "sudors-homeless-filter", options=opts_list(homeless_opts), multi=True, placeholder="All"),
+        dropdown_filter("Race/Ethnicity", "sudors-race-filter", options=opts_list(race_opts), multi=True, placeholder="All"),
+        dropdown_filter("Sex", "sudors-sex-filter", options=opts_list(sex_opts), multi=True, placeholder="All"),
+        dropdown_filter("Age Group", "sudors-age-filter", options=opts_list(age_opts), multi=True, placeholder="All"),
+        dropdown_filter("Calendar Year", "sudors-year-filter", options=opts_list(year_opts), multi=True, placeholder="All"),
     ],
 )
 

@@ -121,14 +121,14 @@ filters_card = make_filters_card(
     card_id="discharges-filters",
     title="Filter Data",
     filters=[
-        dropdown_filter("Substance", "discharges-substance-filter", options=opts_list(substance_opts), multi=True, placeholder="Substance"),
-        dropdown_filter("County", "discharges-county-filter", options=opts_list(county_opts), multi=True, placeholder="County"),
-        dropdown_filter("City", "discharges-city-filter", options=opts_list(city_opts), multi=True, placeholder="City"),
-        dropdown_filter("Year", "discharges-year-filter", options=opts_list(year_opts), multi=True, placeholder="Year"),
-        dropdown_filter("Age Group", "discharges-age-filter", options=opts_list(age_opts), multi=True, placeholder="Age Group"),
-        dropdown_filter("Sex", "discharges-sex-filter", options=opts_list(sex_opts), multi=True, placeholder="Sex"),
-        dropdown_filter("Race/Ethnicity", "discharges-race-ethnicity-filter", options=opts_list(race_ethnicity_opts), multi=True, placeholder="Race/Ethnicity"),
-        dropdown_filter("Hawaii Resident", "discharges-hawaii-residency-filter", options=opts_list(hawaii_residency_opts), multi=True, placeholder="Hawaii Resident"),
+        dropdown_filter("Substance", "discharges-substance-filter", options=opts_list(substance_opts), multi=True, placeholder="All"),
+        dropdown_filter("County", "discharges-county-filter", options=opts_list(county_opts), multi=True, placeholder="All"),
+        dropdown_filter("City", "discharges-city-filter", options=opts_list(city_opts), multi=True, placeholder="All"),
+        dropdown_filter("Year", "discharges-year-filter", options=opts_list(year_opts), multi=True, placeholder="All"),
+        dropdown_filter("Age Group", "discharges-age-filter", options=opts_list(age_opts), multi=True, placeholder="All"),
+        dropdown_filter("Sex", "discharges-sex-filter", options=opts_list(sex_opts), multi=True, placeholder="All"),
+        dropdown_filter("Race/Ethnicity", "discharges-race-ethnicity-filter", options=opts_list(race_ethnicity_opts), multi=True, placeholder="All"),
+        dropdown_filter("Hawaii Resident", "discharges-hawaii-residency-filter", options=opts_list(hawaii_residency_opts), multi=True, placeholder="All"),
     ],
 )
 
