@@ -22,6 +22,7 @@ from dashboard_utils import (
     make_left_sidebar,
     make_filters_card,
     dropdown_filter,
+    sort_opts,
     statewide_first,
     apply_county_filter,
     county_output_should_include_statewide,
@@ -223,16 +224,6 @@ df_raw = df_raw[mask_year & mask_age].copy()
 
 
 # ---------- filter options ----------
-def sort_opts(series):
-    """
-    Turn a column into a sorted list of unique values.
-
-    We also push "Unknown" to the end of the list so the filter menus
-    look cleaner and more natural to read.
-    """
-    vals = pd.Series(series.unique()).astype(str)
-    return sorted([v for v in vals if v != "Unknown"]) + (["Unknown"] if "Unknown" in vals.values else [])
-
 def opts(values):
     """
     Wrap a raw list of values into the format Dash expects for dropdown options:

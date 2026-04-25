@@ -91,9 +91,28 @@ def sort_opts(series):
     We also make sure "Unknown" always shows up at the end of the list
     so the drop-down menus look cleaner.
     """
-    vals = pd.Series(series.unique()).astype(str)
-    vals = sorted([v for v in vals if v != "Unknown"]) + (["Unknown"] if "Unknown" in vals.values else [])
-    return vals
+    def _normalize_age_group_label(text: str) -> str:
+        """Normalize age labels like 'Under 15' to '<15' for consistent menu display."""
+        s = str(text).strip()
+        m = re.fullmatch(r"under\s+(\d+)", s, flags=re.IGNORECASE)
+        if m:
+            return f"<{m.group(1)}"
+        return s
+
+    normalized = pd.Series(series).dropna().astype(str).map(_normalize_age_group_label)
+    vals = [str(v) for v in pd.Series(normalized.unique()).tolist()]
+
+    def _lt_sort_key(text: str):
+        """Sort '<' bucket values by numeric component when available."""
+        m = re.search(r"\d+", text)
+        return (int(m.group()) if m else float("inf"), text)
+
+    less_than = sorted([v for v in vals if "<" in v], key=_lt_sort_key)
+    has_unknown = "Unknown" in vals
+
+    middle = sorted([v for v in vals if "<" not in v and v != "Unknown"])
+    ordered = less_than + middle + (["Unknown"] if has_unknown else [])
+    return ordered
 
 
 def opts_list(values):
@@ -345,7 +364,7 @@ def make_filters_card(
 
     ordered = _ordered_filters(filters)
 
-    children = [html.H5(title, tabIndex=start_tab_index)]
+    children: list = [html.H5(title, tabIndex=start_tab_index)]
 
     total = len(ordered)
     for idx, (label_text, control) in enumerate(ordered, start=1):

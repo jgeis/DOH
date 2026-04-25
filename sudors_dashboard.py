@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
-from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, dropdown_filter
+from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, dropdown_filter, sort_opts
 import json
 import re
 
@@ -79,17 +79,6 @@ df_raw = load_sudors_dataframe_from_db()
 
 # Count how many unique records we have to show on the KPI card.
 total_unique = df_raw["incident_id"].nunique()
-
-def sort_opts(series):
-    """
-    Turn a column into a sorted list of unique values.
-
-    We also make sure "Unknown" always shows up at the end of the list
-    so the drop-down menus look cleaner.
-    """
-    vals = pd.Series(series.unique()).astype(str)
-    vals = sorted([v for v in vals if v != "Unknown"]) + (["Unknown"] if "Unknown" in vals.values else [])
-    return vals
 
 # Build the lists of choices for each filter only if the column exists.
 # Why: this makes the code more flexible if the data shape changes later.
