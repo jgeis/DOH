@@ -1,101 +1,54 @@
 import pandas as pd
 import sqlite3
+from pathlib import Path
+from pandas.errors import ParserError
 
 # Database name
 DB_NAME = "DOH_AMHD_NO_PII.db"
+DATA_DIR = Path("data")
 
-# Load CSVs
+
+def read_csv_safely(csv_path: Path) -> pd.DataFrame:
+    """
+    Read a CSV file with a fallback for malformed rows.
+
+    Most files load normally. A few legacy exports may contain a bad line,
+    so we retry with `on_bad_lines='skip'` when needed.
+    """
+    try:
+        return pd.read_csv(csv_path)
+    except ParserError:
+        print(f"Warning: parser issue in '{csv_path.name}', retrying with bad-line skipping.")
+        return pd.read_csv(csv_path, on_bad_lines="skip")
+
+# Load all CSVs from the data directory
 print("Loading CSV files...")
-df_diag_su = pd.read_csv("data/discharge_data_view_diag_su.csv")
-df_diag_mh = pd.read_csv("data/discharge_data_view_diag_mh.csv")
-df_demo = pd.read_csv("data/discharge_data_view_demographics.csv")
-df_dose = pd.read_csv("data/dose_data.csv")
-df_sudors_demo = pd.read_csv("data/sudors_data_view_demographics$.csv", on_bad_lines='skip')
-df_sudors_diag_su = pd.read_csv("data/sudors_data_view_diag_su$.csv")
-df_wonder_overview = pd.read_csv("data/wonder_overview.csv")
-df_wonder_substance = pd.read_csv("data/wonder_substance.csv")
-df_wonder_race = pd.read_csv("data/wonder_race.csv")
-df_wonder_age_group = pd.read_csv("data/wonder_age_group.csv")
-df_wonder_gender = pd.read_csv("data/wonder_gender.csv")
+csv_files = sorted(DATA_DIR.glob("*.csv"))
+if not csv_files:
+    raise FileNotFoundError(f"No CSV files found in {DATA_DIR.resolve()}")
 
-# Clean column names (lowercase and strip whitespace)
-df_diag_su.columns = df_diag_su.columns.str.lower().str.strip()
-df_diag_mh.columns = df_diag_mh.columns.str.lower().str.strip()
-df_demo.columns = df_demo.columns.str.lower().str.strip()
-df_dose.columns = df_dose.columns.str.lower().str.strip()
-df_sudors_demo.columns = df_sudors_demo.columns.str.lower().str.strip()
-df_sudors_diag_su.columns = df_sudors_diag_su.columns.str.lower().str.strip()
-df_wonder_overview.columns = df_wonder_overview.columns.str.lower().str.strip()
-df_wonder_substance.columns = df_wonder_substance.columns.str.lower().str.strip()
-df_wonder_race.columns = df_wonder_race.columns.str.lower().str.strip()
-df_wonder_age_group.columns = df_wonder_age_group.columns.str.lower().str.strip()
-df_wonder_gender.columns = df_wonder_gender.columns.str.lower().str.strip()
-
-print(f"Loaded {len(df_diag_su):,} diag_su records, {len(df_diag_mh):,} diag_mh records, {len(df_demo):,} demographics records, {len(df_dose)} overdose poisoning records, {len(df_sudors_demo):,} sudors demographics records, and {len(df_sudors_diag_su):,} sudors diag_su records.")
-print(f"diag_su columns: {df_diag_su.columns.tolist()}")
-print(f"diag_mh columns: {df_diag_mh.columns.tolist()}")
-print(f"demographics columns: {df_demo.columns.tolist()}")
-print(f"overdose poisonings columns: {df_dose.columns.tolist()}")
-print(f"sudors demographics columns: {df_sudors_demo.columns.tolist()}")
-print(f"sudors diag_su columns: {df_sudors_diag_su.columns.tolist()}")
-print(f"wonder_overview columns: {df_wonder_overview.columns.tolist()}")
-print(f"wonder_substance columns: {df_wonder_substance.columns.tolist()}")
-print(f"wonder_race columns: {df_wonder_race.columns.tolist()}")
-print(f"wonder_age_group columns: {df_wonder_age_group.columns.tolist()}")
-print(f"wonder_gender columns: {df_wonder_gender.columns.tolist()}")
+tables: dict[str, pd.DataFrame] = {}
+for csv_file in csv_files:
+    table_name = csv_file.stem
+    df = read_csv_safely(csv_file)
+    df.columns = df.columns.str.lower().str.strip()
+    tables[table_name] = df
+    print(f"Loaded {len(df):,} rows from {csv_file.name} -> table '{table_name}'")
+    print(f"{table_name} columns: {df.columns.tolist()}")
 
 # Connect to SQLite (local development database)
 print(f"\nConnecting to SQLite database ({DB_NAME})...")
 conn = sqlite3.connect(DB_NAME)
 
 try:
-    # Save as tables - table names match CSV filenames (without .csv extension)
-    print("Creating 'discharge_data_view_diag_su' table...")
-    df_diag_su.to_sql("discharge_data_view_diag_su", conn, if_exists="replace", index=False)
-    
-    print("Creating 'discharge_data_view_diag_mh' table...")
-    df_diag_mh.to_sql("discharge_data_view_diag_mh", conn, if_exists="replace", index=False)
-
-    print("Creating 'discharge_data_view_demographics' table...")
-    df_demo.to_sql("discharge_data_view_demographics", conn, if_exists="replace", index=False)
-    
-    print("Creating 'dose_data' table...")
-    df_dose.to_sql("dose_data", conn, if_exists="replace", index=False)
-
-    print("Creating 'sudors_data_view_demographics$' table...")
-    df_sudors_demo.to_sql("sudors_data_view_demographics$", conn, if_exists="replace", index=False)
-
-    print("Creating 'sudors_data_view_diag_su$' table...")
-    df_sudors_diag_su.to_sql("sudors_data_view_diag_su$", conn, if_exists="replace", index=False)
-
-    print("Creating 'wonder_overview' table...")
-    df_wonder_overview.to_sql("wonder_overview", conn, if_exists="replace", index=False)
-
-    print("Creating 'wonder_substance' table...")
-    df_wonder_substance.to_sql("wonder_substance", conn, if_exists="replace", index=False)
-
-    print("Creating 'wonder_race' table...")
-    df_wonder_race.to_sql("wonder_race", conn, if_exists="replace", index=False)
-
-    print("Creating 'wonder_age_group' table...")
-    df_wonder_age_group.to_sql("wonder_age_group", conn, if_exists="replace", index=False)
-
-    print("Creating 'wonder_gender' table...")
-    df_wonder_gender.to_sql("wonder_gender", conn, if_exists="replace", index=False)
-
+    # Save as tables - names match CSV filenames without extension.
+    for table_name, df in tables.items():
+        print(f"Creating '{table_name}' table...")
+        df.to_sql(table_name, conn, if_exists="replace", index=False)
 
     print(f"\n✅ Database tables created successfully in {DB_NAME}")
-    print(f"  - discharge_data_view_diag_su: {len(df_diag_su):,} rows")
-    print(f"  - discharge_data_view_diag_mh: {len(df_diag_mh):,} rows")
-    print(f"  - discharge_data_view_demographics: {len(df_demo):,} rows")
-    print(f"  - dose_data: {len(df_dose):,} rows")
-    print(f"  - sudors_data_view_demographics$: {len(df_sudors_demo):,} rows")
-    print(f"  - sudors_data_view_diag_su$: {len(df_sudors_diag_su):,} rows")
-    print(f"  - wonder_overview: {len(df_wonder_overview):,} rows")
-    print(f"  - wonder_substance: {len(df_wonder_substance):,} rows")
-    print(f"  - wonder_race: {len(df_wonder_race):,} rows")
-    print(f"  - wonder_age_group: {len(df_wonder_age_group):,} rows")
-    print(f"  - wonder_gender: {len(df_wonder_gender):,} rows")
+    for table_name, df in tables.items():
+        print(f"  - {table_name}: {len(df):,} rows")
 
 finally:
     conn.close()
@@ -105,7 +58,7 @@ print("\nVerifying table structure...")
 conn = sqlite3.connect(DB_NAME)
 cursor = conn.cursor()
 
-for table in ['discharge_data_view_diag_su', 'discharge_data_view_diag_mh', 'discharge_data_view_demographics', 'dose_data', 'sudors_data_view_demographics$', 'sudors_data_view_diag_su$', 'wonder_overview', 'wonder_substance', 'wonder_race', 'wonder_age_group', 'wonder_gender']:
+for table in tables:
     cursor.execute(f"PRAGMA table_info({table})")
     print(f"\n{table} columns:")
     for row in cursor.fetchall():
