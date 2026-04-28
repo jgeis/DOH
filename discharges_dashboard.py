@@ -151,7 +151,6 @@ def layout():
     # Adjust plot heights for desktop
     line_h = "400px"
     bar_h  = "360px"
-    pie_h  = "260px"
 
     # Left column: KPI, reset button, and filters.
     left_col = make_left_sidebar(
@@ -180,14 +179,24 @@ def layout():
         xs=12, md=6
     )
 
-    # Right column: Two small summary tables and a pie chart
+    # Right column: summary tables
     right_col = dbc.Col(
         [
             dbc.Row(
                 [
                     dbc.Col(
                         [
-                            html.H6("By County", className="mb-2"),
+                            html.Div(
+                                id="table-year",
+                                className="mobile-side-table",
+                                style={"overflowX": "auto"}
+                            ),
+                        ],
+                        xs=12, md=12, className="pe-1 mb-3",
+                    ),
+                    dbc.Col(
+                        [
+                            #html.H6("By County", className="mb-2"),
                             html.Div(
                                 id="table-county",
                                 className="mobile-side-table",
@@ -198,9 +207,40 @@ def layout():
                     ),
                     dbc.Col(
                         [
-                            html.H6("By Age Group", className="mb-2"),
+                            #html.H6("By Age Group", className="mb-2"),
                             html.Div(
                                 id="table-age",
+                                className="mobile-side-table",
+                                style={"overflowX": "auto"}
+                            ),
+                        ],
+                        xs=12, md=12, className="ps-1 mb-3",
+                    ),
+                    dbc.Col(
+                        [
+                            #html.H6("By Gender", className="mb-2"),
+                            html.Div(
+                                id="table-sex",
+                                className="mobile-side-table",
+                                style={"overflowX": "auto"}
+                            ),
+                        ],
+                        xs=12, md=12, className="ps-1 mb-3",
+                    ),
+                    dbc.Col(
+                        [
+                            html.Div(
+                                id="table-race-ethnicity",
+                                className="mobile-side-table",
+                                style={"overflowX": "auto"}
+                            ),
+                        ],
+                        xs=12, md=12, className="ps-1 mb-3",
+                    ),
+                    dbc.Col(
+                        [
+                            html.Div(
+                                id="table-hawaii-residency",
                                 className="mobile-side-table",
                                 style={"overflowX": "auto"}
                             ),
@@ -210,8 +250,6 @@ def layout():
                 ],
                 className="g-2"
             ),
-            graph_block("sex-pie", "Discharges by Gender", pie_h),
-            html.P("Pie chart showing discharges by gender.", className="visually-hidden"),
         ],
         xs=12, md=3
     )
@@ -255,9 +293,12 @@ def reset_discharges_filters(_n_clicks):
     Output("county-year-lines", "figure"),
     Output("age-year-lines", "figure"),
     Output("sex-year-stacked", "figure"),
+    Output("table-year", "children"),
     Output("table-county", "children"),
     Output("table-age", "children"),
-    Output("sex-pie", "figure"),
+    Output("table-sex", "children"),
+    Output("table-race-ethnicity", "children"),
+    Output("table-hawaii-residency", "children"),
     Input("discharges-substance-filter", "value"),
     Input("discharges-county-filter", "value"),
     Input("discharges-city-filter", "value"),
@@ -369,10 +410,11 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         substance_line_fig.update_traces(
             hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
         )
+        max_y = int(by_ysub["count"].max()) if not by_ysub.empty else 0
         substance_line_fig.update_layout(
             margin=dict(l=0, r=20, t=20, b=80),
             xaxis=dict(dtick=1, automargin=True),
-            yaxis=dict(rangemode="tozero"),
+            yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
             legend=dict(
                 title_text="Substance",
                 orientation="h",
@@ -412,9 +454,11 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         line_fig.update_traces(
             hovertemplate="Year %{x}<br>%{customdata[0]} discharges<extra></extra>"
         )
+        max_y = int(by_cy["count"].max()) if not by_cy.empty else 0
         line_fig.update_layout(
             margin=dict(l=0, r=20, t=10, b=0),
-            xaxis=dict(dtick=1)
+            xaxis=dict(dtick=1),
+            yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
         )
     else:
         line_fig = px.line()
@@ -444,10 +488,11 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         age_line_fig.update_traces(
             hovertemplate="Year %{x}<br>Age Group: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
         )
+        max_y = int(by_ya["count"].max()) if not by_ya.empty else 0
         age_line_fig.update_layout(
             margin=dict(l=0, r=20, t=10, b=0),
             xaxis=dict(dtick=1),
-            yaxis=dict(rangemode="tozero"),
+            yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
             legend=dict(title_text="Age Group"),
         )
     else:
@@ -513,7 +558,9 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         if column == "county":
             categories = statewide_first(sort_opts(g[column]))
 
-        if categories:
+        if column == "year":
+            g = g.sort_values(column, ascending=False)
+        elif categories:
             g[column] = pd.Categorical(g[column], categories=categories, ordered=True)
             g = g.sort_values(column)
         else:
@@ -522,37 +569,17 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         g["count"] = g["count"].map(format_count_display)
 
         header_labels = {
+            "year": "Calendar Year",
             "age_group": "Age Group",
             "county": "County",
+            "sex": "Sex at Birth",
+            "race_ethnicity": "Race/Ethnicity",
+            "hawaii_residency": "Hawaii Resident",
         }
         display_column = header_labels.get(column, column)
         g = g.rename(columns={column: display_column, "count": "Discharges"})
 
         return dbc.Table.from_dataframe(g, striped=True, bordered=True, hover=True)
-
-    # ---------- Pie chart: Discharges by Gender ----------
-    if "sex" in dff.columns:
-        pie_df = (
-            dff.groupby("sex")["record_id"].nunique()
-            .reset_index(name="count")
-            .sort_values("count", ascending=False)
-        )
-        sex_pie = px.pie(
-            pie_df,
-            names="sex",
-            values="count",
-            hole=0.35
-        )
-        pie_df["display_count"] = pie_df["count"].apply(format_count_display)
-        sex_pie.update_traces(
-            customdata=pie_df[["display_count"]],
-            textposition="inside",
-            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
-            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})"
-        )
-        sex_pie.update_layout(margin=dict(l=0, r=0, t=10, b=0))
-    else:
-        sex_pie = px.pie()
 
     # Extract age groups dynamically from the filtered data
     if "age_group" in dff.columns and not dff.empty:
@@ -571,7 +598,10 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         line_fig,
         age_line_fig,
         sex_bar,
+        tbl("year"),
         tbl("county"),
         tbl("age_group", age_groups),
-        sex_pie,
+        tbl("sex"),
+        tbl("race_ethnicity"),
+        tbl("hawaii_residency"),
     )
