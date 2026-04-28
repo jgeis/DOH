@@ -11,6 +11,7 @@ TAB_PATHS = {
     "/polysubstance": "Related to Polysubstance Use",
     "/wonder-overview": "CDC WONDER Overdose Deaths Overview",
     "/wonder-breakdown": "WONDER Overdose Deaths Breakdown",
+    "/cares-call-volume": "Hawaiʻi CARES Crisis Center Volume",
 }
 
 DEFAULT_PATH = "/discharges"

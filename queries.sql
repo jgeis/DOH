@@ -167,6 +167,14 @@ SELECT
 FROM wonder_gender
 WHERE year IS NOT NULL;
 
+-- name: load_cares_calls
+SELECT
+  Date as day,
+  phone as origin_of_call,
+  CAST(total_calls AS INTEGER) AS count_of_users
+FROM cares_calls_volume_view_test
+WHERE day IS NOT NULL;
+
 
 -- name: load_discharge_data_view_diagnosis
 WITH dx_union AS (

@@ -18,6 +18,7 @@ layout = dbc.Container(
                 dbc.ListGroupItem(html.A("SUDORS", href="/sudors")),
                 dbc.ListGroupItem(html.A("Drug Overdose Surveillance and Epidemiology (DOSE)", href="/dose")),
                 dbc.ListGroupItem(html.A("Related to Polysubstance Use", href="/polysubstance")),
+                dbc.ListGroupItem(html.A("CARES call volume", href="/cares-call-volume")),
             ]
         ),
     ],
