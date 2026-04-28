@@ -212,3 +212,35 @@ JOIN discharge_data_view_demographics m
  ON m.record_id = u.record_id
 WHERE LOWER(COALESCE(NULLIF(TRIM(m.age_group), ''), 'unknown')) <> 'unknown';
 
+-- name: load_crisis_mobile_outreach
+WITH CrisisMobileOutreach AS (
+    -- Step 1: Filter the dates and map the names
+    SELECT 
+        PATID,
+        CASE 
+            WHEN CMOReferralTo_Value IN ('Castle ER', 'Other ER', 'Queens ER') THEN 'Emergency Rooms'
+            WHEN CMOReferralTo_Value = 'BHCC' THEN 'Behavioral Health Crisis Center'
+            WHEN CMOReferralTo_Value = 'CSM' THEN 'Crisis Support Management'
+            WHEN CMOReferralTo_Value = 'Family / Friends' THEN 'Parents/Family/Friends'
+            WHEN CMOReferralTo_Value IN ('LCRS', 'Stabilization Bed') THEN 'Licensed Crisis Residential Services and Stabilization Beds'
+            ELSE CMOReferralTo_Value 
+        END AS referral_destination
+    FROM AMHD_Crisis_Mobile_Outreach
+    -- DATEADD subtracts 6 months from today's date
+    WHERE DispatchDate >= DATEADD(month, -6, CAST(GETDATE() AS DATE))
+),
+GroupedCounts AS (
+    -- Step 2: Get the distinct counts per destination
+    SELECT 
+        referral_destination,
+        COUNT(DISTINCT PATID) AS ct
+    FROM CrisisMobileOutreach
+    GROUP BY referral_destination
+)
+-- Step 3: Calculate the final percentage
+SELECT 
+    referral_destination,
+    ct,
+    ROUND((ct * 100.0) / SUM(ct) OVER (), 2) AS percentage
+FROM GroupedCounts
+ORDER BY ct DESC;

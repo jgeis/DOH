@@ -12,6 +12,7 @@ TAB_PATHS = {
     "/wonder-overview": "CDC WONDER Overdose Deaths Overview",
     "/wonder-breakdown": "WONDER Overdose Deaths Breakdown",
     "/cares-call-volume": "Hawaiʻi CARES Crisis Center Volume",
+    "/crisis-mobile-outreach": "Referral Destinations for Crisis Mobile Outreach Clients",
 }
 
 DEFAULT_PATH = "/discharges"
