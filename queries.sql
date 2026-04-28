@@ -172,9 +172,8 @@ SELECT
   Date as day,
   phone as origin_of_call,
   CAST(total_calls AS INTEGER) AS count_of_users
-FROM cares_calls_volume_view_test
+FROM cares_calls_volume_view
 WHERE day IS NOT NULL;
-
 
 -- name: load_discharge_data_view_diagnosis
 WITH dx_union AS (
@@ -244,3 +243,27 @@ SELECT
     ROUND((ct * 100.0) / SUM(ct) OVER (), 2) AS percentage
 FROM GroupedCounts
 ORDER BY ct DESC;
+
+-- name: crisis-bed-occupancy
+SELECT 
+    FORMAT(DispatchDate, 'yyyy-MM') AS dispatch_month, 
+    program_county_value, 
+    COUNT(DISTINCT PATID) AS bed_ct 
+FROM AMHD_Crisis_Mobile_Outreach 
+WHERE CMOReferralTo_Value = 'LCRS' 
+  AND DispatchDate >= DATEADD(month, -12, CAST(GETDATE() AS DATE)) 
+GROUP BY 
+    FORMAT(DispatchDate, 'yyyy-MM'), 
+    program_county_value 
+ORDER BY 
+    dispatch_month ASC, 
+    program_county_value ASC;
+
+-- name: load_adad_clients_served
+SELECT
+  client_id,
+  county,
+  modality,
+  [date] AS service_date
+FROM adad_service_view
+WHERE [date] IS NOT NULL;
