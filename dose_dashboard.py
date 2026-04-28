@@ -302,6 +302,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         )
         
         dose_bar.update_traces(
+            marker_color="#22767C",
             textposition="outside",
             cliponaxis=False,
             customdata=dose_df["substance"],

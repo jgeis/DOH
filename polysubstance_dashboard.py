@@ -357,11 +357,14 @@ def layout_for(is_mobile: bool = False):
 
     # CENTER: main charts focused on substance and county over time
     center = dbc.Col([
-        graph_block("bar-top-substances", "Top Substances (Polysubstance Records)", h_bar),
+        graph_block("bar-top-substances", "Substance Type", h_bar),
         # Hidden description for screen readers.
         html.P("Horizontal bar chart showing the top substances among polysubstance records.", className="visually-hidden"),
 
-        graph_block("stack-year-county", "Discharges by Year and County", h_stack),
+        graph_block("line-year-substance", "Yearly Discharges by Polysubstance Discharges", h_stack),
+        html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
+
+        graph_block("stack-year-county", "Yearly Discharges by County", h_stack),
         html.P("Line chart showing discharges by year and county.", className="visually-hidden"),
     ], xs=12, md=6)
 
@@ -564,6 +567,7 @@ layout = layout_for(is_mobile=False)
 # ---------- callbacks (figures + tables) ----------
 @callback(
     Output("bar-top-substances", "figure"),
+    Output("line-year-substance", "figure"),
     Output("stack-year-county", "figure"),
     Output("pie-county-share", "figure"),
     Output("tbl-age", "children"),
@@ -610,6 +614,7 @@ def update(substance, age, sex, county, year):
             text="display_count",
         )
         fig_sub.update_traces(
+            marker_color="#22767C",
             textposition="outside",
             cliponaxis=False
         )
@@ -624,6 +629,62 @@ def update(substance, age, sex, county, year):
         )
     else:
         fig_sub = px.bar()
+
+    # ---------- Line: Yearly Discharges by Substance ----------
+    if {"year", "substance", "record_id"}.issubset(dff.columns) and not dff.empty:
+        top_substances = (
+            dff.groupby("substance")["record_id"]
+               .nunique()
+               .sort_values(ascending=False)
+               .head(10)
+               .index.tolist()
+        )
+
+        by_year_substance = (
+            dff[dff["substance"].isin(top_substances)]
+               .drop_duplicates(subset=["record_id", "year", "substance"])
+               .groupby(["year", "substance"])["record_id"]
+               .nunique()
+               .reset_index(name="discharges")
+               .sort_values(["year", "substance"])
+        )
+        by_year_substance["display_count"] = by_year_substance["discharges"].apply(format_count_display)
+
+        substance_order = sort_opts(by_year_substance["substance"])
+        by_year_substance["substance"] = pd.Categorical(
+            by_year_substance["substance"],
+            categories=substance_order,
+            ordered=True,
+        )
+
+        fig_year_substance = px.line(
+            by_year_substance,
+            x="year",
+            y="discharges",
+            color="substance",
+            markers=True,
+            custom_data=["display_count"],
+            category_orders={"substance": substance_order},
+            labels={"year": "Year", "discharges": "Discharges", "substance": "Substance"},
+        )
+        fig_year_substance.update_traces(
+            hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
+        )
+        fig_year_substance.update_layout(
+            margin=dict(l=0, r=12, t=50, b=60),
+            xaxis=dict(dtick=1, automargin=True),
+            yaxis=dict(rangemode="tozero"),
+            legend=dict(
+                title_text="Substance",
+                orientation="h",
+                yanchor="top",
+                y=-0.2,
+                xanchor="left",
+                x=0,
+            ),
+        )
+    else:
+        fig_year_substance = px.line()
 
     # ---------- Line: Year × County ----------
     if {"year", "county", "record_id"}.issubset(dff.columns) and not dff.empty:
@@ -647,18 +708,18 @@ def update(substance, age, sex, county, year):
             ordered=True,
         )
         yearly_counts = yearly_counts.sort_values(["year", "county"])
+        yearly_counts["display_count"] = yearly_counts["discharges"].apply(format_count_display)
 
         fig_year_county = px.line(
             yearly_counts,
             x="year", y="discharges",
             color="county",
             markers=True,
+            custom_data=["display_count"],
             category_orders={"county": county_order},
             labels={"year": "Year", "discharges": "Discharges"},
         )
-        yearly_counts["display_count"] = yearly_counts["discharges"].apply(format_count_display)
         fig_year_county.update_traces(
-            customdata=yearly_counts[["display_count"]],
             hovertemplate="Year %{x}<br>County: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
         )
 
@@ -736,7 +797,7 @@ def update(substance, age, sex, county, year):
     tbl_age = simple_table(uniq, "age_group", age_groups)
     tbl_sex = simple_table(uniq, "sex")
 
-    return fig_sub, fig_year_county, fig_tree, tbl_age, tbl_sex
+    return fig_sub, fig_year_substance, fig_year_county, fig_tree, tbl_age, tbl_sex
 
 
 
@@ -904,6 +965,7 @@ def update_bar_chart(primary_substance, is_mobile):
             )
             
             fig.update_traces(
+                marker_color="#22767C",
                 textposition='outside',
                 textangle=0,
                 hovertemplate='<b>%{x}</b><br>' +
@@ -932,6 +994,7 @@ def update_bar_chart(primary_substance, is_mobile):
             )
             
             fig.update_traces(
+                marker_color="#22767C",
                 textposition='outside',
                 hovertemplate='<b>%{y}</b><br>' +
                              'Co-occurrence: %{x:.1f}%<br>' +

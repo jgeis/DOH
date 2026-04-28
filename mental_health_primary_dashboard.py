@@ -407,6 +407,7 @@ def update_dashboard(su, mh, age, sex, county, year):
        )
 
        mh_bar.update_traces(
+           marker_color="#22767C",
            textposition="outside",
            hovertemplate="Number of Discharges: %{text}<extra></extra>",
        )

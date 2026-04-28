@@ -391,6 +391,7 @@ def update_dashboard(county, year):
         )
 
         county_bar.update_traces(
+            marker_color="#22767C",
             textposition="outside",
         )
 

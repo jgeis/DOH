@@ -178,6 +178,7 @@ def update_cmo_dashboard(selected_destinations):
         height=max(360, len(dff) * 30),
     )
     fig.update_traces(
+        marker_color="#22767C",
         texttemplate="%{text:,}",
         textposition="outside",
         cliponaxis=False,

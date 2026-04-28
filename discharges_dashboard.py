@@ -168,8 +168,12 @@ def layout():
         [
             graph_block("bar-substances", "Discharges by Substance", bar_h),
             html.P("Bar chart showing discharges by substance.", className="visually-hidden"),
-            graph_block("county-year-lines", "Discharges by County and Year", line_h),
-            html.P("Line chart showing discharges by county and year.", className="visually-hidden"),
+            graph_block("substance-year-lines", "Yearly Discharges by Substance", line_h),
+            html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
+            graph_block("county-year-lines", "Yearly Discharges by County", line_h),
+            html.P("Line chart showing yearly discharges by county.", className="visually-hidden"),
+            graph_block("age-year-lines", "Yearly Discharges by Age Group", line_h),
+            html.P("Line chart showing yearly discharges by age group.", className="visually-hidden"),
             graph_block("sex-year-stacked", "Yearly Discharges by Gender", bar_h),
             html.P("Stacked bar chart showing yearly discharges by gender.", className="visually-hidden"),
         ],
@@ -247,7 +251,9 @@ def reset_discharges_filters(_n_clicks):
 @callback(
     Output("kpi-total-discharges", "children"),
     Output("bar-substances", "figure"),
+    Output("substance-year-lines", "figure"),
     Output("county-year-lines", "figure"),
+    Output("age-year-lines", "figure"),
     Output("sex-year-stacked", "figure"),
     Output("table-county", "children"),
     Output("table-age", "children"),
@@ -319,6 +325,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         )
 
         sub_bar.update_traces(
+            marker_color="#22767C",
             textposition="outside",
             cliponaxis=False,
             hovertemplate="Substance Type: %{customdata}<br>Number of discharges: %{text}<extra></extra>",
@@ -332,7 +339,53 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
     else:
         sub_bar = px.bar()
 
-    # ---------- Line chart: Discharges by County and Year ----------
+    # ---------- Line chart: Yearly Discharges by Substance ----------
+    if {"year", "substance"}.issubset(dff.columns):
+        by_ysub = (
+            dff.groupby(["year", "substance"])["record_id"].nunique()
+            .reset_index(name="count")
+            .sort_values(["year", "substance"])
+        )
+        by_ysub["display_count"] = by_ysub["count"].apply(format_count_display)
+
+        substances = sort_opts(by_ysub["substance"]) if "substance" in by_ysub.columns else []
+        if substances:
+            by_ysub["substance"] = pd.Categorical(
+                by_ysub["substance"],
+                categories=substances,
+                ordered=True,
+            )
+
+        substance_line_fig = px.line(
+            by_ysub,
+            x="year",
+            y="count",
+            color="substance",
+            markers=True,
+            custom_data=["display_count"],
+            labels={"year": "Year", "count": "Discharges", "substance": "Substance"},
+            category_orders={"substance": substances} if substances else None,
+        )
+        substance_line_fig.update_traces(
+            hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
+        )
+        substance_line_fig.update_layout(
+            margin=dict(l=0, r=20, t=20, b=80),
+            xaxis=dict(dtick=1, automargin=True),
+            yaxis=dict(rangemode="tozero"),
+            legend=dict(
+                title_text="Substance",
+                orientation="h",
+                yanchor="top",
+                y=-0.22,
+                xanchor="left",
+                x=0,
+            ),
+        )
+    else:
+        substance_line_fig = px.line()
+
+    # ---------- Line chart: Yearly Discharges by County ----------
     if {"county", "year"}.issubset(dff.columns):
         by_cy = (
             dff.groupby(["year", "county"])["record_id"].nunique()
@@ -340,6 +393,8 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         )
         if include_statewide_county_outputs:
             by_cy = append_statewide_aggregate_rows(by_cy, value_col="count", county_col="county")
+
+        by_cy["display_count"] = by_cy["count"].apply(format_count_display)
 
         counties = statewide_first(sort_opts(by_cy["county"])) if "county" in by_cy.columns else []
         if counties:
@@ -351,11 +406,10 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             y="count",
             color="county",
             markers=True,
+            custom_data=["display_count"],
             labels={"year": "Year", "count": "Discharges", "county": "County"},
         )
-        by_cy["display_count"] = by_cy["count"].apply(format_count_display)
         line_fig.update_traces(
-            customdata=by_cy[["display_count"]],
             hovertemplate="Year %{x}<br>%{customdata[0]} discharges<extra></extra>"
         )
         line_fig.update_layout(
@@ -365,7 +419,41 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
     else:
         line_fig = px.line()
 
-    # ---------- Stacked bar chart: Yearly Discharges by Gender ----------
+    # ---------- Line chart: Yearly Discharges by Age Group ----------
+    if {"year", "age_group"}.issubset(dff.columns):
+        by_ya = (
+            dff.groupby(["year", "age_group"])["record_id"].nunique()
+            .reset_index(name="count")
+        )
+        by_ya["display_count"] = by_ya["count"].apply(format_count_display)
+
+        age_groups = sort_opts(by_ya["age_group"]) if "age_group" in by_ya.columns else []
+        if age_groups:
+            by_ya["age_group"] = pd.Categorical(by_ya["age_group"], categories=age_groups, ordered=True)
+
+        age_line_fig = px.line(
+            by_ya,
+            x="year",
+            y="count",
+            color="age_group",
+            markers=True,
+            custom_data=["display_count"],
+            labels={"year": "Year", "count": "Discharges", "age_group": "Age Group"},
+            category_orders={"age_group": age_groups} if age_groups else None,
+        )
+        age_line_fig.update_traces(
+            hovertemplate="Year %{x}<br>Age Group: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
+        )
+        age_line_fig.update_layout(
+            margin=dict(l=0, r=20, t=10, b=0),
+            xaxis=dict(dtick=1),
+            yaxis=dict(rangemode="tozero"),
+            legend=dict(title_text="Age Group"),
+        )
+    else:
+        age_line_fig = px.line()
+
+    # ---------- Stacked bar chart: Yearly Discharges by Sex at Birth ----------
     if {"year", "sex"}.issubset(dff.columns):
         by_ys = (
             dff.groupby(["year", "sex"])["record_id"].nunique()
@@ -378,7 +466,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             y="count",
             color="sex",
             barmode="stack",
-            labels={"year": "Year", "count": "Discharges", "sex": "Gender"},
+            labels={"year": "Year", "count": "Discharges", "sex": "Sex at Birth"},
             text=by_ys["count"].map(format_count_display)
         )
         sex_bar.update_traces(
@@ -479,7 +567,9 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
     return (
         format_count_display(filter_total),
         sub_bar,
+        substance_line_fig,
         line_fig,
+        age_line_fig,
         sex_bar,
         tbl("county"),
         tbl("age_group", age_groups),

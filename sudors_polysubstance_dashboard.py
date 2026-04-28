@@ -414,6 +414,7 @@ def update_bar_chart(primary_substance, is_mobile):
             )
             
             fig.update_traces(
+                marker_color="#22767C",
                 textposition='outside',
                 textangle=0,
                 hovertemplate='<b>%{x}</b><br>' +
@@ -442,6 +443,7 @@ def update_bar_chart(primary_substance, is_mobile):
             )
             
             fig.update_traces(
+                marker_color="#22767C",
                 textposition='outside',
                 hovertemplate='<b>%{y}</b><br>' +
                              'Co-occurrence: %{x:.1f}%<br>' +

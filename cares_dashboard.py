@@ -70,18 +70,18 @@ kpi_card = make_kpi_card(
 view_toggle_card = dbc.Card(
     dbc.CardBody(
         [
-            html.H5("View By", className="mb-2"),
+            html.H5("View By", className="mb-2 text-center"),
             dbc.RadioItems(
                 id="cares-view-toggle",
                 options=[
-                    {"label": "Year View", "value": "year"},
-                    {"label": "Month View", "value": "month"},
+                    {"label": "Year", "value": "year"},
+                    {"label": "Month", "value": "month"},
                 ],
-                value="year",
-                class_name="btn-group w-100",
+                value="month",
+                class_name="btn-group d-flex justify-content-center",
                 input_class_name="btn-check",
-                label_class_name="btn btn-outline-primary",
-                label_checked_class_name="active",
+                label_class_name="btn btn-outline-success",
+                label_checked_class_name="btn-success text-white active",
             ),
         ]
     ),
@@ -253,6 +253,7 @@ def update_cares(view, sel_years, sel_months, sel_crisis):
         height=chart_height,
     )
     fig.update_traces(
+        marker_color="#22767C",
         texttemplate="%{text:,}",
         textposition="outside",
         cliponaxis=False,
