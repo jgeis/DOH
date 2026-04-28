@@ -54,7 +54,7 @@ def load_adad_dataframe():
 df_raw = load_adad_dataframe()
 
 # Filter option lists
-year_opts = sorted(df_raw["year"].dropna().unique().tolist())
+year_opts = sorted(df_raw["year"].dropna().unique().tolist(), reverse=True)
 month_nums_present = sorted(df_raw["month_num"].dropna().unique().tolist())
 month_opts = [MONTH_NAMES[m] for m in month_nums_present]
 modality_opts = sorted(df_raw["modality"].dropna().unique().tolist())
@@ -125,17 +125,17 @@ filters_card = make_filters_card(
             value=None,
         ),
         dropdown_filter(
-            "Service Modality",
-            "adad-modality-filter",
-            options=opts_list(modality_opts),
+            "County",
+            "adad-county-filter",
+            options=opts_list(county_opts),
             multi=True,
             placeholder="All",
             value=None,
         ),
         dropdown_filter(
-            "County",
-            "adad-county-filter",
-            options=opts_list(county_opts),
+            "Service Modality",
+            "adad-modality-filter",
+            options=opts_list(modality_opts),
             multi=True,
             placeholder="All",
             value=None,
@@ -315,32 +315,38 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
             dff.groupby("service_date", as_index=False)["client_id"]
             .nunique()
             .rename(columns={"client_id": "client_count"})
-            .sort_values("service_date")
+            .sort_values("service_date", ascending=False)
         )
         grouped["period"] = grouped["service_date"].dt.strftime("%Y-%m-%d")
+        grouped["display_count"] = grouped["client_count"].map(lambda v: f"{v:,}")
         y_title = "Date of Service"
 
     chart_height = max(320, len(grouped) * 30)
     y_order = grouped["period"].tolist()
+    text_col = "display_count" if view == "day" else "client_count"
 
     bar_fig = px.bar(
         grouped,
         x="client_count",
         y="period",
         orientation="h",
-        text="client_count",
+        text=text_col,
         labels={"client_count": "Number of Clients", "period": y_title},
     )
     bar_fig.update_layout(
         margin=dict(l=10, r=10, t=30, b=10),
         xaxis_title="Number of Clients",
         yaxis_title=y_title,
-        yaxis=dict(categoryorder="array", categoryarray=y_order),
+        yaxis=dict(
+            categoryorder="array",
+            categoryarray=y_order,
+            autorange="reversed" if view == "day" else True,
+        ),
         height=chart_height,
     )
     bar_fig.update_traces(
         marker_color="#22767C",
-        texttemplate="%{text:,}",
+        texttemplate="%{text}",
         textposition="outside",
         cliponaxis=False,
         hovertemplate="%{y}: %{x:,}<extra></extra>",

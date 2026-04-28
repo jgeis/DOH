@@ -22,6 +22,7 @@ FILTER_LABEL_ORDER = [
     "Mental Health Diagnosis",
     "Calendar Year",
     "Year",
+    "Month",
     "County of Death",
     "County",
     "City",

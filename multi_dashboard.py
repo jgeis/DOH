@@ -22,7 +22,6 @@ NAV_GROUPS = {
     "substance": [
         ("/discharges", "Any Discharge Related to Substance Use"),
         ("/polysubstance", "Related to Polysubstance Use"),
-        ("/adad", "ADAD Clients Served"),
         ("/substance-use", "Related to co-occuring SUD (primary) and MH disorder (secondary)"),
        ("/mental-health", "Related to co-occuring MH disorder (primary) and SUD (secondary)"),
         # ("/polysubstance-alt", "Polysubstance Alternates"),
@@ -38,7 +37,6 @@ NAV_GROUPS = {
 ROUTE_TO_GROUP = {
     "/discharges": "substance",
     "/polysubstance": "substance",
-    "/adad": "substance",
     "/substance-use": "substance",
     "/mental-health": "substance",
     # "/polysubstance-alt": "substance",
