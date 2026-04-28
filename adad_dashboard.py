@@ -195,10 +195,10 @@ def layout():
             ),
             html.Div(
                 [
-                    html.H5("Clients Served by Modality and Year", className="plot-card-header mb-2"),
+                    html.H5("Clients Served by Modality and Year (Top 10 Modalities)", className="plot-card-header mb-2"),
                     dcc.Graph(
                         id="adad-modality-line-chart",
-                        style={"width": "100%", "height": "420px"},
+                        style={"width": "100%", "height": "520px"},
                         config={"displayModeBar": True, "displaylogo": False},
                     ),
                 ],
@@ -210,7 +210,7 @@ def layout():
                     html.H5("Clients Served by County and Year", className="plot-card-header mb-2"),
                     dcc.Graph(
                         id="adad-county-line-chart",
-                        style={"width": "100%", "height": "420px"},
+                        style={"width": "100%", "height": "520px"},
                         config={"displayModeBar": True, "displaylogo": False},
                     ),
                 ],
@@ -379,8 +379,18 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
         hovertemplate="%{y}: %{x:,}<extra></extra>",
     )
 
+    top_modalities = (
+        dff.dropna(subset=["modality"])
+        .groupby("modality")["client_id"]
+        .nunique()
+        .sort_values(ascending=False)
+        .head(10)
+        .index.tolist()
+    )
+
     line_grouped = (
-        dff.groupby(["year", "modality"], as_index=False)["client_id"]
+        dff[dff["modality"].isin(top_modalities)]
+        .groupby(["year", "modality"], as_index=False)["client_id"]
         .nunique()
         .rename(columns={"client_id": "client_count"})
         .sort_values(["year", "modality"])
@@ -395,6 +405,7 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
         y="client_count",
         color="modality",
         markers=True,
+        category_orders={"modality": top_modalities},
         labels={
             "year": "Year",
             "client_count": "Number of Clients",
