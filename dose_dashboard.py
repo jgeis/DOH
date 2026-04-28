@@ -168,7 +168,7 @@ def layout():
                                             style={"overflowX": "auto"}
                                         ),
                                     ],
-                                    xs=6, md=12, className="pe-1 mb-3",
+                                    xs=12, md=12, className="pe-1 mb-3",
                                 ),
                                 dbc.Col(
                                     [
@@ -179,7 +179,7 @@ def layout():
                                             style={"overflowX": "auto"}
                                         ),
                                     ],
-                                    xs=6, md=12, className="ps-1 mb-3",
+                                    xs=12, md=12, className="ps-1 mb-3",
                                 ),
                             ],
                             className="g-2"
