@@ -205,6 +205,18 @@ def layout():
                 className="mb-4",
                 style={"overflow": "visible"},
             ),
+            html.Div(
+                [
+                    html.H5("Clients Served by County and Year", className="plot-card-header mb-2"),
+                    dcc.Graph(
+                        id="adad-county-line-chart",
+                        style={"width": "100%", "height": "420px"},
+                        config={"displayModeBar": True, "displaylogo": False},
+                    ),
+                ],
+                className="mb-4",
+                style={"overflow": "visible"},
+            ),
             html.P(
                 "Horizontal bar chart showing number of clients served by selected time period.",
                 className="visually-hidden",
@@ -274,6 +286,7 @@ def reset_adad_filters(_n_clicks):
 @callback(
     Output("adad-bar-chart", "figure"),
     Output("adad-modality-line-chart", "figure"),
+    Output("adad-county-line-chart", "figure"),
     Output("adad-kpi-total", "children"),
     Output("adad-modality-table", "children"),
     Output("adad-year-table", "children"),
@@ -408,6 +421,48 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
         hovertemplate="%{fullData.name}<br>Year: %{x}<br>Clients: %{y:,}<extra></extra>"
     )
 
+    county_line_grouped = (
+        dff.groupby(["year", "county"], as_index=False)["client_id"]
+        .nunique()
+        .rename(columns={"client_id": "client_count"})
+        .sort_values(["year", "county"])
+    )
+    county_line_grouped = county_line_grouped.dropna(subset=["year", "county"]).copy()
+    if not county_line_grouped.empty:
+        county_line_grouped["year"] = county_line_grouped["year"].astype(int)
+
+    county_line_fig = px.line(
+        county_line_grouped,
+        x="year",
+        y="client_count",
+        color="county",
+        markers=True,
+        labels={
+            "year": "Year",
+            "client_count": "Number of Clients",
+            "county": "County",
+        },
+    )
+    county_line_fig.update_layout(
+        margin=dict(l=10, r=10, t=30, b=120),
+        xaxis_title="Year",
+        yaxis_title="Number of Clients",
+        legend_title_text="County",
+        legend=dict(
+            orientation="h",
+            x=0,
+            y=-0.22,
+            xanchor="left",
+            yanchor="top",
+            bgcolor="rgba(255,255,255,0.9)",
+        ),
+        hovermode="closest",
+        height=520,
+    )
+    county_line_fig.update_traces(
+        hovertemplate="%{fullData.name}<br>Year: %{x}<br>Clients: %{y:,}<extra></extra>"
+    )
+
     # Tables
     modality_tbl = (
         dff.groupby("modality", as_index=False)["client_id"]
@@ -441,4 +496,4 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
     year_table = dbc.Table.from_dataframe(year_tbl, striped=True, bordered=True, hover=True, responsive=True, size="sm")
     county_table = dbc.Table.from_dataframe(county_tbl, striped=True, bordered=True, hover=True, responsive=True, size="sm")
 
-    return bar_fig, modality_line_fig, format_count_display(total_clients), modality_table, year_table, county_table
+    return bar_fig, modality_line_fig, county_line_fig, format_count_display(total_clients), modality_table, year_table, county_table
