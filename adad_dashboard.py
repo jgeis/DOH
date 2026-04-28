@@ -14,6 +14,7 @@ from dashboard_utils import (
     dropdown_filter,
     format_count_display,
     opts_list,
+    sort_opts,
 )
 
 register_template()
@@ -315,39 +316,41 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
             dff.groupby("service_date", as_index=False)["client_id"]
             .nunique()
             .rename(columns={"client_id": "client_count"})
-            .sort_values("service_date", ascending=False)
+            .sort_values("service_date", ascending=True)
         )
         grouped["period"] = grouped["service_date"].dt.strftime("%Y-%m-%d")
-        grouped["display_count"] = grouped["client_count"].map(lambda v: f"{v:,}")
         y_title = "Date of Service"
 
+    grouped["label"] = grouped["client_count"].apply(lambda v: f"{int(v):,}")
     chart_height = max(320, len(grouped) * 30)
     y_order = grouped["period"].tolist()
-    text_col = "display_count" if view == "day" else "client_count"
+    max_x = int(grouped["client_count"].max()) if not grouped.empty else 1
 
     bar_fig = px.bar(
         grouped,
         x="client_count",
         y="period",
         orientation="h",
-        text=text_col,
+        text="label",
         labels={"client_count": "Number of Clients", "period": y_title},
     )
     bar_fig.update_layout(
         margin=dict(l=10, r=10, t=30, b=10),
         xaxis_title="Number of Clients",
         yaxis_title=y_title,
+        xaxis=dict(range=[0, max_x * 1.3]),
         yaxis=dict(
+            type="category",
             categoryorder="array",
             categoryarray=y_order,
-            autorange="reversed" if view == "day" else True,
+            autorange=True,
         ),
         height=chart_height,
     )
     bar_fig.update_traces(
         marker_color="#22767C",
         texttemplate="%{text}",
-        textposition="outside",
+        textposition="auto",
         cliponaxis=False,
         hovertemplate="%{y}: %{x:,}<extra></extra>",
     )
@@ -358,6 +361,7 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
         .nunique()
         .rename(columns={"modality": "Modality", "client_id": "Number of Clients"})
         .sort_values("Number of Clients", ascending=False)
+        .reset_index(drop=True)
     )
 
     year_tbl = (
@@ -365,14 +369,17 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
         .nunique()
         .rename(columns={"year": "Year", "client_id": "Number of Clients"})
         .sort_values("Year", ascending=False)
+        .reset_index(drop=True)
     )
 
+    county_order = sort_opts(dff["county"])
     county_tbl = (
         dff.groupby("county", as_index=False)["client_id"]
         .nunique()
         .rename(columns={"county": "County", "client_id": "Number of Clients"})
-        .sort_values("Number of Clients", ascending=False)
     )
+    county_tbl["County"] = pd.Categorical(county_tbl["County"], categories=county_order, ordered=True)
+    county_tbl = county_tbl.sort_values("County").reset_index(drop=True)
 
     for tbl_df in (modality_tbl, year_tbl, county_tbl):
         tbl_df["Number of Clients"] = tbl_df["Number of Clients"].apply(format_count_display)
