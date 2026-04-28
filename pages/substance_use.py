@@ -1,0 +1,12 @@
+from dash import register_page
+
+import substance_use_primary_dashboard as sub_dash
+
+register_page(
+    __name__,
+    path="/substance-use",
+    name="Related to co-occuring SUD (primary) and MH disorder (secondary)",
+    title="Related to co-occuring SUD (primary) and MH disorder (secondary)",
+)
+
+layout = sub_dash.layout

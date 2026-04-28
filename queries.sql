@@ -117,6 +117,7 @@ SELECT
 FROM dx
 JOIN sudors_data_view_demographics$ m ON m.incident_id = dx.incident_id;
 
+
 -- name: load_wonder_overview
 SELECT
   CAST(year AS INTEGER) AS year,
@@ -124,6 +125,7 @@ SELECT
   CAST(deaths AS INTEGER) AS deaths
 FROM wonder_overview
 WHERE year IS NOT NULL;
+
 
 -- name: load_wonder_substance
 SELECT
@@ -134,6 +136,7 @@ SELECT
 FROM wonder_substance
 WHERE year IS NOT NULL;
 
+
 -- name: load_wonder_race
 SELECT
   CAST(year AS INTEGER) AS year,
@@ -142,6 +145,7 @@ SELECT
   CAST(deaths AS INTEGER) AS deaths
 FROM wonder_race
 WHERE year IS NOT NULL;
+
 
 -- name: load_wonder_age_group
 SELECT
@@ -153,6 +157,7 @@ SELECT
 FROM wonder_age_group
 WHERE year IS NOT NULL;
 
+
 -- name: load_wonder_gender
 SELECT
   CAST(year AS INTEGER) AS year,
@@ -161,3 +166,41 @@ SELECT
   CAST(deaths AS INTEGER) AS deaths
 FROM wonder_gender
 WHERE year IS NOT NULL;
+
+
+-- name: load_discharge_data_view_diagnosis
+WITH dx_union AS (
+ SELECT DISTINCT
+   record_id,
+   TRIM(diagnosis) AS diagnosis,
+   diagnosis_type,
+   is_primary
+ FROM discharge_data_view_diagnosis
+ WHERE diagnosis IS NOT NULL
+   AND TRIM(diagnosis) <> ''
+),
+co_ids AS (
+ SELECT record_id
+ FROM dx_union
+ GROUP BY record_id
+)
+SELECT
+ u.record_id,
+ u.diagnosis,
+ u.diagnosis_type,
+ u.is_primary,
+ m.county,
+ m.city,
+ m.zip,
+ m.hawaii_residency,
+ m.age_group,
+ m.sex,
+ m.race_ethnicity,
+ CAST(m.year AS INTEGER) AS year
+FROM dx_union u
+JOIN co_ids c
+ ON c.record_id = u.record_id
+JOIN discharge_data_view_demographics m
+ ON m.record_id = u.record_id
+WHERE LOWER(COALESCE(NULLIF(TRIM(m.age_group), ''), 'unknown')) <> 'unknown';
+
