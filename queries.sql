@@ -267,3 +267,20 @@ SELECT
   [date] AS service_date
 FROM adad_service_view
 WHERE [date] IS NOT NULL;
+
+-- name: load_adad_cooccurring
+select 
+  sv.client_id, 
+  sv.county, 
+  sv.modality, 
+  sv.date, 
+  iv.num_su, 
+  iv.num_mh, 
+  iv.su_primary, 
+  iv.mh_primary
+from adad_service_view as sv
+inner join adad_indicators_view iv 
+on 
+  sv.client_id = iv.client_id
+  and iv.num_mh >= 1
+  and iv.num_su >= 1;

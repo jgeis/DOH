@@ -14,6 +14,7 @@ TAB_PATHS = {
     "/cares-call-volume": "Hawaiʻi CARES Crisis Center Volume",
     "/crisis-mobile-outreach": "Referral Destinations for Crisis Mobile Outreach Clients",
     "/adad": "ADAD Clients Served",
+    "/adad-cooccurring": "ADAD Co-Occurring Clients Served",
 }
 
 DEFAULT_PATH = "/discharges"
@@ -25,6 +26,10 @@ NAV_GROUPS = {
         ("/substance-use", "Related to co-occuring SUD (primary) and MH disorder (secondary)"),
        ("/mental-health", "Related to co-occuring MH disorder (primary) and SUD (secondary)"),
         # ("/polysubstance-alt", "Polysubstance Alternates"),
+    ],
+    "adad": [
+        ("/adad", "ADAD Clients Served"),
+        ("/adad-cooccurring", "ADAD Co-Occurring Clients Served"),
     ],
     # Example future group:
     # "new-visuals": [
@@ -39,6 +44,8 @@ ROUTE_TO_GROUP = {
     "/polysubstance": "substance",
     "/substance-use": "substance",
     "/mental-health": "substance",
+    "/adad": "adad",
+    "/adad-cooccurring": "adad",
     # "/polysubstance-alt": "substance",
     # Example future route mapping:
     # "/new-overview": "new-visuals",

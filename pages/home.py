@@ -21,6 +21,7 @@ layout = dbc.Container(
                 dbc.ListGroupItem(html.A("CARES call volume", href="/cares-call-volume")),
                 dbc.ListGroupItem(html.A("Referral Destinations for Crisis Mobile Outreach Clients", href="/crisis-mobile-outreach")),
                 dbc.ListGroupItem(html.A("Alcohol and Drug Abuse Division (ADAD)", href="/adad")),
+                dbc.ListGroupItem(html.A("ADAD Co-Occurring Clients Served", href="/adad-cooccurring")),
             ]
         ),
     ],
