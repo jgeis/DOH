@@ -4,36 +4,27 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
+from dashboard_utils import (
+    load_sql_query,
+    sort_opts,
+    opts_list,
+    statewide_first,
+    apply_county_filter,
+    county_output_should_include_statewide,
+    append_statewide_aggregate_rows,
+    graph_block,
+    make_kpi_card,
+    make_left_sidebar,
+    make_filters_card,
+    dropdown_filter,
+    format_count_display,
+)
 
 register_template()
 
 # ----------------------------
 # Data helpers
 # ----------------------------
-def load_sql_query(name, path="queries.sql"):
-   """
-   This helper looks inside the queries.sql file and pulls out
-   the specific SQL block we want by name.
-
-   Why: this keeps all the SQL in one file instead of hard-coding
-   long queries directly in the Python file.
-   """
-   with open(path, "r", encoding="utf-8") as f:
-       sql = f.read()
-   # The SQL file is split into blocks marked with "-- name:"
-   blocks = sql.split("-- name:")
-   m = {}
-   for b in blocks:
-       # Skip any empty chunks
-       if not b.strip():
-           continue
-       # First line after "-- name:" is the name, the rest is the SQL text
-       lines = b.strip().split("\n")
-       m[lines[0].strip()] = "\n".join(lines[1:]).strip()
-   # If we typed the wrong query name, complain loudly
-   if name not in m:
-       raise KeyError(f"Named query '{name}' not found in {path}.")
-   return m[name]
 
 def load_diagnosis_dataframe_from_db():
    """
@@ -73,438 +64,386 @@ def load_diagnosis_dataframe_from_db():
 # The callbacks will reuse this instead of hitting the database every time.
 df_raw = load_diagnosis_dataframe_from_db()
 
-# Total number of unique records, used for the big KPI card.
-kpi_total = df_raw["record_id"].nunique() if "record_id" in df_raw.columns else 0
+# Normalize ZIP values (5-digit strings) so they look cleaner in the filters and tables.
+if "zip" in df_raw.columns:
+    df_raw["zip"] = (
+        df_raw["zip"]
+        .astype(str)
+        .str.extract(r"(\d{5})", expand=False)
+        .fillna("")
+    )
 
-# ---------- filter options ----------
-def sort_opts(series):
-   """
-   Turn a column into a sorted list of unique values.
-
-   We also push "Unknown" to the end of the list so the filter menus
-   look cleaner and more natural to read.
-   """
-   vals = pd.Series(series.unique()).astype(str)
-   return sorted([v for v in vals if v != "Unknown"]) + (["Unknown"] if "Unknown" in vals.values else [])
+# Count how many unique records we have to show on the KPI card.
+total_unique = df_raw["record_id"].nunique() if "record_id" in df_raw.columns else 0
 
 # Build the lists of choices for each filter only if the column exists.
-# Why: this makes the code more flexible if the data shape changes later.
 su_opts     = sort_opts(df_raw.loc[df_raw["diagnosis_type"] == "su", "diagnosis"])      if "diagnosis"      in df_raw.columns else []
 mh_opts     = sort_opts(df_raw.loc[df_raw["diagnosis_type"] == "mh", "diagnosis"])      if "diagnosis"      in df_raw.columns else []
+county_opts = sort_opts(df_raw["county"])                                               if "county"         in df_raw.columns else []
+city_opts               = sort_opts(df_raw["city"])                                             if "city"               in df_raw.columns else []
+year_opts   = sorted(df_raw["year"].dropna().unique().tolist())                         if "year"           in df_raw.columns else []
 age_opts    = sort_opts(df_raw["age_group"])                                            if "age_group"      in df_raw.columns else []
 sex_opts    = sort_opts(df_raw["sex"])                                                  if "sex"            in df_raw.columns else []
-county_opts = sort_opts(df_raw["county"])                                               if "county"         in df_raw.columns else []
-year_opts   = sorted(df_raw["year"].dropna().unique().tolist())                         if "year"           in df_raw.columns else []
-
-def opts_list(values):
-   """
-   Turn a simple list of values into the format Dash expects for
-   drop-down choices (label + value).
-   """
-   return [{"label": v, "value": v} for v in values]
-
+race_ethnicity_opts     = sort_opts(df_raw["race_ethnicity"])                                   if "race_ethnicity"     in df_raw.columns else []
+hawaii_residency_opts   = sort_opts(df_raw["hawaii_residency"])                                 if "hawaii_residency"   in df_raw.columns else []
 
 # ----------------------------
-# Reusable graph block (Tools toggle + title + graph)
-# ----------------------------
-def graph_block(base_id: str, title_text: str, height_px: str):
-   """
-   Make a standard "card" that holds:
-     - a hidden store that remembers if the tools are on/off
-     - a small Tools button that the user clicks
-     - a title for the plot
-     - the actual graph area
-
-   Why: we use this pattern for several plots, so this function keeps
-   the layout consistent and avoids repeating the same code over and over.
-   """
-   return html.Div(
-       [
-           # Header row with the plot title.
-           html.H5(title_text, id=f"{base_id}-title", className="plot-card-header mb-2"),
-
-
-           # The actual graph. Modebar (tools) is always on now.
-           dcc.Graph(
-               id=base_id,
-               style={"height": height_px, "width": "100%"},
-               config={"displayModeBar": True, "displaylogo": False},
-           ),
-       ],
-       className="mb-4",
-       # This makes sure the tools bar is never cut off visually.
-       style={"overflow": "visible"}
-   )
-
-# ----------------------------
-# UI
+# UI Components
 # ----------------------------
 
 # This link helps keyboard and screen reader users jump straight to the filters.
 skip_link = html.A(
    "Skip to filters",
-   href="#alt-filters",
+   href="#mh-primary-filters",
    className="visually-hidden-focusable",
    tabIndex=0
 )
 
+reset_filters_button = dbc.Button(
+    "Reset All Filters",
+    id="mh-primary-reset-filters-btn",
+    color="secondary",
+    outline=True,
+    className="w-100 mb-3",
+    n_clicks=0,
+)
+
 # Big green card that shows the total number of discharges.
-# Why: gives users a quick "at a glance" number when they open the page.
-kpi_card = dbc.Card(
-   dbc.CardBody([
-       html.H4("Discharges related to co-occuring MH Disorder (primary) and SUD (secondary)", className="card-title text-white"),
-       html.H2(id="mh-primary-kpi-total-deaths", className="text-white"),
-   ]),
-   className="bg-success text-center mb-4"
+kpi_card = make_kpi_card(
+    label="Number of Discharges Related to Co-Occuring SUD (primary) and MH Disorder (secondary)",
+    count_id="mh-primary-kpi-total",
 )
 
 # Card holding all the filter controls down the left side.
-# Each filter uses the options we built from the data above.
-filters_card = dbc.Card(
-   dbc.CardBody([
-       html.H5("Filter Data", tabIndex=1),
-
-       html.Label("Substance Type", htmlFor="mh-primary-su-filter", tabIndex=2, className="form-label"),
-       dcc.Dropdown(
-           id="mh-primary-su-filter", options=opts_list(su_opts), multi=True,
-           placeholder="Substance Type", className="mb-2",
-           persistence=True, persistence_type="session"
-       ),
-       html.Label("Mental Health Diagnosis", htmlFor="mh-primary-mh-filter", tabIndex=2, className="form-label"),
-       dcc.Dropdown(
-           id="mh-primary-mh-filter", options=opts_list(mh_opts), multi=True,
-           placeholder="Mental Health Diagnosis", className="mb-2",
-           persistence=True, persistence_type="session",
-           optionHeight=125
-       ),
-       html.Label("Age Group", htmlFor="mh-primary-age-group-filter", tabIndex=6, className="form-label"),
-       dcc.Dropdown(
-           id="mh-primary-age-group-filter", options=opts_list(age_opts), multi=True,
-           placeholder="Age Group", className="mb-0",
-           persistence=True, persistence_type="session"
-       ),
-       html.Label("Sex", htmlFor="mh-primary-sex-filter", tabIndex=5, className="form-label"),
-       dcc.Dropdown(
-           id="mh-primary-sex-filter", options=opts_list(sex_opts), multi=True,
-           placeholder="Sex", className="mb-2",
-           persistence=True, persistence_type="session"
-       ),
-       html.Label("County", htmlFor="mh-primary-county-filter", tabIndex=5, className="form-label"),
-       dcc.Dropdown(
-           id="mh-primary-county-filter", options=opts_list(county_opts), multi=True,
-           placeholder="County", className="mb-2",
-           persistence=True, persistence_type="session"
-       ),
-       html.Label("Calendar Year", htmlFor="mh-primary-year-filter", tabIndex=3, className="form-label"),
-       dcc.Dropdown(
-           id="mh-primary-year-filter", options=opts_list(year_opts), multi=True,
-           placeholder="Calendar Year", className="mb-2",
-           persistence=True, persistence_type="session"
-       ),
-   ]),
-   id="alt-filters",
-   className="mb-4"
+# Filter display order is managed centrally in dashboard_utils.make_filters_card.
+filters_card = make_filters_card(
+    card_id="mh-primary-filters",
+    title="Filter Data",
+    filters=[
+        dropdown_filter("Substance", "mh-primary-su-filter", options=opts_list(su_opts), multi=True, placeholder="All"),
+        dropdown_filter("Mental Health Diagnosis", "mh-primary-mh-filter", options=opts_list(mh_opts), multi=True, placeholder="All", optionHeight=125),
+        dropdown_filter("County", "mh-primary-county-filter", options=opts_list(county_opts), multi=True, placeholder="All"),
+        dropdown_filter("City", "mh-primary-city-filter", options=opts_list(city_opts), multi=True, placeholder="All"),
+        dropdown_filter("Year", "mh-primary-year-filter", options=opts_list(year_opts), multi=True, placeholder="All"),
+        dropdown_filter("Age Group", "mh-primary-age-filter", options=opts_list(age_opts), multi=True, placeholder="All"),
+        dropdown_filter("Sex", "mh-primary-sex-filter", options=opts_list(sex_opts), multi=True, placeholder="All"),
+        dropdown_filter("Race/Ethnicity", "mh-primary-race-ethnicity-filter", options=opts_list(race_ethnicity_opts), multi=True, placeholder="All"),
+        dropdown_filter("Hawaii Resident", "mh-primary-hawaii-residency-filter", options=opts_list(hawaii_residency_opts), multi=True, placeholder="All"),
+    ],
 )
 
-def layout_for(
-   is_mobile: bool = False,
-   show_discharges: bool = True,
-):
-   """
-   Build the full page layout, with slightly different heights if we
-   are on a phone vs a larger screen.
+discharges_sidebar_text = [
+    "Emergency department discharges are shown for selected substance-use-related visits.",
+    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*.",
+    "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
+    "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
+]
 
-   Why: on small screens we want taller plots so they are easier to read,
-   but on desktops shorter plots look better side-by-side.
-   """
-   # Adjust plot heights depending on screen size.
-   bar_h  = "55vh" if is_mobile else "360px"
-   line_h = "60vh" if is_mobile else "400px"
+def layout():
+    """
+    Build the discharges dashboard layout.
+    """
+    # Adjust plot heights for desktop
+    line_h = "400px"
+    bar_h  = "360px"
+   
+    # Left column: KPI, reset button, and filters.
+    left_col = make_left_sidebar(
+        kpi_card,
+        reset_filters_button,
+        filters_card,
+        helper_text=discharges_sidebar_text,
+        xs=12,
+        md=3,
+    )
 
-   # Left column: KPI and filters.
-   left_col = dbc.Col([kpi_card, filters_card], xs=12, md=3)
+    # Center column: the main line and bar charts.
+    center_col = dbc.Col(
+        [
+            graph_block("mh-primary-bar", "Discharges by Mental Health Diagnosis", bar_h),
+            html.P("Bar chart showing discharges by mental health diagnosis.", className="visually-hidden"),
+            graph_block("mh-primary-line", "Yearly Discharges by Mental Health Diagnosis", line_h),
+            html.P("Line chart showing yearly discharges by mental health diagnosis.", className="visually-hidden"),
+        ],
+        xs=12, md=6
+    )
 
-   # Center column: the main line and bar charts.
-   center_col = dbc.Col(
-       [
-           dbc.Row([
-               graph_block("mh-primary-bar-diagnosis", "Mental Health Diagnosis", bar_h),
-               html.P("Bar chart of mental health diagnosis.", className="sr-only"),
-           ]),
-           dbc.Row([
-               graph_block("mh-primary-line-discharges", "Discharges by Mental Health diagnosis and Year", line_h),
-               html.P("Line chart of mental health diagnosis.", className="sr-only"),
-           ]),
-       ],
-       xs=12, md=6
-   )
+    # Right column: summary tables
+    right_col = dbc.Col([
+        dbc.Row([
+            dbc.Col([
+                html.Div(
+                    id="mh-primary-table-county",
+                    className="mobile-side-table",
+                    style={"overflowX": "auto"}
+                )], xs=12, md=12, className="pe-1 mb-3"),
+            dbc.Col([
+                html.Div(
+                    id="mh-primary-table-age",
+                    className="mobile-side-table",
+                    style={"overflowX": "auto"}
+                )], xs=12, md=12, className="ps-1 mb-3"),
+            dbc.Col([
+                html.Div(
+                    id="mh-primary-table-sex",
+                    className="mobile-side-table",
+                    style={"overflowX": "auto"}
+                )], xs=12, md=12, className="ps-1 mb-3"),
+        ], className="g-2"),
+    ], xs=12, md=3)
 
-   # Right column:
-   # - Two small summary tables (by county and by age group)
-   # - A pie chart for gender
-   #
-   # On phones, the two small tables sit side-by-side.
-   # On bigger screens, they stack vertically.
-   right_col = dbc.Col(
-       [
-           dbc.Row(
-               [
-                   dbc.Col(
-                       [
-                           html.Div(
-                               id="mh-primary-age-group-table",
-                               className="mobile-side-table",
-                               style={"overflowX": "auto"}
-                           ),
-                       ],
-                       xs=12, md=12, className="pe-1 mb-3",
-                   ),
-                   dbc.Col(
-                       [
-                           html.Div(
-                               id="mh-primary-gender-table",
-                               className="mobile-side-table",
-                               style={"overflowX": "auto"}
-                           ),
-                       ],
-                       xs=12, md=12, className="ps-1 mb-3",
-                   ),
-                   dbc.Col(
-                       [
-                           html.Div(
-                               id="mh-primary-county-table",
-                               className="mobile-side-table",
-                               style={"overflowX": "auto"}
-                           ),
-                       ],
-                       xs=12, md=12, className="ps-1 mb-3",
-                   ),
-               ],
-               className="g-2"
-           ),
-       ],
-       xs=12, md=3
-   )
-   # Wrap everything in a fluid container so it stretches with the screen.
-   return dbc.Container([
-       skip_link,
-       html.Div(
-           dbc.Row([left_col, center_col, right_col], className="g-3"),
-           id="discharges-section",
-           style={} if show_discharges else {"display": "none"}
-       ),
-       html.Hr(
-           className="my-5",
-           style={} if (show_discharges) else {"display": "none"}
-       ),
-   ], fluid=True, className="p-2")
+    return dbc.Container([
+        skip_link,
+        html.Div(
+            dbc.Row([left_col, center_col, right_col], className="g-3"),
+            id="mh-primary-section",
+        ),
+    ], fluid=True, className="p-2")
+
 
 # This is the default layout used when the app imports this file.
-# We pass False here since desktop is the standard case.
-layout = layout_for(is_mobile=False)
+layout = layout()
 
 # ----------------------------
-# Figures + tables (no plotly titles)
+# Callbacks for discharges
 # ----------------------------
 
 @callback(
-   Output("mh-primary-kpi-total-deaths", "children"),
-   Output("mh-primary-bar-diagnosis", "figure"),
-   Output("mh-primary-line-discharges", "figure"),
-   Output("mh-primary-age-group-table", "children"),
-   Output("mh-primary-gender-table", "children"),
-   Output("mh-primary-county-table", "children"),
-   Input("mh-primary-su-filter", "value"),
-   Input("mh-primary-mh-filter", "value"),
-   Input("mh-primary-age-group-filter", "value"),
-   Input("mh-primary-sex-filter", "value"),
-   Input("mh-primary-county-filter", "value"),
-   Input("mh-primary-year-filter", "value"),
+    Output("mh-primary-su-filter", "value"),
+    Output("mh-primary-mh-filter", "value"),
+    Output("mh-primary-county-filter", "value"),
+    Output("mh-primary-city-filter", "value"),
+    Output("mh-primary-year-filter", "value"),
+    Output("mh-primary-age-filter", "value"),
+    Output("mh-primary-sex-filter", "value"),
+    Output("mh-primary-race-ethnicity-filter", "value"),
+    Output("mh-primary-hawaii-residency-filter", "value"),
+    Input("mh-primary-reset-filters-btn", "n_clicks"),
+    prevent_initial_call=True,
 )
 
-def update_dashboard(su, mh, age, sex, county, year):
-   """
-   This function runs every time the user changes a filter.
+def reset_discharges_filters(_n_clicks):
+    return None, None, None, None, None, None, None, None, None
 
-   It:
-     - Applies all the filters to the data,
-     - Builds two graphs (line + stacked bar),
-     - Builds two tables,
-     - Builds the pie chart.
-   """
+@callback(
+    # kpi card
+    Output("mh-primary-kpi-total", "children"),
+    # graphs
+    Output("mh-primary-bar", "figure"),
+    Output("mh-primary-line", "figure"),
+    # tables 
+    Output("mh-primary-table-county", "children"),
+    Output("mh-primary-table-age", "children"),
+    Output("mh-primary-table-sex", "children"),
+    # filters
+    Input("mh-primary-su-filter", "value"),
+    Input("mh-primary-mh-filter", "value"),
+    Input("mh-primary-county-filter", "value"),
+    Input("mh-primary-city-filter", "value"),
+    Input("mh-primary-year-filter", "value"),
+    Input("mh-primary-age-filter", "value"),
+    Input("mh-primary-sex-filter", "value"),
+    Input("mh-primary-race-ethnicity-filter", "value"),
+    Input("mh-primary-hawaii-residency-filter", "value"),
+)
 
-   def apply_filter(frame, col, val):
-       """
-       Small helper so we don't repeat the same filter logic.
+def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawaii_residency):
+    """
+    This function runs every time the user changes a filter.
+    It updates all the discharge visualizations and tables.
+    """
 
-       If the user did not pick anything, we leave the data alone.
-       If they picked one or more values, we only keep matching rows.
-       """
-       if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
-           return frame
-       if isinstance(val, (list, tuple)):
-           return frame[frame[col].isin(val)]
-       return frame[frame[col] == val]
+    def apply_filter(frame, col, val):
+        """Small helper for filter logic."""
+        if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
+            return frame
+        if isinstance(val, (list, tuple)):
+            return frame[frame[col].isin(val)]
+        return frame[frame[col] == val]
 
-   # Start from the full dataset each time.
-   dff = df_raw.copy()
+    # Start from the full dataset each time.
+    dff = df_raw.copy()
 
-   # Only apply filters for columns that actually exist.
-   if su:
-       su_ids_filtered = set(dff.loc[(dff["diagnosis_type"] == "su") & (dff["diagnosis"].isin(su)), "record_id"])
-       dff = dff[dff["record_id"].isin(su_ids_filtered)]
-   if mh:
-       mh_ids_filtered = set(dff.loc[(dff["diagnosis_type"] == "mh") & (dff["diagnosis"].isin(mh)), "record_id"])
-       dff = dff[dff["record_id"].isin(mh_ids_filtered)]
+    # Only apply filters for columns that actually exist.
+    if su:
+        su_ids_filtered = set(dff.loc[(dff["diagnosis_type"] == "su") & (dff["diagnosis"].isin(su)), "record_id"])
+        dff = dff[dff["record_id"].isin(su_ids_filtered)]
+    if mh:
+        mh_ids_filtered = set(dff.loc[(dff["diagnosis_type"] == "mh") & (dff["diagnosis"].isin(mh)), "record_id"])
+        dff = dff[dff["record_id"].isin(mh_ids_filtered)]
+    if "county" in dff.columns:                 dff = apply_county_filter(dff, county)
+    if "city" in dff.columns:                   dff = apply_filter(dff, "city", city)
+    if "year" in dff.columns:                   dff = apply_filter(dff, "year", year)
+    if "age_group" in dff.columns:              dff = apply_filter(dff, "age_group", age)
+    if "sex" in dff.columns:                    dff = apply_filter(dff, "sex", sex)
+    if "race_ethnicity" in dff.columns:         dff = apply_filter(dff, "race_ethnicity", race_ethnicity)
+    if "hawaii_residency" in dff.columns:       dff = apply_filter(dff, "hawaii_residency", hawaii_residency)
 
-   if "age_group" in dff.columns:      dff = apply_filter(dff, "age_group", age)
-   if "sex" in dff.columns:            dff = apply_filter(dff, "sex", sex)
-   if "county" in dff.columns:         dff = apply_filter(dff, "county", county)
-   if "year" in dff.columns:           dff = apply_filter(dff, "year", year)
+    all_su_ids = set(dff.loc[dff["diagnosis_type"] == "su", "record_id"])
+    primary_mh_ids = set(dff.loc[(dff["diagnosis_type"] == "mh") & (dff["is_primary"] == 1), "record_id"])
 
-   all_su_ids = set(dff.loc[dff["diagnosis_type"] == "su", "record_id"])
-   primary_mh_ids = set(dff.loc[(dff["diagnosis_type"] == "mh") & (dff["is_primary"] == 1), "record_id"])
+    cooccuring_ids = all_su_ids.intersection(primary_mh_ids)
 
-   cooccuring_ids = all_su_ids.intersection(primary_mh_ids)
+    dff = dff[dff["record_id"].isin(cooccuring_ids)]
 
-   dff = dff[dff["record_id"].isin(cooccuring_ids)]
+    include_statewide_county_outputs = county_output_should_include_statewide(county)
 
-   # Count unique discharges (each record_id represents one discharge).
-   # Used to update the total on the KPI card when user selects the filter
-   filter_total = dff["record_id"].nunique()
-
-   # ---------- Bar chart: Discharges by Mental Health diagnosis ----------
-   if {"record_id", "diagnosis", "diagnosis_type"}.issubset(dff.columns):
-      
-       mh_df = dff[dff["diagnosis_type"] == "mh"]
+    filter_total = dff["record_id"].nunique()
 
 
-       by_mh = (
-           mh_df.groupby("diagnosis")["record_id"]
-           .nunique()
-           .reset_index().rename(columns={"record_id": "count"})
-           .sort_values("count", ascending=True)
-       )
+    # ---------- Bar chart: Discharges by Mental Health Diagnosis ----------
+    if {"record_id", "diagnosis", "diagnosis_type"}.issubset(dff.columns):
+        
+        mh_df = dff[dff["diagnosis_type"] == "mh"]
 
-       def ellipsize(text, max_len=25):
-           if text is None:
-               return text
-           return text if len(text) <= max_len else text[:max_len] + "..."
+        by_mh = (
+            mh_df.groupby("diagnosis")["record_id"]
+            .nunique()
+            .reset_index().rename(columns={"record_id": "count"})
+            .sort_values("count", ascending=True)
+        )
 
-       # Cuts off label length after 25 characters
-       by_mh["diagnosis"] = by_mh["diagnosis"].apply(ellipsize)
+        def ellipsize(text, max_len=25):
+            if text is None:
+                return text
+            return text if len(text) <= max_len else text[:max_len] + "..."
 
-       mh_bar = px.bar(
-           by_mh,
-           x="count",
-           y="diagnosis",
-           barmode="stack",
-           text="count",
-           labels={
-               "count": "Number of Discharges",
-               "diagnosis": "Mental Health Diagnosis"
-           },
-       )
+        # Cuts off label length after 25 characters
+        by_mh["diagnosis_label"] = by_mh["diagnosis"].apply(ellipsize)
+        by_mh["display_count"] = by_mh["count"].apply(format_count_display)
 
-       mh_bar.update_traces(
-           marker_color="#22767C",
-           textposition="outside",
-           hovertemplate="Number of Discharges: %{text}<extra></extra>",
-       )
+        mh_bar = px.bar(
+            by_mh,
+            x="count",
+            y="diagnosis_label",
+            barmode="stack",
+            text="display_count",
+            labels={"count": "Number of Discharges", "diagnosis_label": "Mental Health Diagnosis"},
+        )
 
-       mh_bar.update_layout(
-           margin=dict(l=0, r=0, t=10, b=80),
-           xaxis=dict(automargin=True),
-       )
+        mh_bar.update_traces(
+            marker_color="#22767C",
+            textposition="outside",
+            customdata=by_mh["diagnosis"],
+            hovertemplate="Mental Health Diagnosis: %{customdata}<br>Number of discharges: %{text}<extra></extra>",
+        )
 
-   else:
-       mh_bar = px.bar()
+        mh_bar.update_layout(
+            margin=dict(l=0, r=0, t=10, b=80),
+            xaxis=dict(automargin=True),
+        )
+    else:
+        mh_bar = px.bar()
 
-   # ---------- Line chart: Discharges by County and Year ----------
-   if {"record_id", "diagnosis", "diagnosis_type", "year"}.issubset(dff.columns):
 
-       mh_df = dff[dff["diagnosis_type"] == "mh"]
+    # ---------- Line chart: Yearly Discharges by Mental Health Diagnosis ----------
+    if {"record_id", "diagnosis", "diagnosis_type", "year"}.issubset(dff.columns):
 
-       # Count unique discharges per year + county
-       by_mh = (
-           mh_df.groupby(["year", "diagnosis"])["record_id"].nunique()
-           # .reset_index(name="count")
-           .reset_index().rename(columns={"record_id": "count"})
-       )
+        mh_df = dff[dff["diagnosis_type"] == "mh"]
 
-       # Order substances in a consistent way for the legend
-       substance = sort_opts(dff["diagnosis"]) if "diagnosis" in dff.columns else []
-       if substance:
-           by_mh["diagnosis"] = pd.Categorical(by_mh["diagnosis"], categories=substance, ordered=True)
+        by_mh = (
+            mh_df.groupby(["year", "diagnosis"])["record_id"].nunique()
+            .reset_index().rename(columns={"record_id": "count"})
+        )
 
-       # Build the line graph
-       mh_line = px.line(
-           by_mh,
-           x="year",
-           y="count",
-           color="diagnosis",
-           markers=True,
-           labels={"year": "Year", "count": "Discharges", "diagnosis": "Mental Health Diagnosis"},
-       )
-       # Customize hover text and margins for a cleaner look
-       mh_line.update_traces(
-           hovertemplate="Year %{x}<br>%{y:,} discharges<extra></extra>"
-       )
-       mh_line.update_layout(
-           margin=dict(l=0, r=20, t=10, b=0),
-           xaxis=dict(dtick=1),
-           legend=dict(
-               y=-1.5
-           )
-       )
-   else:
-       # If we don't have the needed columns, return an empty figure
-       mh_line = px.line()
+        by_mh["display_count"] = by_mh["count"].apply(format_count_display)
 
-   # ---------- Helper for the summary tables ----------
-   def tbl(column, categories=None):
-       """
-       Build a small table that shows the count of unique discharges
-       for each value in the chosen column.
+        # Order substances in a consistent way for the legend
+        substances = sort_opts(dff["diagnosis"]) if "diagnosis" in dff.columns else []
+        if substances:
+            by_mh["diagnosis"] = pd.Categorical(by_mh["diagnosis"], categories=substances, ordered=True)
 
-       If we pass in a list of categories, we use that order in the table.
-       """
-       if column not in dff.columns:
-           return dbc.Alert(
-               f"Column '{column}' not found.",
-               color="warning",
-               className="mb-0"
-           )
+        mh_line = px.line(
+            by_mh,
+            x="year",
+            y="count",
+            color="diagnosis",
+            markers=True,
+            custom_data=["display_count"],
+            labels={"year": "Year", "count": "Discharges", "diagnosis": "Mental Health Diagnosis"},
+            category_orders={"diagnosis": substances} if substances else None,
+        )
 
-       # Count unique discharges per category
-       g = dff.groupby(column)["record_id"].nunique().reset_index(name="count")
+        mh_line.update_traces(
+            hovertemplate="Year: %{x}<br>Mental Health Diagnosis: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
+        )
 
-       # Use the given category order if provided
-       if categories:
-           g[column] = pd.Categorical(g[column], categories=categories, ordered=True)
-           g = g.sort_values(column)
+        max_y = int(by_mh["count"].max()) if not by_mh.empty else 0
 
-       # Make the counts look nicer with commas
-       g["count"] = g["count"].map(lambda x: "<=10" if x <= 10 else f"{int(x):,}")
+        mh_line.update_layout(
+            margin=dict(l=0, r=20, t=20, b=80),
+            xaxis=dict(dtick=1, automargin=True),
+            yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
+            legend=dict(
+                title_text="Mental Health Diagnosis",
+                orientation="h",
+                yanchor="top",
+                y=-0.22,
+                xanchor="left",
+                x=0,
+            ),
+            legend_title_text=None
+        )
+    else:
+        mh_line = px.line()
 
-       # Use friendly display labels for table headers
-       header_labels = {
-           "age_group": "Age Group",
-           "sex": "Sex",
-           "county": "County",
-       }
-       display_column = header_labels.get(column, column)
-       g = g.rename(columns={column: display_column, "count": "Discharges"})
 
-       # Build a styled table for the dashboard
-       return dbc.Table.from_dataframe(g, striped=True, bordered=True, hover=True)
+    # ---------- Helper for the summary tables ----------
+    def tbl(column, categories=None):
+        """Build a small table for the summary."""
+        if column not in dff.columns:
+            return dbc.Alert(
+                f"Column '{column}' not found.",
+                color="warning",
+                className="mb-0"
+            )
 
-   # Return all the updated visuals and tables to Dash
-   return (
-       f"{filter_total:,}",
-       mh_bar,
-       mh_line,
-       tbl("age_group"),
-       tbl("sex"),
-       tbl("county"),
-   )
+        g = dff.groupby(column)["record_id"].nunique().reset_index(name="count")
+
+        if column == "county" and include_statewide_county_outputs:
+            g = append_statewide_aggregate_rows(g, value_col="count", county_col="county")
+
+        if column == "county":
+            categories = statewide_first(sort_opts(g[column]))
+
+        if column == "year":
+            g = g.sort_values(column, ascending=False)
+        elif categories:
+            g[column] = pd.Categorical(g[column], categories=categories, ordered=True)
+            g = g.sort_values(column)
+        else:
+            g = g.sort_values("count", ascending=False)
+
+        g["count"] = g["count"].map(format_count_display)
+
+        header_labels = {
+            "year": "Calendar Year",
+            "age_group": "Age Group",
+            "county": "County",
+            "sex": "Sex at Birth",
+            "race_ethnicity": "Race/Ethnicity",
+            "hawaii_residency": "Hawaii Resident",
+        }
+        display_column = header_labels.get(column, column)
+        g = g.rename(columns={column: display_column, "count": "Discharges"})
+
+        return dbc.Table.from_dataframe(g, striped=True, bordered=True, hover=True)
+
+    # Extract age groups dynamically from the filtered data
+    if "age_group" in dff.columns and not dff.empty:
+        _ag_sorted = sorted([v for v in dff["age_group"].unique() if v not in ("<18", "Unknown")])
+        _ag_prefix = ["<18"] if "<18" in dff["age_group"].values else []
+        _ag_unknown = ["Unknown"] if "Unknown" in dff["age_group"].values else []
+        age_groups = _ag_prefix + _ag_sorted + _ag_unknown
+    else:
+        age_groups = None
+
+    # Return all the updated visuals and tables to Dash
+    return (
+        format_count_display(filter_total),
+        mh_bar,
+        mh_line,
+        tbl("county"),
+        tbl("age_group", age_groups),
+        tbl("sex"),
+    )
