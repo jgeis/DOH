@@ -284,3 +284,25 @@ on
   sv.client_id = iv.client_id
   and iv.num_mh >= 1
   and iv.num_su >= 1;
+
+-- name: load_amhd
+select
+  PATID,
+  date_of_service,
+  service_category,
+  co_category,
+  Diagnosis_code,
+  SMI,
+  Sex,
+  Race,
+  Age,
+  County
+from AMHD_mh_services_view;
+
+
+
+-- +-------+-----------------+---------------------------------+---------------+----------------+---------+------+-------+-------+----------+
+-- | PATID | date_of_service | service_category                | co_category   | Diagnosis_code | SMI     | Sex  | Race  | Age   | County   |
+-- +-------+-----------------+---------------------------------+---------------+----------------+---------+------+-------+-------+----------+
+-- |    10 | 2018-01-01      | Community Mental Health Centers | Mental Health | F01.50         | Non SMI | Male | Asian | 66-85 | Honolulu |
+-- +-------+-----------------+---------------------------------+---------------+----------------+---------+------+-------+-------+----------+

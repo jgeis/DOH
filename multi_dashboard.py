@@ -15,6 +15,7 @@ TAB_PATHS = {
     "/crisis-mobile-outreach": "Referral Destinations for Crisis Mobile Outreach Clients",
     "/adad": "ADAD Clients Served",
     "/adad-cooccurring": "ADAD Co-Occurring Clients Served",
+    "/amhd": "AMHD Clients Served",
 }
 
 DEFAULT_PATH = "/discharges"
