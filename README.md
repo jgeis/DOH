@@ -8,7 +8,7 @@ A Python-based web application for visualizing Department of Health (DOH) hospit
   * **Framework**: [Plotly Dash](https://dash.plotly.com/)
   * **Data Manipulation**: Pandas
   * **Database**: SQLite (local development) / MSSQL (production)
-  * **Deployment**: Heroku (implied by `Procfile`)
+  * **Deployment**: Jetstream2 (nginx + gunicorn)
 
 ## 🚀 Getting Started
 
@@ -77,10 +77,7 @@ Ensure you have Python installed on your system.
 
 If the `DOH_AMHD_NO_PII.db` file is missing or needs to be refreshed with the latest CSV data:
 
-If on Jetstream2, get the data files:
-```
-scp /Users/jgeis/Work/DOH/plotly/discharge_data_view_diag_mh.csv insert-username-here@insert-ip-address-here:/home/exouser/doh_plotly
-```
+If on Jetstream2, copy all required data files first — see the scp commands in the [Production Server](#production-server) section below.
 
 ```bash
 source venv/bin/activate
@@ -125,7 +122,7 @@ To run the main multi-dashboard application locally:
 
 ```bash
 source venv/bin/activate
-nohup python run_dashboard.py > logfile.log 2>&1 &
+nohup python -u multi_dashboard.py > logfile.log 2>&1 &
 ```
 
 send to background
@@ -177,11 +174,33 @@ scp discharge_data_view_diag_mh.csv exouser@149.165.153.166:/home/exouser/doh_pl
 
 scp discharge_data_view_diag_su.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
 
+scp discharge_data_view_diagnosis.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
+
 scp dose_data.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
 
 scp sudors_data_view_demographics\$.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
 
 scp sudors_data_view_diag_su\$.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
+
+scp wonder_overview.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
+
+scp wonder_substance.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
+
+scp wonder_race.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
+
+scp wonder_age_group.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
+
+scp wonder_gender.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
+
+scp cares_calls_volume_view.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
+
+scp AMHD_Crisis_Mobile_Outreach.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
+
+scp adad_service_view.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
+
+scp adad_indicators_view.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
+
+scp amhd_mh_services_view.csv exouser@149.165.153.166:/home/exouser/doh_plotly/data/
 ```
 
 
@@ -232,43 +251,21 @@ gunicorn --certfile=/etc/letsencrypt/live/doh-plotly.asc190026.projects.jetstrea
 
 ## 📊 Data Sources
 
-The application visualizes data related to:
+The application visualizes data from the following tables/CSV files:
 
-  * **discharge_data_view_demographics**: Patient demographic breakdowns.
-  * **discharge_data_view_diag_su**: Specific focus on substance use (`diag_su`) and polysubstance occurrences.
-
-## ☁️ Deployment
-
-This project includes a `Procfile`, making it ready for deployment on platforms like **Heroku**.
-
-### Deploy to Heroku
-
-1.  **Create a new Heroku app**
-    ```bash
-    heroku create your-app-name
-    ```
-
-2.  **Set environment variables for MSSQL**
-    ```bash
-    heroku config:set USE_MSSQL=true
-    heroku config:set DB_SERVER=your-server.database.windows.net
-    heroku config:set DB_NAME=your_database_name
-    heroku config:set DB_USER=your_username
-    heroku config:set DB_PASSWORD=your_password
-    heroku config:set DB_DRIVER="{ODBC Driver 17 for SQL Server}"
-    ```
-
-3.  **Deploy the application**
-    ```bash
-    git push heroku main
-    ```
-
-4.  **Verify the deployment**
-    ```bash
-    heroku logs --tail
-    ```
-
-The application will automatically use MSSQL in production when `USE_MSSQL=true` is set.
+  * **discharge_data_view_demographics**: Patient demographic breakdowns (county, age group, sex, race, year).
+  * **discharge_data_view_diag_su**: Substance use diagnoses per patient.
+  * **discharge_data_view_diag_mh**: Mental health diagnoses per patient.
+  * **discharge_data_view_diagnosis**: Combined diagnosis data with type and primary flags.
+  * **dose_data**: DOSE program substance use records.
+  * **sudors_data_view_demographics$**: SUDORS overdose decedent demographics.
+  * **sudors_data_view_diag_su$**: SUDORS substance use findings.
+  * **wonder_overview / wonder_substance / wonder_race / wonder_age_group / wonder_gender**: CDC WONDER drug overdose death data.
+  * **cares_calls_volume_view**: CARES crisis line call volume.
+  * **AMHD_Crisis_Mobile_Outreach**: AMHD crisis mobile outreach referral data.
+  * **adad_service_view**: ADAD clients served (service dates, county, modality).
+  * **adad_indicators_view**: ADAD co-occurring condition indicators.
+  * **amhd_mh_services_view**: AMHD mental health services (service category, diagnosis, county).
 
 ## 🔄 Switching Between Databases
 
@@ -307,7 +304,7 @@ The entire app layout changes based on screen size:
 - **Mobile Shell**: Uses segmented button controls wrapped in a `.mobile-root` class
 
 **3. Responsive Layout Factory**
-Each dashboard module (`app_alt.py`, `polysubstance_dashboard.py`, `polysubstance_alt.py`) implements a `layout_for(is_mobile=False)` function that adjusts chart heights:
+Each dashboard module implements a `layout_for(is_mobile=False)` function that adjusts chart heights:
 - **Mobile**: Viewport-relative heights (e.g., `60vh`) for better scrolling
 - **Desktop**: Fixed pixel heights (e.g., `400px`) for consistent layout
 
@@ -368,9 +365,7 @@ The standard dashboard is desktop-focused. Use `mobile_app.py` for full mobile o
 
 ### Core Application Files
 
-**`multi_dashboard.py`** - Main application entry point. Creates the Dash app with tabbed navigation between different dashboard views (Discharges, Polysubstance, and optionally Co-occurring). Uses Bootstrap styling and keyboard shortcuts for accessibility.
-
-**`app_alt.py`** - "Discharges (Alt Views)" dashboard page. Displays discharge data related to substance use with various views and interactive graphs. Contains its own layout and callbacks.
+**`multi_dashboard.py`** - Main application entry point. Creates the Dash app with tabbed navigation between different dashboard views. Uses Bootstrap styling and keyboard shortcuts for accessibility.
 
 **`polysubstance_dashboard.py`** - "Polysubstance Use" dashboard page. Analyzes patients with multiple substance use diagnoses. Includes filtering, charts, and data tables focused on polysubstance patterns.
 
@@ -414,9 +409,9 @@ The standard dashboard is desktop-focused. Use `mobile_app.py` for full mobile o
 
 ### Deployment & Configuration Files
 
-**`Procfile`** - Heroku deployment configuration. Specifies how to run the app in production using gunicorn: `web: gunicorn multi_dashboard:server`.
+**`Procfile`** - Production deployment configuration. Specifies how to run the app using gunicorn: `web: gunicorn multi_dashboard:server`.
 
-**`runtime.txt`** - Specifies Python version (3.11.9) for Heroku deployment.
+**`runtime.txt`** - Specifies the Python version (3.11.9).
 
 **`requirements.txt`** - Python dependencies list: dash, dash-bootstrap-components, plotly, pandas, numpy, gunicorn.
 
