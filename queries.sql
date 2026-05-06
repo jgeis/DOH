@@ -72,7 +72,7 @@ SELECT
   d.age_group, d.sex, d.race_ethnicity,
   CAST(d.year AS INTEGER)    AS year
 FROM co
-JOIN discharge_data_view_demographics d ON d.record_id = co.record_id
+JOIN discharge_data_view_demographics_test d ON d.record_id = co.record_id
 WHERE LOWER(COALESCE(NULLIF(TRIM(d.age_group), ''), 'unknown')) <> 'unknown'; -- removed hardcoded year filter
 
 
