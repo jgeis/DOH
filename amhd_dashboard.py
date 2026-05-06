@@ -5,6 +5,8 @@ import pandas as pd
 import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
+from functools import lru_cache
+from config import USE_MSSQL
 from theme import register_template
 from dashboard_utils import (
     load_sql_query,
@@ -24,44 +26,232 @@ MONTH_NAMES = {
     5: "May", 6: "June", 7: "July", 8: "August",
     9: "September", 10: "October", 11: "November", 12: "December",
 }
+MONTH_TO_NUM = {name: num for num, name in MONTH_NAMES.items()}
 
 
-def load_amhd_dataframe():
-    sql = load_sql_query("load_amhd")
+def _normalize_county_label(value):
+    text = str(value).strip()
+    if not text:
+        return "Unknown"
+    return text.title()
+
+
+def _sql_quote(text):
+    return "'" + str(text).replace("'", "''") + "'"
+
+
+@lru_cache(maxsize=512)
+def _count_distinct_consumers_cached(
+    years_key,
+    month_nums_key,
+    service_categories_key,
+    counties_key,
+    start_date,
+    end_date,
+):
+    """Return true distinct AMHD consumers for the current filter set."""
+    where_parts = []
+
+    if years_key:
+        if USE_MSSQL:
+            where_parts.append(f"YEAR(date_of_service) IN ({','.join(str(int(y)) for y in years_key)})")
+        else:
+            years_sql = ",".join(_sql_quote(str(int(y))) for y in years_key)
+            where_parts.append(f"strftime('%Y', date_of_service) IN ({years_sql})")
+
+    if month_nums_key:
+        if USE_MSSQL:
+            where_parts.append(f"MONTH(date_of_service) IN ({','.join(str(int(m)) for m in month_nums_key)})")
+        else:
+            months_sql = ",".join(_sql_quote(f"{int(m):02d}") for m in month_nums_key)
+            where_parts.append(f"strftime('%m', date_of_service) IN ({months_sql})")
+
+    if service_categories_key:
+        cats_sql = ",".join(_sql_quote(v) for v in service_categories_key)
+        where_parts.append(f"service_category IN ({cats_sql})")
+
+    if counties_key:
+        counties_sql = ",".join(_sql_quote(v) for v in counties_key)
+        where_parts.append(f"County IN ({counties_sql})")
+
+    if start_date:
+        if USE_MSSQL:
+            where_parts.append(f"CAST(date_of_service AS date) >= {_sql_quote(start_date)}")
+        else:
+            where_parts.append(f"date(date_of_service) >= date({_sql_quote(start_date)})")
+
+    if end_date:
+        if USE_MSSQL:
+            where_parts.append(f"CAST(date_of_service AS date) <= {_sql_quote(end_date)}")
+        else:
+            where_parts.append(f"date(date_of_service) <= date({_sql_quote(end_date)})")
+
+    query = "SELECT COUNT(DISTINCT PATID) AS total_consumers FROM AMHD_mh_services_view"
+    if where_parts:
+        query += " WHERE " + " AND ".join(where_parts)
+
+    result_df = execute_query(query)
+    if result_df.empty or "total_consumers" not in result_df.columns:
+        return 0
+    return int(result_df.iloc[0]["total_consumers"])
+
+
+def get_true_consumer_count(sel_years, sel_months, sel_service_categories, sel_counties, start_date, end_date):
+    years_key = tuple(sorted(int(y) for y in (sel_years or [])))
+    month_nums_key = tuple(sorted(MONTH_TO_NUM[m] for m in (sel_months or []) if m in MONTH_TO_NUM))
+    service_categories_key = tuple(sorted(str(v) for v in (sel_service_categories or [])))
+    counties_key = tuple(sorted(str(v) for v in (sel_counties or [])))
+    return _count_distinct_consumers_cached(
+        years_key,
+        month_nums_key,
+        service_categories_key,
+        counties_key,
+        str(start_date) if start_date else "",
+        str(end_date) if end_date else "",
+    )
+
+
+def _build_amhd_where_clause(sel_years, sel_months, sel_service_categories, sel_counties, start_date, end_date):
+    county_expr = "UPPER(LTRIM(RTRIM(County)))" if USE_MSSQL else "UPPER(TRIM(County))"
+    service_category_expr = "LTRIM(RTRIM(service_category))" if USE_MSSQL else "TRIM(service_category)"
+    where_parts = []
+
+    if sel_years:
+        if USE_MSSQL:
+            where_parts.append(f"YEAR(date_of_service) IN ({','.join(str(int(y)) for y in sel_years)})")
+        else:
+            years_sql = ",".join(_sql_quote(str(int(y))) for y in sel_years)
+            where_parts.append(f"strftime('%Y', date_of_service) IN ({years_sql})")
+
+    if sel_months:
+        month_nums = [MONTH_TO_NUM[m] for m in sel_months if m in MONTH_TO_NUM]
+        if month_nums:
+            if USE_MSSQL:
+                where_parts.append(f"MONTH(date_of_service) IN ({','.join(str(int(m)) for m in month_nums)})")
+            else:
+                months_sql = ",".join(_sql_quote(f"{int(m):02d}") for m in month_nums)
+                where_parts.append(f"strftime('%m', date_of_service) IN ({months_sql})")
+
+    if sel_service_categories:
+        cats_sql = ",".join(_sql_quote(v) for v in sel_service_categories)
+        where_parts.append(f"{service_category_expr} IN ({cats_sql})")
+
+    if sel_counties:
+        counties_sql = ",".join(_sql_quote(str(v).strip().upper()) for v in sel_counties)
+        where_parts.append(f"{county_expr} IN ({counties_sql})")
+
+    if start_date:
+        if USE_MSSQL:
+            where_parts.append(f"CAST(date_of_service AS date) >= {_sql_quote(start_date)}")
+        else:
+            where_parts.append(f"date(date_of_service) >= date({_sql_quote(start_date)})")
+
+    if end_date:
+        if USE_MSSQL:
+            where_parts.append(f"CAST(date_of_service AS date) <= {_sql_quote(end_date)}")
+        else:
+            where_parts.append(f"date(date_of_service) <= date({_sql_quote(end_date)})")
+
+    return (" WHERE " + " AND ".join(where_parts)) if where_parts else ""
+
+
+def _run_grouped_consumer_query(select_sql, group_sql, order_sql, sel_years, sel_months, sel_service_categories, sel_counties, start_date, end_date):
+    where_sql = _build_amhd_where_clause(
+        sel_years, sel_months, sel_service_categories, sel_counties, start_date, end_date
+    )
+    query = (
+        "SELECT " + select_sql + "\n"
+        "FROM AMHD_mh_services_view\n"
+        + where_sql + "\n"
+        "GROUP BY " + group_sql + "\n"
+        "ORDER BY " + order_sql
+    )
+    return execute_query(query)
+
+
+def load_amhd_dataframe(query_name):
+    sql = load_sql_query(query_name)
     df = execute_query(sql)
-    print(f"load_amhd returned {len(df):,} rows")
+    print(f"{query_name} returned {len(df):,} rows")
 
     if df.empty:
         raise RuntimeError("AMHD query returned 0 rows.")
 
     # Normalize source column names across SQL backends/casing.
     df.columns = [str(c).strip().lower() for c in df.columns]
-    rename_map = {
-        "patid": "client_id",
-        "date_of_service": "service_date",
-    }
-    df = df.rename(columns=rename_map)
 
-    required_cols = {"client_id", "service_date", "service_category", "county"}
+    required_cols = {
+        "service_category",
+        "county",
+        "total_service_encounters",
+        "unique_patients",
+    }
+    if query_name in {"load_amhd_year", "load_amhd_month"}:
+        required_cols.add("service_year")
+    if query_name in {"load_amhd_month_mssql", "load_amhd_month_sqlite"}:
+        required_cols.add("service_month_date")
+    if query_name == "load_amhd_day":
+        required_cols.add("service_date")
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
         raise RuntimeError(f"AMHD query missing required columns: {missing}")
 
-    df["service_date"] = pd.to_datetime(df["service_date"], errors="coerce")
+    # Build or parse service_date based on query grain.
+    if "service_date" in df.columns:
+        df["service_date"] = pd.to_datetime(df["service_date"], errors="coerce")
+    elif "service_month_date" in df.columns:
+        df["service_date"] = pd.to_datetime(df["service_month_date"], errors="coerce")
+    else:
+        for c in ["service_year", "service_month", "service_day"]:
+            if c in df.columns:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
+
+        if "service_month" not in df.columns:
+            df["service_month"] = 1
+        if "service_day" not in df.columns:
+            df["service_day"] = 1
+
+        date_str = (
+            df["service_year"].fillna(1900).astype(int).astype(str)
+            + "-"
+            + df["service_month"].fillna(1).astype(int).astype(str).str.zfill(2)
+            + "-"
+            + df["service_day"].fillna(1).astype(int).astype(str).str.zfill(2)
+        )
+        df["service_date"] = pd.to_datetime(date_str, errors="coerce")
     df = df[df["service_date"].notna()].copy()
 
-    df["year"] = df["service_date"].dt.year.astype("Int64")
-    df["month_num"] = df["service_date"].dt.month.astype("Int64")
+    if "service_year" not in df.columns:
+        df["service_year"] = df["service_date"].dt.year
+    if "service_month" not in df.columns:
+        df["service_month"] = df["service_date"].dt.month
+    if "service_day" not in df.columns:
+        df["service_day"] = df["service_date"].dt.day
+
+    df["year"] = pd.to_numeric(df["service_year"], errors="coerce").astype("Int64")
+    df["month_num"] = pd.to_numeric(df["service_month"], errors="coerce").astype("Int64")
     df["month"] = df["month_num"].map(MONTH_NAMES)
 
-    for col in ["county", "service_category"]:
+    for col in ["service_category", "co_category"]:
         if col in df.columns:
-            df[col] = df[col].fillna("Unknown").astype(str)
+            df[col] = df[col].fillna("Unknown").astype(str).str.strip()
+    if "county" in df.columns:
+        df["county"] = df["county"].fillna("Unknown").map(_normalize_county_label)
+
+    for col in ["total_service_encounters", "unique_patients"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
 
     return df
 
 
-df_raw = load_amhd_dataframe()
+df_year = load_amhd_dataframe("load_amhd_year")
+month_query_name = "load_amhd_month_mssql" if USE_MSSQL else "load_amhd_month_sqlite"
+df_month = load_amhd_dataframe(month_query_name)
+day_query_name = "load_amhd_day_mssql" if USE_MSSQL else "load_amhd_day_sqlite"
+df_day = load_amhd_dataframe(day_query_name)
+
+# Use day-level data as the superset for option lists.
+df_raw = df_day
 
 year_opts = sorted(df_raw["year"].dropna().unique().tolist(), reverse=True)
 month_nums_present = sorted(df_raw["month_num"].dropna().unique().tolist())
@@ -69,8 +259,8 @@ month_opts = [MONTH_NAMES[m] for m in month_nums_present]
 service_category_opts = sorted(df_raw["service_category"].dropna().unique().tolist())
 county_opts = sorted(df_raw["county"].dropna().unique().tolist())
 
-min_date = df_raw["service_date"].min().date()
-max_date = df_raw["service_date"].max().date()
+min_date = df_day["service_date"].min().date()
+max_date = df_day["service_date"].max().date()
 
 
 reset_button = dbc.Button(
@@ -83,7 +273,7 @@ reset_button = dbc.Button(
 )
 
 kpi_card = make_kpi_card(
-    label="Number of Clients Served",
+    label="Number of AMHD Consumers",
     count_id="amhd-kpi-total",
 )
 
@@ -161,8 +351,8 @@ filters_card = make_filters_card(
 )
 
 amhd_sidebar_text = [
-    "AMHD client service volume shown by year, month, or date.",
-    "Use filters and custom date range to narrow clients served.",
+    "AMHD consumer volume shown by year, month, or date.",
+    "Data are pre-aggregated in SQL by period, county, and service category.",
 ]
 
 
@@ -182,7 +372,7 @@ def layout():
         [
             html.Div(
                 [
-                    html.H5("Number of Clients Served", id="amhd-bar-chart-title", className="plot-card-header mb-2"),
+                    html.H5("Number of AMHD Consumers", id="amhd-bar-chart-title", className="plot-card-header mb-2"),
                     dcc.Graph(
                         id="amhd-bar-chart",
                         style={"width": "100%"},
@@ -194,7 +384,7 @@ def layout():
             ),
             html.Div(
                 [
-                    html.H5("Clients Served by County and Selected Time Period", className="plot-card-header mb-2"),
+                    html.H5("AMHD Consumers by County and Selected Time Period", className="plot-card-header mb-2"),
                     dcc.Graph(
                         id="amhd-county-line-chart",
                         style={"width": "100%", "height": "520px"},
@@ -278,91 +468,135 @@ def reset_amhd_filters(_n_clicks):
     Input("amhd-date-range", "end_date"),
 )
 def update_amhd(view, sel_years, sel_months, sel_service_categories, sel_counties, start_date, end_date):
-    dff = df_raw.copy()
+    total_consumers = get_true_consumer_count(
+        sel_years,
+        sel_months,
+        sel_service_categories,
+        sel_counties,
+        start_date,
+        end_date,
+    )
 
-    if sel_years:
-        dff = dff[dff["year"].isin(sel_years)]
-    if sel_months:
-        dff = dff[dff["month"].isin(sel_months)]
-    if sel_service_categories:
-        dff = dff[dff["service_category"].isin(sel_service_categories)]
-    if sel_counties:
-        dff = dff[dff["county"].isin(sel_counties)]
-
-    if start_date:
-        dff = dff[dff["service_date"] >= pd.to_datetime(start_date)]
-    if end_date:
-        dff = dff[dff["service_date"] <= pd.to_datetime(end_date)]
-
-    total_clients = dff["client_id"].nunique()
+    if USE_MSSQL:
+        year_expr = "YEAR(date_of_service)"
+        month_date_expr = "DATEFROMPARTS(YEAR(date_of_service), MONTH(date_of_service), 1)"
+        day_date_expr = "CAST(date_of_service AS date)"
+        county_expr = "UPPER(LTRIM(RTRIM(County)))"
+        service_category_expr = "LTRIM(RTRIM(service_category))"
+    else:
+        year_expr = "CAST(strftime('%Y', date_of_service) AS INTEGER)"
+        month_date_expr = "DATE(date_of_service, 'start of month')"
+        day_date_expr = "DATE(date_of_service)"
+        county_expr = "UPPER(TRIM(County))"
+        service_category_expr = "TRIM(service_category)"
 
     if view == "year":
-        bar_grouped = (
-            dff.groupby("year", as_index=False)["client_id"]
-            .nunique()
-            .rename(columns={"client_id": "client_count"})
-            .sort_values("year")
+        bar_grouped = _run_grouped_consumer_query(
+            select_sql=f"{year_expr} AS year, COUNT(DISTINCT PATID) AS consumer_count",
+            group_sql=year_expr,
+            order_sql="year",
+            sel_years=sel_years,
+            sel_months=sel_months,
+            sel_service_categories=sel_service_categories,
+            sel_counties=sel_counties,
+            start_date=start_date,
+            end_date=end_date,
         )
-        bar_grouped["period"] = bar_grouped["year"].astype(str)
+        bar_grouped["period"] = bar_grouped["year"].astype(int).astype(str)
         period_title = "Calendar Year of Service"
-        line_grouped = (
-            dff.groupby(["year", "county"], as_index=False)["client_id"]
-            .nunique()
-            .rename(columns={"client_id": "client_count"})
-            .sort_values(["year", "county"])
+        line_grouped = _run_grouped_consumer_query(
+            select_sql=f"{year_expr} AS year, {county_expr} AS county, COUNT(DISTINCT PATID) AS consumer_count",
+            group_sql=f"{year_expr}, {county_expr}",
+            order_sql="year, county",
+            sel_years=sel_years,
+            sel_months=sel_months,
+            sel_service_categories=sel_service_categories,
+            sel_counties=sel_counties,
+            start_date=start_date,
+            end_date=end_date,
         )
-        line_grouped["period"] = line_grouped["year"].astype(str)
+        line_grouped["period"] = line_grouped["year"].astype(int).astype(str)
         line_x = "year"
     elif view == "month":
-        bar_grouped = (
-            dff.groupby(["year", "month_num", "month"], as_index=False)["client_id"]
-            .nunique()
-            .rename(columns={"client_id": "client_count"})
-            .sort_values(["year", "month_num"])
+        bar_grouped = _run_grouped_consumer_query(
+            select_sql=f"{month_date_expr} AS period_date, COUNT(DISTINCT PATID) AS consumer_count",
+            group_sql=month_date_expr,
+            order_sql="period_date",
+            sel_years=sel_years,
+            sel_months=sel_months,
+            sel_service_categories=sel_service_categories,
+            sel_counties=sel_counties,
+            start_date=start_date,
+            end_date=end_date,
         )
-        bar_grouped["period"] = bar_grouped["year"].astype(str) + ", " + bar_grouped["month"]
+        bar_grouped["period_date"] = pd.to_datetime(bar_grouped["period_date"], errors="coerce")
+        bar_grouped["year"] = bar_grouped["period_date"].dt.year
+        bar_grouped["month_num"] = bar_grouped["period_date"].dt.month
+        bar_grouped["month"] = bar_grouped["month_num"].map(MONTH_NAMES)
+        bar_grouped["period"] = bar_grouped["year"].astype(int).astype(str) + ", " + bar_grouped["month"]
         period_title = "Month of Service"
-        line_grouped = (
-            dff.groupby(["year", "month_num", "month", "county"], as_index=False)["client_id"]
-            .nunique()
-            .rename(columns={"client_id": "client_count"})
-            .sort_values(["year", "month_num", "county"])
+        line_grouped = _run_grouped_consumer_query(
+            select_sql=f"{month_date_expr} AS period_date, {county_expr} AS county, COUNT(DISTINCT PATID) AS consumer_count",
+            group_sql=f"{month_date_expr}, {county_expr}",
+            order_sql="period_date, county",
+            sel_years=sel_years,
+            sel_months=sel_months,
+            sel_service_categories=sel_service_categories,
+            sel_counties=sel_counties,
+            start_date=start_date,
+            end_date=end_date,
         )
-        line_grouped["period"] = line_grouped["year"].astype(str) + ", " + line_grouped["month"]
+        line_grouped["period_date"] = pd.to_datetime(line_grouped["period_date"], errors="coerce")
+        line_grouped["year"] = line_grouped["period_date"].dt.year
+        line_grouped["month_num"] = line_grouped["period_date"].dt.month
+        line_grouped["month"] = line_grouped["month_num"].map(MONTH_NAMES)
+        line_grouped["period"] = line_grouped["year"].astype(int).astype(str) + ", " + line_grouped["month"]
         line_x = "period"
     else:
-        bar_grouped = (
-            dff.groupby("service_date", as_index=False)["client_id"]
-            .nunique()
-            .rename(columns={"client_id": "client_count"})
-            .sort_values("service_date", ascending=True)
+        bar_grouped = _run_grouped_consumer_query(
+            select_sql=f"{day_date_expr} AS service_date, COUNT(DISTINCT PATID) AS consumer_count",
+            group_sql=day_date_expr,
+            order_sql="service_date",
+            sel_years=sel_years,
+            sel_months=sel_months,
+            sel_service_categories=sel_service_categories,
+            sel_counties=sel_counties,
+            start_date=start_date,
+            end_date=end_date,
         )
+        bar_grouped["service_date"] = pd.to_datetime(bar_grouped["service_date"], errors="coerce")
         bar_grouped["period"] = bar_grouped["service_date"].dt.strftime("%Y-%m-%d")
         period_title = "Date of Service"
-        line_grouped = (
-            dff.groupby(["service_date", "county"], as_index=False)["client_id"]
-            .nunique()
-            .rename(columns={"client_id": "client_count"})
-            .sort_values(["service_date", "county"])
+        line_grouped = _run_grouped_consumer_query(
+            select_sql=f"{day_date_expr} AS service_date, {county_expr} AS county, COUNT(DISTINCT PATID) AS consumer_count",
+            group_sql=f"{day_date_expr}, {county_expr}",
+            order_sql="service_date, county",
+            sel_years=sel_years,
+            sel_months=sel_months,
+            sel_service_categories=sel_service_categories,
+            sel_counties=sel_counties,
+            start_date=start_date,
+            end_date=end_date,
         )
+        line_grouped["service_date"] = pd.to_datetime(line_grouped["service_date"], errors="coerce")
         line_grouped["period"] = line_grouped["service_date"].dt.strftime("%Y-%m-%d")
         line_x = "period"
 
-    bar_grouped["label"] = bar_grouped["client_count"].apply(lambda v: f"{int(v):,}")
+    bar_grouped["label"] = bar_grouped["consumer_count"].apply(lambda v: f"{int(v):,}")
     bar_height = max(320, len(bar_grouped) * 30)
     y_order = bar_grouped["period"].tolist()
 
     bar_fig = px.bar(
         bar_grouped,
-        x="client_count",
+        x="consumer_count",
         y="period",
         orientation="h",
         text="label",
-        labels={"client_count": "Number of Clients", "period": period_title},
+        labels={"consumer_count": "Number of AMHD Consumers", "period": period_title},
     )
     bar_fig.update_layout(
         margin=dict(l=10, r=10, t=30, b=10),
-        xaxis_title="Number of Clients",
+        xaxis_title="Number of AMHD Consumers",
         yaxis_title=period_title,
         yaxis=dict(
             type="category",
@@ -381,26 +615,27 @@ def update_amhd(view, sel_years, sel_months, sel_service_categories, sel_countie
     )
 
     line_grouped = line_grouped.dropna(subset=["county"]).copy()
+    line_grouped["county"] = line_grouped["county"].map(_normalize_county_label)
     if "year" in line_grouped.columns and not line_grouped.empty:
         line_grouped["year"] = line_grouped["year"].astype(int)
 
     line_fig = px.line(
         line_grouped,
         x=line_x,
-        y="client_count",
+        y="consumer_count",
         color="county",
         markers=True,
         labels={
             "year": "Year",
             "period": period_title,
-            "client_count": "Number of Clients",
+            "consumer_count": "Number of AMHD Consumers",
             "county": "County",
         },
     )
     line_fig.update_layout(
         margin=dict(l=10, r=10, t=30, b=120),
         xaxis_title=("Year" if line_x == "year" else period_title),
-        yaxis_title="Number of Clients",
+        yaxis_title="Number of AMHD Consumers",
         legend_title_text="County",
         legend=dict(
             orientation="h",
@@ -414,39 +649,76 @@ def update_amhd(view, sel_years, sel_months, sel_service_categories, sel_countie
         height=520,
     )
     line_fig.update_traces(
-        hovertemplate="%{fullData.name}<br>%{x}<br>Clients: %{y:,}<extra></extra>"
+        hovertemplate="%{fullData.name}<br>%{x}<br>Consumers: %{y:,}<extra></extra>"
     )
 
-    service_category_tbl = (
-        dff.groupby("service_category", as_index=False)["client_id"]
-        .nunique()
-        .rename(columns={"service_category": "Service Category", "client_id": "Number of Clients"})
-        .sort_values("Number of Clients", ascending=False)
-        .reset_index(drop=True)
+    service_category_tbl = _run_grouped_consumer_query(
+        select_sql=f"{service_category_expr} AS [Service Category], COUNT(DISTINCT PATID) AS [Number of AMHD Consumers]",
+        group_sql=service_category_expr,
+        order_sql="[Number of AMHD Consumers] DESC",
+        sel_years=sel_years,
+        sel_months=sel_months,
+        sel_service_categories=sel_service_categories,
+        sel_counties=sel_counties,
+        start_date=start_date,
+        end_date=end_date,
+    ) if USE_MSSQL else _run_grouped_consumer_query(
+        select_sql=f"{service_category_expr} AS 'Service Category', COUNT(DISTINCT PATID) AS 'Number of AMHD Consumers'",
+        group_sql=service_category_expr,
+        order_sql="'Number of AMHD Consumers' DESC",
+        sel_years=sel_years,
+        sel_months=sel_months,
+        sel_service_categories=sel_service_categories,
+        sel_counties=sel_counties,
+        start_date=start_date,
+        end_date=end_date,
     )
 
-    year_tbl = (
-        dff.groupby("year", as_index=False)["client_id"]
-        .nunique()
-        .rename(columns={"year": "Calendar Year", "client_id": "Number of Clients"})
-        .sort_values("Calendar Year", ascending=False)
-        .reset_index(drop=True)
+    year_tbl = _run_grouped_consumer_query(
+        select_sql=f"{year_expr} AS [Calendar Year], COUNT(DISTINCT PATID) AS [Number of AMHD Consumers]",
+        group_sql=year_expr,
+        order_sql="[Calendar Year] DESC",
+        sel_years=sel_years,
+        sel_months=sel_months,
+        sel_service_categories=sel_service_categories,
+        sel_counties=sel_counties,
+        start_date=start_date,
+        end_date=end_date,
+    ) if USE_MSSQL else _run_grouped_consumer_query(
+        select_sql=f"{year_expr} AS 'Calendar Year', COUNT(DISTINCT PATID) AS 'Number of AMHD Consumers'",
+        group_sql=year_expr,
+        order_sql="'Calendar Year' DESC",
+        sel_years=sel_years,
+        sel_months=sel_months,
+        sel_service_categories=sel_service_categories,
+        sel_counties=sel_counties,
+        start_date=start_date,
+        end_date=end_date,
     )
 
-    county_order = sort_opts(dff["county"])
-    county_tbl = (
-        dff.groupby("county", as_index=False)["client_id"]
-        .nunique()
-        .rename(columns={"county": "County", "client_id": "Number of Clients"})
+    county_tbl = _run_grouped_consumer_query(
+        select_sql=f"{county_expr} AS county, COUNT(DISTINCT PATID) AS consumer_count",
+        group_sql=county_expr,
+        order_sql="county",
+        sel_years=sel_years,
+        sel_months=sel_months,
+        sel_service_categories=sel_service_categories,
+        sel_counties=sel_counties,
+        start_date=start_date,
+        end_date=end_date,
     )
+    county_tbl = county_tbl.rename(columns={"county": "County", "consumer_count": "Number of AMHD Consumers"})
+    if not county_tbl.empty:
+        county_tbl["County"] = county_tbl["County"].map(_normalize_county_label)
+    county_order = sort_opts(county_tbl["County"]) if not county_tbl.empty else []
     county_tbl["County"] = pd.Categorical(county_tbl["County"], categories=county_order, ordered=True)
     county_tbl = county_tbl.sort_values("County").reset_index(drop=True)
 
     for tbl_df in (service_category_tbl, year_tbl, county_tbl):
-        tbl_df["Number of Clients"] = tbl_df["Number of Clients"].apply(format_count_display)
+        tbl_df["Number of AMHD Consumers"] = tbl_df["Number of AMHD Consumers"].apply(format_count_display)
 
     service_category_table = dbc.Table.from_dataframe(service_category_tbl, striped=True, bordered=True, hover=True, responsive=True, size="sm")
     year_table = dbc.Table.from_dataframe(year_tbl, striped=True, bordered=True, hover=True, responsive=True, size="sm")
     county_table = dbc.Table.from_dataframe(county_tbl, striped=True, bordered=True, hover=True, responsive=True, size="sm")
 
-    return bar_fig, line_fig, format_count_display(total_clients), service_category_table, year_table, county_table
+    return bar_fig, line_fig, format_count_display(total_consumers), service_category_table, year_table, county_table
