@@ -170,7 +170,7 @@ SELECT
   phone as origin_of_call,
   CAST(total_calls AS INTEGER) AS count_of_users
 FROM cares_calls_volume_view
-WHERE day IS NOT NULL;
+WHERE Date IS NOT NULL;
 
 -- name: load_discharge_data_view_diagnosis
 WITH dx_union AS (

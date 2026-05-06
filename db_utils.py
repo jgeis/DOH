@@ -62,6 +62,7 @@ def execute_query(query):
     """
     try:
         with get_connection() as conn:
+            print(f"[db_utils] Loading: {query}")
             df = pd.read_sql_query(query, conn)
             db_type = "MSSQL" if USE_MSSQL else "SQLite"
             print(f"[db_utils] Query returned {len(df):,} rows from {db_type}")
@@ -84,6 +85,7 @@ def execute_non_query(query):
     """
     try:
         with get_connection() as conn:
+            print(f"[db_utils] Loading: {query}")
             cursor = conn.cursor()
             cursor.execute(query)
             conn.commit()
