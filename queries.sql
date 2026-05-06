@@ -16,7 +16,7 @@ SELECT
   m.race_ethnicity,
   m.year
 FROM dx
-JOIN discharge_data_view_demographics m ON m.record_id = dx.record_id;
+JOIN discharge_data_view_demographics_test m ON m.record_id = dx.record_id;
 
 -- name: load_polysubstance_data
 WITH
@@ -41,7 +41,7 @@ SELECT
 FROM dx_union AS u
 JOIN poly_ids AS p
   ON p.record_id = u.record_id
-JOIN discharge_data_view_demographics AS m
+JOIN discharge_data_view_demographics_test AS m
   ON m.record_id = u.record_id
 WHERE
   LOWER(COALESCE(NULLIF(TRIM(m.age_group), ''), 'unknown')) <> 'unknown';  -- drop Unknown/blank ages
@@ -94,7 +94,7 @@ SELECT
   m.race_ethnicity,
   m.year
 FROM dx
-JOIN discharge_data_view_demographics m ON m.record_id = dx.record_id;
+JOIN discharge_data_view_demographics_test m ON m.record_id = dx.record_id;
 
 
 -- name: load_sudors_data_view_diag_su$
@@ -204,7 +204,7 @@ SELECT
 FROM dx_union u
 JOIN co_ids c
  ON c.record_id = u.record_id
-JOIN discharge_data_view_demographics m
+JOIN discharge_data_view_demographics_test m
  ON m.record_id = u.record_id
 WHERE LOWER(COALESCE(NULLIF(TRIM(m.age_group), ''), 'unknown')) <> 'unknown';
 
