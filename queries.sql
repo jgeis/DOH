@@ -18,9 +18,6 @@ SELECT
 FROM dx
 JOIN discharge_data_view_demographics m ON m.record_id = dx.record_id;
 
--- name: load_filtered_data
-
-
 -- name: load_polysubstance_data
 WITH
 dx_union AS (
@@ -286,23 +283,20 @@ on
   and iv.num_su >= 1;
 
 -- name: load_amhd
-select
-  PATID,
-  date_of_service,
-  service_category,
-  co_category,
-  Diagnosis_code,
-  SMI,
-  Sex,
-  Race,
-  Age,
-  County
-from AMHD_mh_services_view;
-
-
-
--- +-------+-----------------+---------------------------------+---------------+----------------+---------+------+-------+-------+----------+
--- | PATID | date_of_service | service_category                | co_category   | Diagnosis_code | SMI     | Sex  | Race  | Age   | County   |
--- +-------+-----------------+---------------------------------+---------------+----------------+---------+------+-------+-------+----------+
--- |    10 | 2018-01-01      | Community Mental Health Centers | Mental Health | F01.50         | Non SMI | Male | Asian | 66-85 | Honolulu |
--- +-------+-----------------+---------------------------------+---------------+----------------+---------+------+-------+-------+----------+
+SELECT 
+    YEAR(date_of_service) AS service_year,
+    MONTH(date_of_service) AS service_month,
+    DAY(date_of_service) AS service_month,
+    service_category,
+    co_category,
+    County,
+    COUNT(*) AS total_service_encounters,
+    COUNT(DISTINCT PATID) AS unique_patients
+FROM AMHD_mh_services_view
+GROUP BY 
+    YEAR(date_of_service),
+    MONTH(date_of_service),
+    DAY(date_of_service),
+    service_category,
+    co_category,
+	  County;

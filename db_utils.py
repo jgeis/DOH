@@ -24,7 +24,23 @@ def get_connection():
             conn = pyodbc.connect(conn_str)
             print("[db_utils] Successfully connected to MSSQL database")
         else:
+            # 1. Define the logic to extract parts from SQLite's YYYY-MM-DD string format
+            def extract_year(date_string):
+                return int(date_string[:4]) if date_string else None
+
+            def extract_month(date_string):
+                return int(date_string[5:7]) if date_string else None
+
+            def extract_day(date_string):
+                return int(date_string[8:10]) if date_string else None
+
             conn = sqlite3.connect(SQLITE_DB_PATH)
+        
+            # 3. Bind the functions to the connection
+            conn.create_function("YEAR", 1, extract_year)
+            conn.create_function("MONTH", 1, extract_month)
+            conn.create_function("DAY", 1, extract_day)
+
             print(f"[db_utils] Successfully connected to SQLite database: {SQLITE_DB_PATH}")
         return conn
     except Exception as e:
