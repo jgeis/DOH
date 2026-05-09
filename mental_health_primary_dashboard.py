@@ -158,15 +158,12 @@ def layout():
     )
 
     # Center column: the main line and bar charts.
-    center_col = dbc.Col(
-        [
-            graph_block("mh-primary-bar", "Discharges by Mental Health Diagnosis", bar_h),
-            html.P("Bar chart showing discharges by mental health diagnosis.", className="visually-hidden"),
-            graph_block("mh-primary-line", "Yearly Discharges by Mental Health Diagnosis", line_h),
-            html.P("Line chart showing yearly discharges by mental health diagnosis.", className="visually-hidden"),
-        ],
-        xs=12, md=6
-    )
+    center_col = dbc.Col([
+        graph_block("mh-primary-bar", "Discharges by Mental Health Diagnosis", bar_h),
+        html.P("Bar chart showing discharges by mental health diagnosis.", className="visually-hidden"),
+        graph_block("mh-primary-line", "Yearly Discharges by Mental Health Diagnosis", line_h),
+        html.P("Line chart showing yearly discharges by mental health diagnosis.", className="visually-hidden"),
+    ], xs=12, md=6)
 
     # Right column: summary tables
     right_col = dbc.Col([
@@ -205,7 +202,7 @@ def layout():
 layout = layout()
 
 # ----------------------------
-# Callbacks for discharges
+# Callbacks
 # ----------------------------
 
 @callback(
@@ -223,6 +220,7 @@ layout = layout()
 )
 
 def reset_discharges_filters(_n_clicks):
+    # Reset all multi-select dropdowns to their default empty state.
     return None, None, None, None, None, None, None, None, None
 
 @callback(

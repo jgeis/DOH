@@ -146,8 +146,8 @@ def layout():
     Build the discharges dashboard layout.
     """
     # Adjust plot heights for desktop
-    line_h = "400px"
     bar_h  = "360px"
+    line_h = "400px"
    
     # Left column: KPI, reset button, and filters.
     left_col = make_left_sidebar(
@@ -160,15 +160,12 @@ def layout():
     )
 
     # Center column: the main line and bar charts.
-    center_col = dbc.Col(
-        [
-            graph_block("su-primary-bar", "Discharges by Substance", bar_h),
-            html.P("Bar chart showing discharges by substance.", className="visually-hidden"),
-            graph_block("su-primary-line", "Yearly Discharges by Substance", line_h),
-            html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
-        ],
-        xs=12, md=6
-    )
+    center_col = dbc.Col([
+        graph_block("su-primary-bar", "Discharges by Substance", bar_h),
+        html.P("Bar chart showing discharges by substance.", className="visually-hidden"),
+        graph_block("su-primary-line", "Yearly Discharges by Substance", line_h),
+        html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
+    ], xs=12, md=6)
 
     # Right column: summary tables
     right_col = dbc.Col([
@@ -207,7 +204,7 @@ def layout():
 layout = layout()
 
 # ----------------------------
-# Callbacks for discharges
+# Callbacks
 # ----------------------------
 
 @callback(
@@ -225,6 +222,7 @@ layout = layout()
 )
 
 def reset_discharges_filters(_n_clicks):
+    # Reset all multi-select dropdowns to their default empty state.
     return None, None, None, None, None, None, None, None, None
 
 @callback(

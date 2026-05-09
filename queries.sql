@@ -18,6 +18,7 @@ SELECT
 FROM dx
 JOIN discharge_data_view_demographics_test m ON m.record_id = dx.record_id;
 
+
 -- name: load_polysubstance_data
 WITH
 dx_union AS (
@@ -115,6 +116,37 @@ FROM dx
 JOIN sudors_data_view_demographics$ m ON m.incident_id = dx.incident_id;
 
 
+-- name: load_sudors_polysubstance_data
+WITH
+dx_union AS (
+  SELECT DISTINCT incident_id, TRIM(diagnosis) AS substance
+  FROM sudors_data_view_diag_su$
+  WHERE diagnosis IS NOT NULL AND TRIM(diagnosis) <> ''
+),
+poly_ids AS (
+  -- polysubstance = ≥2 distinct substances
+  SELECT incident_id
+  FROM dx_union
+  GROUP BY incident_id
+  HAVING COUNT(DISTINCT substance) >= 2
+)
+SELECT
+  u.incident_id,
+  u.substance,
+  m.homeless,
+  m.sex,
+  m.age_cat,
+  m.race_ethnicity,
+  CAST(m.year AS INTEGER) AS year
+FROM dx_union AS u
+JOIN poly_ids AS p
+  ON p.incident_id = u.incident_id
+JOIN sudors_data_view_demographics$ AS m
+  ON m.incident_id = u.incident_id
+WHERE
+  LOWER(COALESCE(NULLIF(TRIM(m.age_cat), ''), 'unknown')) <> 'unknown';  -- drop Unknown/blank ages
+
+
 -- name: load_wonder_overview
 SELECT
   CAST(year AS INTEGER) AS year,
@@ -164,6 +196,7 @@ SELECT
 FROM wonder_gender
 WHERE year IS NOT NULL;
 
+
 -- name: load_cares_calls
 SELECT
   Date as day,
@@ -171,6 +204,7 @@ SELECT
   CAST(total_calls AS INTEGER) AS count_of_users
 FROM cares_calls_volume_view
 WHERE Date IS NOT NULL;
+
 
 -- name: load_discharge_data_view_diagnosis
 WITH dx_union AS (
@@ -208,6 +242,7 @@ JOIN discharge_data_view_demographics_test m
  ON m.record_id = u.record_id
 WHERE LOWER(COALESCE(NULLIF(TRIM(m.age_group), ''), 'unknown')) <> 'unknown';
 
+
 -- name: load_crisis_mobile_outreach
 WITH CrisisMobileOutreach AS (
     -- Step 1: Filter the dates and map the names
@@ -241,6 +276,7 @@ SELECT
 FROM GroupedCounts
 ORDER BY ct DESC;
 
+
 -- name: crisis-bed-occupancy
 SELECT 
     FORMAT(DispatchDate, 'yyyy-MM') AS dispatch_month, 
@@ -256,6 +292,7 @@ ORDER BY
     dispatch_month ASC, 
     program_county_value ASC;
 
+
 -- name: load_adad_clients_served
 SELECT
   client_id,
@@ -264,6 +301,7 @@ SELECT
   [date] AS service_date
 FROM adad_service_view
 WHERE [date] IS NOT NULL;
+
 
 -- name: load_adad_cooccurring
 select 
@@ -282,6 +320,7 @@ on
   and iv.num_mh >= 1
   and iv.num_su >= 1;
 
+
 -- name: load_amhd_year
 SELECT 
     YEAR(date_of_service) AS service_year,
@@ -296,6 +335,7 @@ GROUP BY
 	  service_category,
 	  co_category,
 	  County;
+
 
 -- name: load_amhd_month_mssql
 SELECT 
@@ -312,6 +352,7 @@ GROUP BY
     co_category,
 	  County;
 
+
 -- name: load_amhd_month_sqlite
 SELECT
   DATE(date_of_service, 'start of month') AS service_month_date,
@@ -327,6 +368,7 @@ GROUP BY
   co_category,
   County;
 
+
 -- name: load_amhd_day_mssql
 SELECT 
   CAST(date_of_service AS date) AS service_date,
@@ -341,6 +383,7 @@ GROUP BY
   service_category,
   co_category,
 	  County;
+
 
 -- name: load_amhd_day_sqlite
 SELECT

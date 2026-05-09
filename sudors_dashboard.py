@@ -4,40 +4,24 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
-from dashboard_utils import make_kpi_card, make_left_sidebar, make_filters_card, dropdown_filter, sort_opts, format_count_display
-import json
 import re
+from dashboard_utils import (
+    load_sql_query,
+    sort_opts,
+    opts_list,
+    graph_block,
+    make_kpi_card,
+    make_left_sidebar,
+    make_filters_card,
+    dropdown_filter,
+    format_count_display,
+)
 
 register_template()
 
 # ----------------------------
 # Data helpers
 # ----------------------------
-
-def load_sql_query(name, path="queries.sql"):
-    """
-    This helper looks inside the queries.sql file and pulls out
-    the specific SQL block we want by name.
-
-    Why: this keeps all the SQL in one file instead of hard-coding
-    long queries directly in the Python file.
-    """
-    with open(path, "r", encoding="utf-8") as f:
-        sql = f.read()
-    # The SQL file is split into blocks marked with "-- name:"
-    blocks = sql.split("-- name:")
-    m = {}
-    for b in blocks:
-        # Skip any empty chunks
-        if not b.strip():
-            continue
-        # First line after "-- name:" is the name, the rest is the SQL text
-        lines = b.strip().split("\n")
-        m[lines[0].strip()] = "\n".join(lines[1:]).strip()
-    # If we typed the wrong query name, complain loudly
-    if name not in m:
-        raise KeyError(f"Named query '{name}' not found in {path}.")
-    return m[name]
 
 def load_sudors_dataframe_from_db():
     """
@@ -51,7 +35,7 @@ def load_sudors_dataframe_from_db():
     
     Note: Uses either SQLite or MSSQL automatically based on config.
     """
-    
+    # Grab the SQL for our main data
     sql = load_sql_query("load_sudors_data_view_diag_su$")
     
     # Execute query using db_utils (automatically uses correct database)
@@ -78,10 +62,9 @@ def load_sudors_dataframe_from_db():
 df_raw = load_sudors_dataframe_from_db()
 
 # Count how many unique records we have to show on the KPI card.
-total_unique = df_raw["incident_id"].nunique()
+total_unique = df_raw["incident_id"].nunique() if "incident_id" in df_raw.columns else 0
 
 # Build the lists of choices for each filter only if the column exists.
-# Why: this makes the code more flexible if the data shape changes later.
 substance_opts  = sort_opts(df_raw["substance"])                     if "substance"  in df_raw.columns else []
 homeless_opts   = sort_opts(df_raw["homeless"])                      if "homeless"   in df_raw.columns else []
 sex_opts        = sort_opts(df_raw["sex"])                           if "sex"        in df_raw.columns else []
@@ -89,63 +72,16 @@ age_opts        = sort_opts(df_raw["age_cat"])                       if "age_cat
 race_opts       = sort_opts(df_raw["race_ethnicity"])                if "race_ethnicity"       in df_raw.columns else []
 year_opts       = sorted(df_raw["year"].dropna().unique().tolist())  if "year"       in df_raw.columns else []
 
-def opts_list(values):
-    """
-    Turn a simple list of values into the format Dash expects for
-    drop-down choices (label + value).
-    """
-    return [{"label": v, "value": v} for v in values]
-
-
 # ----------------------------
-# Reusable graph block (Tools toggle + title + graph)
-# ----------------------------
-
-def graph_block(base_id: str, title_text: str, height_px: str):
-    """
-    Make a standard "card" that holds:
-      - a hidden store that remembers if the tools are on/off
-      - a small Tools button that the user clicks
-      - a title for the plot
-      - the actual graph area
-
-    Why: we use this pattern for several plots, so this function keeps
-    the layout consistent and avoids repeating the same code over and over.
-    """
-    return html.Div(
-        [
-            # Header row with the plot title.
-            html.H5(title_text, id=f"{base_id}-title", className="plot-card-header mb-2"),
-
-            # The actual graph. Modebar (tools) is always on now.
-            dcc.Graph(
-                id=base_id,
-                style={"height": height_px, "width": "100%"},
-                config={"displayModeBar": True, "displaylogo": False},
-            ),
-        ],
-        className="mb-4",
-        # This makes sure the tools bar is never cut off visually.
-        style={"overflow": "visible"}
-    )
-
-# ----------------------------
-# UI
+# UI Components
 # ----------------------------
 
 # This link helps keyboard and screen reader users jump straight to the filters.
 skip_link = html.A(
-    "Skip to filters",
-    href="#sudors-filters",
-    className="visually-hidden-focusable",
-    tabIndex=0
-)
-
-# Big green card that shows the total number of discharges.
-# Why: gives users a quick "at a glance" number when they open the page.
-kpi_card = make_kpi_card(
-    label="Number of Unintentional or Undetermined Overdose Deaths",
-    count_id="kpi-total-deaths",
+   "Skip to filters",
+   href="#sudors-filters",
+   className="visually-hidden-focusable",
+   tabIndex=0
 )
 
 reset_filters_button = dbc.Button(
@@ -157,8 +93,13 @@ reset_filters_button = dbc.Button(
     n_clicks=0,
 )
 
+# Big green card that shows the total number of discharges.
+kpi_card = make_kpi_card(
+    label="Number of Unintentional or Undetermined Overdose Deaths (Polysubstance)",
+    count_id="sudors-kpi-total",
+)
+
 # Card holding all the filter controls down the left side.
-# Each filter uses the options we built from the data above.
 # Filter display order is managed centrally in dashboard_utils.make_filters_card.
 filters_card = make_filters_card(
     card_id="sudors-filters",
@@ -180,21 +121,15 @@ sudors_sidebar_text = [
     "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
 ]
 
-def layout_for(
-    is_mobile: bool = False,
-    show_deaths: bool = True,
-):
+def layout():
     """
-    Build the full page layout, with slightly different heights if we
-    are on a phone vs a larger screen.
-
-    Why: on small screens we want taller plots so they are easier to read,
-    but on desktops shorter plots look better side-by-side.
+    Build the discharges dashboard layout.
     """
-    # Adjust plot heights depending on screen size.
-    bar_h  = "55vh" if is_mobile else "360px"
-    pie_h  = "46vh" if is_mobile else "260px"
-
+    # Adjust plot heights for desktop
+    bar_h  = "360px"
+    line_h = "400px"
+    pie_h  = "260px"
+   
     # Left column: KPI, reset button, and filters.
     left_col = make_left_sidebar(
         kpi_card,
@@ -205,124 +140,70 @@ def layout_for(
         md=3,
     )
 
-    # Center column: the main line and bar charts.
+    # Center column: the main line, bar, and pie charts.
     center_col = dbc.Col(
         [
+            graph_block("sudors-bar", "Deaths by Substance", bar_h),
+            html.P("Bar chart showing deaths by substance.", className="visually-hidden"),
+
             dbc.Row([
-                graph_block("bar-deaths", "Deaths by Substance", bar_h),
-                html.P("Bar chart showing deaths by substance.", className="visually-hidden"),
-            ]),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            graph_block("sex-sudors-pie", "Sex at Birth", pie_h),
-                            html.P("Pie chart showing sex at birth.", className="visually-hidden"),
-                        ],
-                        xs=12,
-                        md=6,
-                    ),
-                    dbc.Col(
-                        [
-                            graph_block("homeless-sudors-pie", "Homeless status", pie_h),
-                            html.P("Pie chart showing homeless status.", className="visually-hidden"),
-                        ],
-                        xs=12,
-                        md=6,
-                    ),
-                ],
-                className="g-2",
-            ),
-            dbc.Row([
-                graph_block("substance-year-line", "Deaths by Substance Over Time", bar_h),
-                html.P("Line chart showing deaths by substance over time.", className="visually-hidden"),
-            ]),
+                dbc.Col([
+                    graph_block("sudors-pie-sex", "Sex at Birth", pie_h),
+                    html.P("Pie chart showing sex at birth.", className="visually-hidden"),
+                ], xs=12, md=6),
+                dbc.Col([
+                    graph_block("sudors-pie-homeless", "Homeless status", pie_h),
+                    html.P("Pie chart showing homeless status.", className="visually-hidden"),
+                ], xs=12, md=6),
+            ], className="g-2"),
+
+            graph_block("sudors-line", "Yearly Deaths by Substance", line_h),
+            html.P("Line chart showing deaths by substance over time.", className="visually-hidden"),
         ],
         xs=12, md=6
     )
 
-    # Right column:
-    # summary tables (by county and by age group)
-    #
-    # On phones, the two small tables sit side-by-side.
-    # On bigger screens, they stack vertically.
-    right_col = dbc.Col(
-        [
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            #html.H6("By Race/Ethnicity", className="mb-2"),
-                            html.Div(
-                                id="table-race",
-                                className="mobile-side-table",
-                                style={"overflowX": "auto"}
-                            ),
-                        ],
-                        xs=12, md=12, className="pe-1 mb-3",
-                    ),
-                    dbc.Col(
-                        [
-                            #html.H6("Calendar Year", className="mb-2"),
-                            html.Div(
-                                id="table-calendar",
-                                className="mobile-side-table",
-                                style={"overflowX": "auto"}
-                            ),
-                        ],
-                        xs=12, md=12, className="ps-1 mb-3",
-                    ),
-                    dbc.Col(
-                        [
-                            #html.H6("By Age", className="mb-2"),
-                            html.Div(
-                                id="table-sudors-age",
-                                className="mobile-side-table",
-                                style={"overflowX": "auto"}
-                            ),
-                        ],
-                        xs=12, md=12, className="ps-1 mb-3",
-                    ),
-                ],
-                className="g-2"
-            ),
+    # Right column: summary tables
+    right_col = dbc.Col([
+        dbc.Row([
+            dbc.Col([
+                html.Div(
+                    id="sudors-table-race",
+                    className="mobile-side-table",
+                    style={"overflowX": "auto"}
+                )], xs=12, md=12, className="pe-1 mb-3"),
+            dbc.Col([
+                html.Div(
+                    id="sudors-table-year",
+                    className="mobile-side-table",
+                    style={"overflowX": "auto"}
+                )], xs=12, md=12, className="ps-1 mb-3"),
+            dbc.Col([
+                html.Div(
+                    id="sudors-table-age",
+                    className="mobile-side-table",
+                    style={"overflowX": "auto"}
+                )], xs=12, md=12, className="ps-1 mb-3"),
+        ], className="g-2"),
+    ], xs=12, md=3)
 
-        ],
-        xs=12, md=3
-    )
-
-
-    # Wrap everything in a fluid container so it stretches with the screen.
     return dbc.Container([
         skip_link,
         html.Div(
             dbc.Row([left_col, center_col, right_col], className="g-3"),
-            id="sudors-section",
-            style={} if show_deaths else {"display": "none"}
+            id="sudors-primary-section",
         ),
-
-        html.Hr(
-            className="my-5",
-            style={} if (show_deaths) else {"display": "none"}
-        ),
-
-        html.P(
-            "This section highlights the number of unintentional and undetermined drug overdose deaths in Hawaii broken down by substances that caused death (not mutually exclusive), age, race/ethnicity, sex at birth, and housing status. Specific substances tracked include: Fentanyl, Methamphetamine, Heroin, Prescription Opioids, Cocaine, and Benzodiazepines. Data is sourced from the State Unintentional Drug Overdose Reporting System (SUDORS) which collects information from death certificates, medical examiner or coroner reports, and postmortem toxicology reports to provide comprehensive information on the circumstances surrounding overdose deaths.",
-            className="small text-muted mt-2 mb-3",
-        ),
-
     ], fluid=True, className="p-2")
 
-
 # This is the default layout used when the app imports this file.
-# We pass False here since desktop is the standard case.
-layout = layout_for(is_mobile=False)
+layout = layout()
 
 # ----------------------------
-# Figures + tables (no plotly titles)
+# Callbacks for discharges
 # ----------------------------
 
 @callback(
+    # filters
     Output("sudors-substance-filter", "value"),
     Output("sudors-homeless-filter", "value"),
     Output("sudors-race-filter", "value"),
@@ -332,19 +213,25 @@ layout = layout_for(is_mobile=False)
     Input("sudors-reset-filters-btn", "n_clicks"),
     prevent_initial_call=True,
 )
+
 def reset_all_filters(_n_clicks):
     # Reset all multi-select dropdowns to their default empty state.
     return None, None, None, None, None, None
 
 @callback(
-    Output("kpi-total-deaths", "children"),
-    Output("bar-deaths", "figure"),
-    Output("table-race", "children"),
-    Output("table-calendar", "children"),
-    Output("table-sudors-age", "children"),
-    Output("sex-sudors-pie", "figure"),
-    Output("homeless-sudors-pie", "figure"),
-    Output("substance-year-line", "figure"),
+    # kpi card
+    Output("sudors-kpi-total", "children"),
+    # graphs
+    Output("sudors-bar", "figure"),
+    # tables
+    Output("sudors-table-race", "children"),
+    Output("sudors-table-year", "children"),
+    Output("sudors-table-age", "children"),
+    # graphs
+    Output("sudors-pie-sex", "figure"),
+    Output("sudors-pie-homeless", "figure"),
+    Output("sudors-line", "figure"),
+    # filters
     Input("sudors-substance-filter", "value"),
     Input("sudors-homeless-filter", "value"),
     Input("sudors-sex-filter", "value"),
@@ -356,12 +243,7 @@ def reset_all_filters(_n_clicks):
 def update_dashboard(substance, homeless, sex, age, race, year):
     """
     This function runs every time the user changes a filter.
-
-    It:
-      - Applies all the filters to the data,
-      - Builds two graphs (line + stacked bar),
-      - Builds two tables,
-      - Builds the pie chart.
+    It updates all the discharge visualizations and tables.
     """
 
     def apply_filter(frame, col, val):
@@ -392,6 +274,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
     # Used to update the total on the KPI card when user selects the filter
     filter_total = dff["incident_id"].nunique()
 
+
     # ---------- Bar chart: Deaths by Substance ----------
     if {"substance"}.issubset(dff.columns):
         by_sub = (
@@ -410,7 +293,6 @@ def update_dashboard(substance, homeless, sex, age, race, year):
 
         # Cuts off label length after 25 characters
         by_sub["substance_label"] = by_sub["substance"].apply(ellipsize)
-
         by_sub["display_count"] = by_sub["count"].apply(format_count_display)
 
         sud_bar = px.bar(
@@ -434,19 +316,101 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             margin=dict(l=0, r=0, t=10, b=80),
             xaxis=dict(automargin=True, rangemode="tozero"),
         )
-
     else:
         sud_bar = px.bar()
 
 
+    # ---------- Pie chart: Deaths by Sex at Birth ----------
+    if "sex" in dff.columns:
+        pie_df = (
+            dff.groupby("sex")["incident_id"].nunique()
+            .reset_index(name="count")
+            .sort_values("count", ascending=False)
+        )
+        pie_df["display_count"] = pie_df["count"].apply(format_count_display)
+        sex_pie = px.pie(
+            pie_df,
+            names="sex",
+            values="count",
+            hole=0.35,
+            custom_data=["display_count"],
+        )
+        sex_pie.update_traces(
+            textposition="inside",
+            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
+            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
+        )
+        sex_pie.update_layout(margin=dict(l=0, r=0, t=10, b=0))
+    else:
+        sex_pie = px.pie()
+
+
+    # ---------- Pie chart: Deaths by Homeless Status ----------
+    if "homeless" in dff.columns:
+        homeless_pie_df = (
+            dff.groupby("homeless")["incident_id"].nunique()
+            .reset_index(name="count")
+            .sort_values("count", ascending=False)
+        )
+        homeless_pie_df["display_count"] = homeless_pie_df["count"].apply(format_count_display)
+        homeless_pie = px.pie(
+            homeless_pie_df,
+            names="homeless",
+            values="count",
+            hole=0.35,
+            custom_data=["display_count"],
+        )
+        homeless_pie.update_traces(
+            textposition="inside",
+            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
+            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
+        )
+        homeless_pie.update_layout(margin=dict(l=0, r=0, t=10, b=0))
+    else:
+        homeless_pie = px.pie()
+
+
+    # ---------- Line chart: Deaths by Substance Over Time ----------
+    if {"year", "substance"}.issubset(dff.columns):
+        by_year_substance = (
+            dff.groupby(["year", "substance"])["incident_id"].nunique()
+            .reset_index(name="count")
+            .sort_values(["year", "substance"])
+        )
+
+        line_fig = px.line(
+            by_year_substance,
+            x="year",
+            y="count",
+            color="substance",
+            markers=True,
+            labels={"year": "Year", "count": "Number of Deaths", "substance": "Substance"},
+        )
+        by_year_substance["display_count"] = by_year_substance["count"].apply(format_count_display)
+        line_fig.update_traces(
+            customdata=by_year_substance[["display_count"]],
+            hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Deaths: %{customdata[0]}<extra></extra>"
+        )
+        line_fig.update_layout(
+            margin=dict(l=10, r=10, t=80, b=70),
+            xaxis=dict(dtick=1, automargin=True, title_standoff=12),
+            yaxis=dict(rangemode="tozero"),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="left",
+                x=0,
+                font=dict(size=10),
+            ),
+        )
+    else:
+        line_fig = px.line()
+
+    
     # ---------- Helper for the summary tables ----------
     def tbl(column, categories=None):
-        """
-        Build a small table that shows the count of unique discharges
-        for each value in the chosen column.
-
-        If we pass in a list of categories, we use that order in the table.
-        """
+        """Build a small table for the summary."""
         if column not in dff.columns:
             return dbc.Alert(
                 f"Column '{column}' not found.",
@@ -504,93 +468,6 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             [v for v in dff["age_cat"].dropna().astype(str).unique()],
             key=age_sort_key,
         )
-
-
-    # ---------- Pie chart: Deaths by Sex at Birth ----------
-    if "sex" in dff.columns:
-        pie_df = (
-            dff.groupby("sex")["incident_id"].nunique()
-            .reset_index(name="count")
-            .sort_values("count", ascending=False)
-        )
-        pie_df["display_count"] = pie_df["count"].apply(format_count_display)
-        sex_pie = px.pie(
-            pie_df,
-            names="sex",
-            values="count",
-            hole=0.35,
-            custom_data=["display_count"],
-        )
-        sex_pie.update_traces(
-            textposition="inside",
-            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
-            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
-        )
-        sex_pie.update_layout(margin=dict(l=0, r=0, t=10, b=0))
-    else:
-        sex_pie = px.pie()
-
-    # ---------- Pie chart: Deaths by Homeless Status ----------
-    if "homeless" in dff.columns:
-        homeless_pie_df = (
-            dff.groupby("homeless")["incident_id"].nunique()
-            .reset_index(name="count")
-            .sort_values("count", ascending=False)
-        )
-        homeless_pie_df["display_count"] = homeless_pie_df["count"].apply(format_count_display)
-        homeless_pie = px.pie(
-            homeless_pie_df,
-            names="homeless",
-            values="count",
-            hole=0.35,
-            custom_data=["display_count"],
-        )
-        homeless_pie.update_traces(
-            textposition="inside",
-            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
-            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
-        )
-        homeless_pie.update_layout(margin=dict(l=0, r=0, t=10, b=0))
-    else:
-        homeless_pie = px.pie()
-
-    # ---------- Line chart: Deaths by Substance Over Time ----------
-    if {"year", "substance"}.issubset(dff.columns):
-        by_year_substance = (
-            dff.groupby(["year", "substance"])["incident_id"].nunique()
-            .reset_index(name="count")
-            .sort_values(["year", "substance"])
-        )
-
-        line_fig = px.line(
-            by_year_substance,
-            x="year",
-            y="count",
-            color="substance",
-            markers=True,
-            labels={"year": "Year", "count": "Number of Deaths", "substance": "Substance"},
-        )
-        by_year_substance["display_count"] = by_year_substance["count"].apply(format_count_display)
-        line_fig.update_traces(
-            customdata=by_year_substance[["display_count"]],
-            hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Deaths: %{customdata[0]}<extra></extra>"
-        )
-        line_fig.update_layout(
-            margin=dict(l=10, r=10, t=80, b=70),
-            xaxis=dict(dtick=1, automargin=True, title_standoff=12),
-            yaxis=dict(rangemode="tozero"),
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="left",
-                x=0,
-                font=dict(size=10),
-            ),
-        )
-    else:
-        line_fig = px.line()
-
 
     # Return all the updated visuals and tables to Dash
     return (
