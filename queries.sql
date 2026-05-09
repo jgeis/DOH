@@ -323,79 +323,51 @@ on
 
 -- name: load_amhd_year
 SELECT 
-    YEAR(date_of_service) AS service_year,
-    service_category,
-    co_category,
-    County,
-    COUNT(*) AS total_service_encounters,
-    COUNT(DISTINCT PATID) AS unique_patients
-FROM AMHD_mh_services_view
-GROUP BY 
-    YEAR(date_of_service),
-	  service_category,
-	  co_category,
-	  County;
-
+  service_year,
+  service_category,
+  co_category,
+  County,
+  total_service_encounters,
+  unique_patients
+FROM amhd_aggregate_year_reporting;
 
 -- name: load_amhd_month_mssql
 SELECT 
-  DATEFROMPARTS(YEAR(date_of_service), MONTH(date_of_service), 1) AS service_month_date,
+  service_month_date,
   service_category,
   co_category,
   County,
-  COUNT(*) AS total_service_encounters,
-  COUNT(DISTINCT PATID) AS unique_patients
-FROM AMHD_mh_services_view
-GROUP BY 
-    DATEFROMPARTS(YEAR(date_of_service), MONTH(date_of_service), 1),
-    service_category,
-    co_category,
-	  County;
-
+  total_service_encounters,
+  unique_patients
+FROM amhd_aggregate_month_reporting;
 
 -- name: load_amhd_month_sqlite
-SELECT
-  DATE(date_of_service, 'start of month') AS service_month_date,
+SELECT 
+  service_month_date,
   service_category,
   co_category,
   County,
-  COUNT(*) AS total_service_encounters,
-  COUNT(DISTINCT PATID) AS unique_patients
-FROM AMHD_mh_services_view
-GROUP BY
-  DATE(date_of_service, 'start of month'),
-  service_category,
-  co_category,
-  County;
-
+  total_service_encounters,
+  unique_patients
+FROM amhd_aggregate_month_reporting;
 
 -- name: load_amhd_day_mssql
 SELECT 
-  CAST(date_of_service AS date) AS service_date,
+  service_date,
   service_category,
   co_category,
   County,
-  COUNT(*) AS total_service_encounters,
-  COUNT(DISTINCT PATID) AS unique_patients
-FROM AMHD_mh_services_view
-GROUP BY 
-  CAST(date_of_service AS date),
-  service_category,
-  co_category,
-	  County;
-
+  total_service_encounters,
+  unique_patients
+FROM amhd_aggregate_day_reporting;
 
 -- name: load_amhd_day_sqlite
-SELECT
-  DATE(date_of_service) AS service_date,
+SELECT 
+  service_date,
   service_category,
   co_category,
   County,
-  COUNT(*) AS total_service_encounters,
-  COUNT(DISTINCT PATID) AS unique_patients
-FROM AMHD_mh_services_view
-GROUP BY
-  DATE(date_of_service),
-  service_category,
-  co_category,
-  County;
+  total_service_encounters,
+  unique_patients
+FROM amhd_aggregate_day_reporting;
+

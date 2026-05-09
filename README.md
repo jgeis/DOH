@@ -438,3 +438,83 @@ Here is a documentation draft for your `README.md` file. It is based on the file
 Use the export_table.py script: 
 
 & c:/Users/jgeis/DOH/doh_plotly/venv/Scripts/python.exe c:/Users/jgeis/DOH/doh_plotly/export_table.py
+
+
+## To create tables for AMHD data
+The AMHD data was too big and it was causing the plotly views to take forever to load.  To handled this, I do the aggregation in advance.  Attempting to do this via a view still resulted in 3 minutes just to do a count(*) on the view.  So, I create actual tables, not views, that get refreshed nightly.  The following code is for amhd_aggregate_month_reporting, but there are files for amhd_aggregate_year_reporting and amhd_aggregate_day_reporting as well.  Look in the data directory of the project.
+
+### Step 1: Create the Physical Table
+**Run this code exactly once.** This builds the empty "bucket" on your hard drive to hold the aggregated data, and adds an index to make your Dash queries lightning fast.
+```bash
+-- 1. Create the physical reporting table
+CREATE TABLE [dbo].[amhd_aggregate_month_reporting] (
+    service_month_date DATE,
+    service_category VARCHAR(100),
+    co_category VARCHAR(100),
+    County VARCHAR(100),
+    total_service_encounters INT,
+    unique_patients INT
+);
+GO
+
+-- 2. Add a Clustered Index so Dash can filter by date/category instantly
+CREATE CLUSTERED INDEX CIX_amhd_aggregate_month 
+ON [dbo].[amhd_aggregate_month_reporting](service_month_date, service_category, County);
+GO
+```
+
+### Step 2: Create the Stored Procedure
+**Run this code exactly once.** This creates a reusable script that tells SQL Server how to refresh the data.
+```bash
+CREATE PROCEDURE [dbo].[Refresh_AMHD_Aggregate_Month]
+AS
+BEGIN
+    -- Stop SQL from sending "1 row affected" network messages
+    SET NOCOUNT ON;
+
+    -- Step 1: Instantly wipe out the old data
+    TRUNCATE TABLE [dbo].[amhd_aggregate_month_reporting];
+
+    -- Step 2: Calculate the aggregations and insert directly into the table
+    INSERT INTO [dbo].[amhd_aggregate_month_reporting] (
+        service_month_date,
+        service_category,
+        co_category,
+        County,
+        total_service_encounters,
+        unique_patients
+    )
+    SELECT 
+        DATEFROMPARTS(YEAR(date_of_service), MONTH(date_of_service), 1),
+        service_category,
+        co_category,
+        County,
+        COUNT(*),
+        COUNT(DISTINCT PATID)
+    FROM [dbo].[AMHD_mh_services_view]
+    GROUP BY 
+        DATEFROMPARTS(YEAR(date_of_service), MONTH(date_of_service), 1),
+        service_category,
+        co_category,
+        County;
+    
+END;
+GO
+```
+
+### Step 3: Populate the Data for the First Time
+Now that the table and the procedure exist, execute the procedure.
+```bash
+EXEC [dbo].[Refresh_AMHD_Aggregate_Month];
+```
+
+### Step 4: How to automate this overnight:
+To make sure your dashboard is always up to date without you having to manually run the EXEC command, you can use SQL Server Agent (built into SQL Server Management Studio):
+
+1. Open SQL Server Management Studio and expand the SQL Server Agent folder at the bottom of the Object Explorer.
+
+2. Right-click Jobs and select New Job.
+
+3. Go to the Steps page, click New, and make the command simply: EXEC [dbo].[Refresh_AMHD_Aggregate_Month];
+
+4. Go to the Schedules page, click New, and set it to run daily at 2:00 AM (or whenever your main system isn't busy).
