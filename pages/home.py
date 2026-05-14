@@ -22,6 +22,8 @@ layout = dbc.Container(
                 dbc.ListGroupItem(html.A("Referral Destinations for Crisis Mobile Outreach Clients", href="/crisis-mobile-outreach")),
                 dbc.ListGroupItem(html.A("Alcohol and Drug Abuse Division (ADAD)", href="/adad")),
                 dbc.ListGroupItem(html.A("Adult Mental Health Division (AMHD)", href="/amhd")),
+                dbc.ListGroupItem(html.A("Child and Adolescent Mental Health Division (CAMHD)", href="/camhd")),
+
             ]
         ),
     ],

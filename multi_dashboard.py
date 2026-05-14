@@ -15,6 +15,7 @@ TAB_PATHS = {
     "/crisis-mobile-outreach": "Referral Destinations for Crisis Mobile Outreach Clients",
     "/adad": "ADAD Clients Served",
     "/adad-cooccurring": "ADAD Co-Occurring Clients Served",
+    "/camhd": "CAMHD Clients Served",
     "/amhd": "AMHD Clients Served",
 }
 
@@ -32,6 +33,9 @@ NAV_GROUPS = {
         ("/adad", "ADAD Clients Served"),
         ("/adad-cooccurring", "ADAD Co-Occurring Clients Served"),
     ],
+    "camhd": [
+        ("/camhd", "CAMHD Clients Served"),
+    ],
     # Example future group:
     # "new-visuals": [
     #     ("/new-overview", "New Visuals Overview"),
@@ -47,6 +51,7 @@ ROUTE_TO_GROUP = {
     "/mental-health": "substance",
     "/adad": "adad",
     "/adad-cooccurring": "adad",
+    "/camhd": "camhd",
     # "/polysubstance-alt": "substance",
     # Example future route mapping:
     # "/new-overview": "new-visuals",

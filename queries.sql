@@ -449,3 +449,16 @@ WHERE 1=1
 {where_filters}
 GROUP BY {county_expr}
 ORDER BY county;
+
+-- name: load_camhd_clients_served
+SELECT
+  client_id,
+  [date] AS service_date
+FROM camhd_service_view_test
+WHERE [date] IS NOT NULL;
+
+-- name: load_camhd_cooccurring
+select 
+  sv.client_id, 
+  sv.date
+from camhd_co_mh_view;
