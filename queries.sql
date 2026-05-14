@@ -458,7 +458,8 @@ FROM camhd_service_view_test
 WHERE [date] IS NOT NULL;
 
 -- name: load_camhd_cooccurring
-select 
-  sv.client_id, 
-  sv.date
-from camhd_co_mh_view;
+SELECT
+  client_id,
+  date AS service_date
+FROM camhd_co_mh_su_view
+WHERE date IS NOT NULL;

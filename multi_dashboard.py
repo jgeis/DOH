@@ -16,6 +16,7 @@ TAB_PATHS = {
     "/adad": "ADAD Clients Served",
     "/adad-cooccurring": "ADAD Co-Occurring Clients Served",
     "/camhd": "CAMHD Clients Served",
+    "/camhd-cooccurring": "CAMHD Co-Occurring Clients Served",
     "/amhd": "AMHD Clients Served",
 }
 
@@ -35,6 +36,7 @@ NAV_GROUPS = {
     ],
     "camhd": [
         ("/camhd", "CAMHD Clients Served"),
+        ("/camhd-cooccurring", "CAMHD Co-Occurring Clients Served"),
     ],
     # Example future group:
     # "new-visuals": [
@@ -52,6 +54,7 @@ ROUTE_TO_GROUP = {
     "/adad": "adad",
     "/adad-cooccurring": "adad",
     "/camhd": "camhd",
+    "/camhd-cooccurring": "camhd",
     # "/polysubstance-alt": "substance",
     # Example future route mapping:
     # "/new-overview": "new-visuals",
