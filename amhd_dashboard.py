@@ -6,6 +6,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from functools import lru_cache
+from time import perf_counter
 from config import USE_MSSQL
 from theme import register_template
 from dashboard_utils import (
@@ -40,7 +41,80 @@ def _sql_quote(text):
     return "'" + str(text).replace("'", "''") + "'"
 
 
+def _year_date_range_clauses(years_key):
+    """Build SARGable service_date range predicates for selected years."""
+    clauses = []
+    for year_value in years_key:
+        start_date = f"{int(year_value)}-01-01"
+        next_year = f"{int(year_value) + 1}-01-01"
+        clauses.append(f"(service_date >= {_sql_quote(start_date)} AND service_date < {_sql_quote(next_year)})")
+    return clauses
+
+
 @lru_cache(maxsize=512)
+def _amhd_query_context_cached(
+    years_key,
+    month_nums_key,
+    service_categories_key,
+    counties_key,
+    start_date,
+    end_date,
+):
+    """Build the named-query substitution context for the current AMHD filters."""
+    year_expr = "CAST(service_year AS INTEGER)"
+    month_period_expr = "DATEFROMPARTS(YEAR(service_date), MONTH(service_date), 1)" if USE_MSSQL else "DATE(service_date, 'start of month')"
+    day_period_expr = "CAST(service_date AS date)" if USE_MSSQL else "DATE(service_date)"
+    county_expr = "UPPER(LTRIM(RTRIM(county)))" if USE_MSSQL else "UPPER(TRIM(county))"
+    service_category_expr = "LTRIM(RTRIM(service_category))" if USE_MSSQL else "TRIM(service_category)"
+    where_parts = []
+
+    if years_key:
+        year_ranges = _year_date_range_clauses(years_key)
+        where_parts.append("(" + " OR ".join(year_ranges) + ")")
+
+    if month_nums_key:
+        where_parts.append(f"MONTH(service_date) IN ({','.join(str(int(m)) for m in month_nums_key)})" if USE_MSSQL else f"CAST(strftime('%m', service_date) AS INTEGER) IN ({','.join(str(int(m)) for m in month_nums_key)})")
+
+    if service_categories_key:
+        cats_sql = ",".join(_sql_quote(v) for v in service_categories_key)
+        where_parts.append(f"{service_category_expr} IN ({cats_sql})")
+
+    if counties_key:
+        counties_sql = ",".join(_sql_quote(str(v).strip().upper()) for v in counties_key)
+        where_parts.append(f"{county_expr} IN ({counties_sql})")
+
+    if start_date:
+        where_parts.append(f"service_date >= {_sql_quote(start_date)}")
+
+    if end_date:
+        where_parts.append(f"service_date <= {_sql_quote(end_date)}")
+
+    where_filters = ("\nAND " + "\nAND ".join(where_parts)) if where_parts else ""
+    return {
+        "year_expr": year_expr,
+        "month_period_expr": month_period_expr,
+        "day_period_expr": day_period_expr,
+        "county_expr": county_expr,
+        "service_category_expr": service_category_expr,
+        "where_filters": where_filters,
+    }
+
+
+@lru_cache(maxsize=256)
+def _run_named_amhd_query_cached(query_name, context_items):
+    sql = load_sql_query(query_name)
+    query_context = dict(context_items)
+    return execute_query(sql.format(**query_context))
+
+
+def _run_named_amhd_query(query_name, query_context):
+    started = perf_counter()
+    result = _run_named_amhd_query_cached(query_name, tuple(sorted(query_context.items()))).copy()
+    elapsed_ms = (perf_counter() - started) * 1000
+    print(f"[amhd_dashboard] {query_name} took {elapsed_ms:.1f} ms")
+    return result
+
+
 def _count_distinct_consumers_cached(
     years_key,
     month_nums_key,
@@ -49,48 +123,15 @@ def _count_distinct_consumers_cached(
     start_date,
     end_date,
 ):
-    """Return true distinct AMHD consumers for the current filter set."""
-    where_parts = []
-
-    if years_key:
-        if USE_MSSQL:
-            where_parts.append(f"YEAR(date_of_service) IN ({','.join(str(int(y)) for y in years_key)})")
-        else:
-            years_sql = ",".join(_sql_quote(str(int(y))) for y in years_key)
-            where_parts.append(f"strftime('%Y', date_of_service) IN ({years_sql})")
-
-    if month_nums_key:
-        if USE_MSSQL:
-            where_parts.append(f"MONTH(date_of_service) IN ({','.join(str(int(m)) for m in month_nums_key)})")
-        else:
-            months_sql = ",".join(_sql_quote(f"{int(m):02d}") for m in month_nums_key)
-            where_parts.append(f"strftime('%m', date_of_service) IN ({months_sql})")
-
-    if service_categories_key:
-        cats_sql = ",".join(_sql_quote(v) for v in service_categories_key)
-        where_parts.append(f"service_category IN ({cats_sql})")
-
-    if counties_key:
-        counties_sql = ",".join(_sql_quote(v) for v in counties_key)
-        where_parts.append(f"County IN ({counties_sql})")
-
-    if start_date:
-        if USE_MSSQL:
-            where_parts.append(f"CAST(date_of_service AS date) >= {_sql_quote(start_date)}")
-        else:
-            where_parts.append(f"date(date_of_service) >= date({_sql_quote(start_date)})")
-
-    if end_date:
-        if USE_MSSQL:
-            where_parts.append(f"CAST(date_of_service AS date) <= {_sql_quote(end_date)}")
-        else:
-            where_parts.append(f"date(date_of_service) <= date({_sql_quote(end_date)})")
-
-    query = "SELECT COUNT(DISTINCT PATID) AS total_consumers FROM AMHD_mh_services_view"
-    if where_parts:
-        query += " WHERE " + " AND ".join(where_parts)
-
-    result_df = execute_query(query)
+    query_context = _amhd_query_context_cached(
+        years_key,
+        month_nums_key,
+        service_categories_key,
+        counties_key,
+        start_date,
+        end_date,
+    )
+    result_df = _run_named_amhd_query("load_amhd_consumers_total", query_context)
     if result_df.empty or "total_consumers" not in result_df.columns:
         return 0
     return int(result_df.iloc[0]["total_consumers"])
@@ -109,66 +150,6 @@ def get_true_consumer_count(sel_years, sel_months, sel_service_categories, sel_c
         str(start_date) if start_date else "",
         str(end_date) if end_date else "",
     )
-
-
-def _build_amhd_where_clause(sel_years, sel_months, sel_service_categories, sel_counties, start_date, end_date):
-    county_expr = "UPPER(LTRIM(RTRIM(County)))" if USE_MSSQL else "UPPER(TRIM(County))"
-    service_category_expr = "LTRIM(RTRIM(service_category))" if USE_MSSQL else "TRIM(service_category)"
-    where_parts = []
-
-    if sel_years:
-        if USE_MSSQL:
-            where_parts.append(f"YEAR(date_of_service) IN ({','.join(str(int(y)) for y in sel_years)})")
-        else:
-            years_sql = ",".join(_sql_quote(str(int(y))) for y in sel_years)
-            where_parts.append(f"strftime('%Y', date_of_service) IN ({years_sql})")
-
-    if sel_months:
-        month_nums = [MONTH_TO_NUM[m] for m in sel_months if m in MONTH_TO_NUM]
-        if month_nums:
-            if USE_MSSQL:
-                where_parts.append(f"MONTH(date_of_service) IN ({','.join(str(int(m)) for m in month_nums)})")
-            else:
-                months_sql = ",".join(_sql_quote(f"{int(m):02d}") for m in month_nums)
-                where_parts.append(f"strftime('%m', date_of_service) IN ({months_sql})")
-
-    if sel_service_categories:
-        cats_sql = ",".join(_sql_quote(v) for v in sel_service_categories)
-        where_parts.append(f"{service_category_expr} IN ({cats_sql})")
-
-    if sel_counties:
-        counties_sql = ",".join(_sql_quote(str(v).strip().upper()) for v in sel_counties)
-        where_parts.append(f"{county_expr} IN ({counties_sql})")
-
-    if start_date:
-        if USE_MSSQL:
-            where_parts.append(f"CAST(date_of_service AS date) >= {_sql_quote(start_date)}")
-        else:
-            where_parts.append(f"date(date_of_service) >= date({_sql_quote(start_date)})")
-
-    if end_date:
-        if USE_MSSQL:
-            where_parts.append(f"CAST(date_of_service AS date) <= {_sql_quote(end_date)}")
-        else:
-            where_parts.append(f"date(date_of_service) <= date({_sql_quote(end_date)})")
-
-    return (" WHERE " + " AND ".join(where_parts)) if where_parts else ""
-
-
-def _run_grouped_consumer_query(select_sql, group_sql, order_sql, sel_years, sel_months, sel_service_categories, sel_counties, start_date, end_date):
-    where_sql = _build_amhd_where_clause(
-        sel_years, sel_months, sel_service_categories, sel_counties, start_date, end_date
-    )
-    query = (
-        "SELECT " + select_sql + "\n"
-        "FROM AMHD_mh_services_view\n"
-        + where_sql + "\n"
-        "GROUP BY " + group_sql + "\n"
-        "ORDER BY " + order_sql
-    )
-    return execute_query(query)
-
-
 def load_amhd_dataframe(query_name):
     sql = load_sql_query(query_name)
     df = execute_query(sql)
@@ -186,9 +167,9 @@ def load_amhd_dataframe(query_name):
         "total_service_encounters",
         "unique_patients",
     }
-    if query_name in {"load_amhd_year", "load_amhd_month"}:
+    if query_name == "load_amhd_year":
         required_cols.add("service_year")
-    if query_name in {"load_amhd_month_mssql", "load_amhd_month_sqlite"}:
+    if query_name == "load_amhd_month":
         required_cols.add("service_month_date")
     if query_name == "load_amhd_day":
         required_cols.add("service_date")
@@ -245,10 +226,8 @@ def load_amhd_dataframe(query_name):
 
 
 df_year = load_amhd_dataframe("load_amhd_year")
-month_query_name = "load_amhd_month_mssql" if USE_MSSQL else "load_amhd_month_sqlite"
-df_month = load_amhd_dataframe(month_query_name)
-day_query_name = "load_amhd_day_mssql" if USE_MSSQL else "load_amhd_day_sqlite"
-df_day = load_amhd_dataframe(day_query_name)
+df_month = load_amhd_dataframe("load_amhd_month")
+df_day = load_amhd_dataframe("load_amhd_day")
 
 # Use day-level data as the superset for option lists.
 df_raw = df_day
@@ -453,13 +432,7 @@ def reset_amhd_filters(_n_clicks):
 
 
 @callback(
-    Output("amhd-bar-chart", "figure"),
-    Output("amhd-county-line-chart", "figure"),
     Output("amhd-kpi-total", "children"),
-    Output("amhd-service-category-table", "children"),
-    Output("amhd-year-table", "children"),
-    Output("amhd-county-table", "children"),
-    Input("amhd-view-toggle", "value"),
     Input("amhd-year-filter", "value"),
     Input("amhd-month-filter", "value"),
     Input("amhd-service-category-filter", "value"),
@@ -467,7 +440,7 @@ def reset_amhd_filters(_n_clicks):
     Input("amhd-date-range", "start_date"),
     Input("amhd-date-range", "end_date"),
 )
-def update_amhd(view, sel_years, sel_months, sel_service_categories, sel_counties, start_date, end_date):
+def update_amhd_kpi(sel_years, sel_months, sel_service_categories, sel_counties, start_date, end_date):
     total_consumers = get_true_consumer_count(
         sel_years,
         sel_months,
@@ -476,76 +449,38 @@ def update_amhd(view, sel_years, sel_months, sel_service_categories, sel_countie
         start_date,
         end_date,
     )
+    return format_count_display(total_consumers)
 
-    if USE_MSSQL:
-        year_expr = "YEAR(date_of_service)"
-        month_date_expr = "DATEFROMPARTS(YEAR(date_of_service), MONTH(date_of_service), 1)"
-        day_date_expr = "CAST(date_of_service AS date)"
-        county_expr = "UPPER(LTRIM(RTRIM(County)))"
-        service_category_expr = "LTRIM(RTRIM(service_category))"
-    else:
-        year_expr = "CAST(strftime('%Y', date_of_service) AS INTEGER)"
-        month_date_expr = "DATE(date_of_service, 'start of month')"
-        day_date_expr = "DATE(date_of_service)"
-        county_expr = "UPPER(TRIM(County))"
-        service_category_expr = "TRIM(service_category)"
+
+def _build_amhd_query_context(sel_years, sel_months, sel_service_categories, sel_counties, start_date, end_date):
+    return _amhd_query_context_cached(
+        tuple(sorted(int(y) for y in (sel_years or []))),
+        tuple(sorted(MONTH_TO_NUM[m] for m in (sel_months or []) if m in MONTH_TO_NUM)),
+        tuple(sorted(str(v) for v in (sel_service_categories or []))),
+        tuple(sorted(str(v) for v in (sel_counties or []))),
+        str(start_date) if start_date else "",
+        str(end_date) if end_date else "",
+    )
+
+
+def _build_amhd_figures(view, query_context):
 
     if view == "year":
-        bar_grouped = _run_grouped_consumer_query(
-            select_sql=f"{year_expr} AS year, COUNT(DISTINCT PATID) AS consumer_count",
-            group_sql=year_expr,
-            order_sql="year",
-            sel_years=sel_years,
-            sel_months=sel_months,
-            sel_service_categories=sel_service_categories,
-            sel_counties=sel_counties,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        bar_grouped = _run_named_amhd_query("load_amhd_consumers_by_year", query_context)
         bar_grouped["period"] = bar_grouped["year"].astype(int).astype(str)
         period_title = "Calendar Year of Service"
-        line_grouped = _run_grouped_consumer_query(
-            select_sql=f"{year_expr} AS year, {county_expr} AS county, COUNT(DISTINCT PATID) AS consumer_count",
-            group_sql=f"{year_expr}, {county_expr}",
-            order_sql="year, county",
-            sel_years=sel_years,
-            sel_months=sel_months,
-            sel_service_categories=sel_service_categories,
-            sel_counties=sel_counties,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        line_grouped = _run_named_amhd_query("load_amhd_consumers_by_year_and_county", query_context)
         line_grouped["period"] = line_grouped["year"].astype(int).astype(str)
         line_x = "year"
     elif view == "month":
-        bar_grouped = _run_grouped_consumer_query(
-            select_sql=f"{month_date_expr} AS period_date, COUNT(DISTINCT PATID) AS consumer_count",
-            group_sql=month_date_expr,
-            order_sql="period_date",
-            sel_years=sel_years,
-            sel_months=sel_months,
-            sel_service_categories=sel_service_categories,
-            sel_counties=sel_counties,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        bar_grouped = _run_named_amhd_query("load_amhd_consumers_by_month", query_context)
         bar_grouped["period_date"] = pd.to_datetime(bar_grouped["period_date"], errors="coerce")
         bar_grouped["year"] = bar_grouped["period_date"].dt.year
         bar_grouped["month_num"] = bar_grouped["period_date"].dt.month
         bar_grouped["month"] = bar_grouped["month_num"].map(MONTH_NAMES)
         bar_grouped["period"] = bar_grouped["year"].astype(int).astype(str) + ", " + bar_grouped["month"]
         period_title = "Month of Service"
-        line_grouped = _run_grouped_consumer_query(
-            select_sql=f"{month_date_expr} AS period_date, {county_expr} AS county, COUNT(DISTINCT PATID) AS consumer_count",
-            group_sql=f"{month_date_expr}, {county_expr}",
-            order_sql="period_date, county",
-            sel_years=sel_years,
-            sel_months=sel_months,
-            sel_service_categories=sel_service_categories,
-            sel_counties=sel_counties,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        line_grouped = _run_named_amhd_query("load_amhd_consumers_by_month_and_county", query_context)
         line_grouped["period_date"] = pd.to_datetime(line_grouped["period_date"], errors="coerce")
         line_grouped["year"] = line_grouped["period_date"].dt.year
         line_grouped["month_num"] = line_grouped["period_date"].dt.month
@@ -553,31 +488,11 @@ def update_amhd(view, sel_years, sel_months, sel_service_categories, sel_countie
         line_grouped["period"] = line_grouped["year"].astype(int).astype(str) + ", " + line_grouped["month"]
         line_x = "period"
     else:
-        bar_grouped = _run_grouped_consumer_query(
-            select_sql=f"{day_date_expr} AS service_date, COUNT(DISTINCT PATID) AS consumer_count",
-            group_sql=day_date_expr,
-            order_sql="service_date",
-            sel_years=sel_years,
-            sel_months=sel_months,
-            sel_service_categories=sel_service_categories,
-            sel_counties=sel_counties,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        bar_grouped = _run_named_amhd_query("load_amhd_consumers_by_date", query_context)
         bar_grouped["service_date"] = pd.to_datetime(bar_grouped["service_date"], errors="coerce")
         bar_grouped["period"] = bar_grouped["service_date"].dt.strftime("%Y-%m-%d")
         period_title = "Date of Service"
-        line_grouped = _run_grouped_consumer_query(
-            select_sql=f"{day_date_expr} AS service_date, {county_expr} AS county, COUNT(DISTINCT PATID) AS consumer_count",
-            group_sql=f"{day_date_expr}, {county_expr}",
-            order_sql="service_date, county",
-            sel_years=sel_years,
-            sel_months=sel_months,
-            sel_service_categories=sel_service_categories,
-            sel_counties=sel_counties,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        line_grouped = _run_named_amhd_query("load_amhd_consumers_by_date_and_county", query_context)
         line_grouped["service_date"] = pd.to_datetime(line_grouped["service_date"], errors="coerce")
         line_grouped["period"] = line_grouped["service_date"].dt.strftime("%Y-%m-%d")
         line_x = "period"
@@ -652,61 +567,17 @@ def update_amhd(view, sel_years, sel_months, sel_service_categories, sel_countie
         hovertemplate="%{fullData.name}<br>%{x}<br>Consumers: %{y:,}<extra></extra>"
     )
 
-    service_category_tbl = _run_grouped_consumer_query(
-        select_sql=f"{service_category_expr} AS [Service Category], COUNT(DISTINCT PATID) AS [Number of AMHD Consumers]",
-        group_sql=service_category_expr,
-        order_sql="[Number of AMHD Consumers] DESC",
-        sel_years=sel_years,
-        sel_months=sel_months,
-        sel_service_categories=sel_service_categories,
-        sel_counties=sel_counties,
-        start_date=start_date,
-        end_date=end_date,
-    ) if USE_MSSQL else _run_grouped_consumer_query(
-        select_sql=f"{service_category_expr} AS 'Service Category', COUNT(DISTINCT PATID) AS 'Number of AMHD Consumers'",
-        group_sql=service_category_expr,
-        order_sql="'Number of AMHD Consumers' DESC",
-        sel_years=sel_years,
-        sel_months=sel_months,
-        sel_service_categories=sel_service_categories,
-        sel_counties=sel_counties,
-        start_date=start_date,
-        end_date=end_date,
-    )
+    return bar_fig, line_fig
 
-    year_tbl = _run_grouped_consumer_query(
-        select_sql=f"{year_expr} AS [Calendar Year], COUNT(DISTINCT PATID) AS [Number of AMHD Consumers]",
-        group_sql=year_expr,
-        order_sql="[Calendar Year] DESC",
-        sel_years=sel_years,
-        sel_months=sel_months,
-        sel_service_categories=sel_service_categories,
-        sel_counties=sel_counties,
-        start_date=start_date,
-        end_date=end_date,
-    ) if USE_MSSQL else _run_grouped_consumer_query(
-        select_sql=f"{year_expr} AS 'Calendar Year', COUNT(DISTINCT PATID) AS 'Number of AMHD Consumers'",
-        group_sql=year_expr,
-        order_sql="'Calendar Year' DESC",
-        sel_years=sel_years,
-        sel_months=sel_months,
-        sel_service_categories=sel_service_categories,
-        sel_counties=sel_counties,
-        start_date=start_date,
-        end_date=end_date,
-    )
 
-    county_tbl = _run_grouped_consumer_query(
-        select_sql=f"{county_expr} AS county, COUNT(DISTINCT PATID) AS consumer_count",
-        group_sql=county_expr,
-        order_sql="county",
-        sel_years=sel_years,
-        sel_months=sel_months,
-        sel_service_categories=sel_service_categories,
-        sel_counties=sel_counties,
-        start_date=start_date,
-        end_date=end_date,
-    )
+def _build_amhd_tables(query_context):
+    service_category_tbl = _run_named_amhd_query("load_amhd_consumers_by_service_category", query_context)
+    service_category_tbl = service_category_tbl.rename(columns={"service_category": "Service Category", "consumer_count": "Number of AMHD Consumers"})
+
+    year_tbl = _run_named_amhd_query("load_amhd_consumers_by_year", query_context)
+    year_tbl = year_tbl.rename(columns={"year": "Calendar Year", "consumer_count": "Number of AMHD Consumers"})
+
+    county_tbl = _run_named_amhd_query("load_amhd_consumers_by_county", query_context)
     county_tbl = county_tbl.rename(columns={"county": "County", "consumer_count": "Number of AMHD Consumers"})
     if not county_tbl.empty:
         county_tbl["County"] = county_tbl["County"].map(_normalize_county_label)
@@ -721,4 +592,50 @@ def update_amhd(view, sel_years, sel_months, sel_service_categories, sel_countie
     year_table = dbc.Table.from_dataframe(year_tbl, striped=True, bordered=True, hover=True, responsive=True, size="sm")
     county_table = dbc.Table.from_dataframe(county_tbl, striped=True, bordered=True, hover=True, responsive=True, size="sm")
 
-    return bar_fig, line_fig, format_count_display(total_consumers), service_category_table, year_table, county_table
+    return service_category_table, year_table, county_table
+
+
+@callback(
+    Output("amhd-bar-chart", "figure"),
+    Output("amhd-county-line-chart", "figure"),
+    Input("amhd-view-toggle", "value"),
+    Input("amhd-year-filter", "value"),
+    Input("amhd-month-filter", "value"),
+    Input("amhd-service-category-filter", "value"),
+    Input("amhd-county-filter", "value"),
+    Input("amhd-date-range", "start_date"),
+    Input("amhd-date-range", "end_date"),
+)
+def update_amhd_figures(view, sel_years, sel_months, sel_service_categories, sel_counties, start_date, end_date):
+    query_context = _build_amhd_query_context(
+        sel_years,
+        sel_months,
+        sel_service_categories,
+        sel_counties,
+        start_date,
+        end_date,
+    )
+    return _build_amhd_figures(view, query_context)
+
+
+@callback(
+    Output("amhd-service-category-table", "children"),
+    Output("amhd-year-table", "children"),
+    Output("amhd-county-table", "children"),
+    Input("amhd-year-filter", "value"),
+    Input("amhd-month-filter", "value"),
+    Input("amhd-service-category-filter", "value"),
+    Input("amhd-county-filter", "value"),
+    Input("amhd-date-range", "start_date"),
+    Input("amhd-date-range", "end_date"),
+)
+def update_amhd_tables(sel_years, sel_months, sel_service_categories, sel_counties, start_date, end_date):
+    query_context = _build_amhd_query_context(
+        sel_years,
+        sel_months,
+        sel_service_categories,
+        sel_counties,
+        start_date,
+        end_date,
+    )
+    return _build_amhd_tables(query_context)

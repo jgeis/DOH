@@ -331,7 +331,7 @@ SELECT
   unique_patients
 FROM amhd_aggregate_year_reporting;
 
--- name: load_amhd_month_mssql
+-- name: load_amhd_month
 SELECT 
   service_month_date,
   service_category,
@@ -341,17 +341,7 @@ SELECT
   unique_patients
 FROM amhd_aggregate_month_reporting;
 
--- name: load_amhd_month_sqlite
-SELECT 
-  service_month_date,
-  service_category,
-  co_category,
-  County,
-  total_service_encounters,
-  unique_patients
-FROM amhd_aggregate_month_reporting;
-
--- name: load_amhd_day_mssql
+-- name: load_amhd_day
 SELECT 
   service_date,
   service_category,
@@ -361,13 +351,101 @@ SELECT
   unique_patients
 FROM amhd_aggregate_day_reporting;
 
--- name: load_amhd_day_sqlite
-SELECT 
-  service_date,
-  service_category,
-  co_category,
-  County,
-  total_service_encounters,
-  unique_patients
-FROM amhd_aggregate_day_reporting;
+-- Calendar Year Total Query
+-- name: load_amhd_consumers_total
+SELECT
+  COUNT(DISTINCT PATID) AS total_consumers
+FROM amhd_dashboard_fact
+WHERE 1=1
+{where_filters};
 
+-- Calendar Year Query
+-- name: load_amhd_consumers_by_year
+SELECT 
+  {year_expr} AS year,
+  COUNT(DISTINCT PATID) AS consumer_count
+FROM amhd_dashboard_fact
+WHERE 1=1
+{where_filters}
+GROUP BY {year_expr}
+ORDER BY year DESC;
+
+-- Calendar Year + County Query
+-- name: load_amhd_consumers_by_year_and_county
+SELECT
+  {year_expr} AS year,
+  {county_expr} AS county,
+  COUNT(DISTINCT PATID) AS consumer_count
+FROM amhd_dashboard_fact
+WHERE 1=1
+{where_filters}
+GROUP BY {year_expr}, {county_expr}
+ORDER BY year DESC, county;
+
+-- Month Query
+-- name: load_amhd_consumers_by_month
+SELECT
+  {month_period_expr} AS period_date,
+  COUNT(DISTINCT PATID) AS consumer_count
+FROM amhd_dashboard_fact
+WHERE 1=1
+{where_filters}
+GROUP BY {month_period_expr}
+ORDER BY period_date;
+
+-- Month + County Query
+-- name: load_amhd_consumers_by_month_and_county
+SELECT
+  {month_period_expr} AS period_date,
+  {county_expr} AS county,
+  COUNT(DISTINCT PATID) AS consumer_count
+FROM amhd_dashboard_fact
+WHERE 1=1
+{where_filters}
+GROUP BY {month_period_expr}, {county_expr}
+ORDER BY period_date, county;
+
+-- Service Category Query
+-- name: load_amhd_consumers_by_service_category
+SELECT 
+  {service_category_expr} AS service_category,
+  COUNT(DISTINCT PATID) AS consumer_count
+FROM amhd_dashboard_fact
+WHERE 1=1
+{where_filters}
+GROUP BY {service_category_expr}
+ORDER BY consumer_count DESC;
+
+-- Date & County Query
+-- name: load_amhd_consumers_by_date_and_county
+SELECT 
+  {day_period_expr} AS service_date,
+  {county_expr} AS county,
+    COUNT(DISTINCT PATID) AS consumer_count
+FROM amhd_dashboard_fact
+WHERE 1=1
+{where_filters}
+GROUP BY {day_period_expr}, {county_expr}
+ORDER BY service_date, county;
+
+-- Date Only Query
+-- name: load_amhd_consumers_by_date
+SELECT 
+  {day_period_expr} AS service_date,
+    COUNT(DISTINCT PATID) AS consumer_count
+FROM amhd_dashboard_fact
+WHERE 1=1
+{where_filters}
+GROUP BY {day_period_expr}
+ORDER BY service_date;
+
+-- County Consumer Count Query
+-- name: load_amhd_consumers_by_county
+SELECT 
+  {county_expr} AS county,
+    COUNT(DISTINCT PATID) AS consumer_count
+FROM amhd_dashboard_fact
+WHERE 1=1
+{where_filters}
+GROUP BY {county_expr}
+ORDER BY county;
