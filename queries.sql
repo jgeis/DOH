@@ -321,34 +321,10 @@ on
   and iv.num_su >= 1;
 
 
--- name: load_amhd_year
-SELECT 
-  service_year,
-  service_category,
-  co_category,
-  County,
-  total_service_encounters,
-  unique_patients
-FROM amhd_aggregate_year_reporting;
-
--- name: load_amhd_month
-SELECT 
-  service_month_date,
-  service_category,
-  co_category,
-  County,
-  total_service_encounters,
-  unique_patients
-FROM amhd_aggregate_month_reporting;
-
 -- name: load_amhd_day
 SELECT 
   service_date,
-  service_category,
-  co_category,
-  County,
-  total_service_encounters,
-  unique_patients
+  service_category
 FROM amhd_aggregate_day_reporting;
 
 -- Calendar Year Total Query
@@ -370,18 +346,6 @@ WHERE 1=1
 GROUP BY {year_expr}
 ORDER BY year DESC;
 
--- Calendar Year + County Query
--- name: load_amhd_consumers_by_year_and_county
-SELECT
-  {year_expr} AS year,
-  {county_expr} AS county,
-  COUNT(DISTINCT PATID) AS consumer_count
-FROM amhd_dashboard_fact
-WHERE 1=1
-{where_filters}
-GROUP BY {year_expr}, {county_expr}
-ORDER BY year DESC, county;
-
 -- Month Query
 -- name: load_amhd_consumers_by_month
 SELECT
@@ -392,18 +356,6 @@ WHERE 1=1
 {where_filters}
 GROUP BY {month_period_expr}
 ORDER BY period_date;
-
--- Month + County Query
--- name: load_amhd_consumers_by_month_and_county
-SELECT
-  {month_period_expr} AS period_date,
-  {county_expr} AS county,
-  COUNT(DISTINCT PATID) AS consumer_count
-FROM amhd_dashboard_fact
-WHERE 1=1
-{where_filters}
-GROUP BY {month_period_expr}, {county_expr}
-ORDER BY period_date, county;
 
 -- Service Category Query
 -- name: load_amhd_consumers_by_service_category
@@ -416,18 +368,6 @@ WHERE 1=1
 GROUP BY {service_category_expr}
 ORDER BY consumer_count DESC;
 
--- Date & County Query
--- name: load_amhd_consumers_by_date_and_county
-SELECT 
-  {day_period_expr} AS service_date,
-  {county_expr} AS county,
-    COUNT(DISTINCT PATID) AS consumer_count
-FROM amhd_dashboard_fact
-WHERE 1=1
-{where_filters}
-GROUP BY {day_period_expr}, {county_expr}
-ORDER BY service_date, county;
-
 -- Date Only Query
 -- name: load_amhd_consumers_by_date
 SELECT 
@@ -438,17 +378,6 @@ WHERE 1=1
 {where_filters}
 GROUP BY {day_period_expr}
 ORDER BY service_date;
-
--- County Consumer Count Query
--- name: load_amhd_consumers_by_county
-SELECT 
-  {county_expr} AS county,
-    COUNT(DISTINCT PATID) AS consumer_count
-FROM amhd_dashboard_fact
-WHERE 1=1
-{where_filters}
-GROUP BY {county_expr}
-ORDER BY county;
 
 -- name: load_camhd_clients_served
 SELECT
