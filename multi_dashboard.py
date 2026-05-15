@@ -18,6 +18,7 @@ TAB_PATHS = {
     "/camhd": "CAMHD Clients Served",
     "/camhd-cooccurring": "CAMHD Co-Occurring Clients Served",
     "/amhd": "AMHD Clients Served",
+    "/amhd-cooccurring": "AMHD Co-Occurring Clients Served",
 }
 
 DEFAULT_PATH = "/discharges"
@@ -38,6 +39,10 @@ NAV_GROUPS = {
         ("/camhd", "CAMHD Clients Served"),
         ("/camhd-cooccurring", "CAMHD Co-Occurring Clients Served"),
     ],
+    "amhd": [
+        ("/amhd", "AMHD Clients Served"),
+        ("/amhd-cooccurring", "AMHD Co-Occurring Clients Served"),
+    ],
     # Example future group:
     # "new-visuals": [
     #     ("/new-overview", "New Visuals Overview"),
@@ -55,6 +60,8 @@ ROUTE_TO_GROUP = {
     "/adad-cooccurring": "adad",
     "/camhd": "camhd",
     "/camhd-cooccurring": "camhd",
+    "/amhd": "amhd",
+    "/amhd-cooccurring": "amhd",
     # "/polysubstance-alt": "substance",
     # Example future route mapping:
     # "/new-overview": "new-visuals",
