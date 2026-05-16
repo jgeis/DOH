@@ -458,3 +458,16 @@ SELECT
   date AS service_date
 FROM camhd_co_mh_su_view
 WHERE date IS NOT NULL;
+
+-- name: load_lcrf_occupancy
+SELECT
+  [Report Date] AS [Date],
+  Facility,
+  [Daily Occ rate] AS [Daily Occupancy Rate],
+  Max,
+  Occ AS Occupied,
+  [Available],
+  Offline,
+  [Actual = Max minus Offline] AS [Actual available]
+FROM lcrs
+WHERE [Report Date] IS NOT NULL;
