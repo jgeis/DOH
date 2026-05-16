@@ -440,15 +440,20 @@ def _build_aggregate_table(dff, view):
         grouped["status"] = grouped["has_invalid"].map({True: "Invalid rows excluded", False: "Valid"})
     grouped.loc[grouped["occupied"].isna() | grouped["actual_available"].isna(), "occupancy_rate"] = pd.NA
 
-    # Always show period and occupancy rate. Show status only for day view.
+    # Always show period and occupancy rate. For day view, show 'Data not available' in Occupancy Rate if invalid.
     display_cols = ["period", "occupancy_rate"]
     col_rename = {"period": period_title, "occupancy_rate": "Occupancy Rate"}
+    display = grouped[display_cols + (["has_invalid"] if view == "day" else [])].copy()
     if view == "day":
-        display_cols.append("status")
-        col_rename["status"] = "Status"
-    display = grouped[display_cols].copy()
-    display["occupancy_rate"] = display["occupancy_rate"].apply(_format_rate)
-    display = display.rename(columns=col_rename)
+        # Show 'Data not available' for invalid rows in day view
+        display["Occupancy Rate"] = display.apply(
+            lambda row: "Data not available" if row.get("has_invalid") else _format_rate(row["occupancy_rate"]), axis=1
+        )
+        display = display.drop(columns=["occupancy_rate", "has_invalid"])
+        display = display.rename(columns={"period": period_title})
+    else:
+        display["occupancy_rate"] = display["occupancy_rate"].apply(_format_rate)
+        display = display.rename(columns=col_rename)
     return display, period_title
 
 
