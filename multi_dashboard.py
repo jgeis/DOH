@@ -20,6 +20,7 @@ TAB_PATHS = {
     "/amhd": "AMHD Clients Served",
     "/amhd-cooccurring": "AMHD Co-Occurring Clients Served",
     "/lcrs": "Licensed Crisis Residential Facilities",
+    "/sicm": "Stabilization Bed Facilities Occupancy Rates",
 }
 
 DEFAULT_PATH = "/discharges"
@@ -46,6 +47,7 @@ NAV_GROUPS = {
     ],
     "lcrs": [
         ("/lcrs", "Licensed Crisis Residential Facilities"),
+        ("/sicm", "Stabilization Intensive Case Management"),
     ],
     # Example future group:
     # "new-visuals": [
@@ -67,6 +69,7 @@ ROUTE_TO_GROUP = {
     "/amhd": "amhd",
     "/amhd-cooccurring": "amhd",
     "/lcrs": "lcrs",
+    "/sicm": "lcrs",
     # "/polysubstance-alt": "substance",
     # Example future route mapping:
     # "/new-overview": "new-visuals",

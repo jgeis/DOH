@@ -471,3 +471,16 @@ SELECT
   [Actual = Max minus Offline] AS [Actual available]
 FROM lcrs
 WHERE [Report Date] IS NOT NULL;
+
+-- name: load_sicm_occupancy
+SELECT
+  [Report Date] AS [Date],
+  Facility,
+  [Daily Occ rate] AS [Daily Occupancy Rate],
+  Max,
+  Occ AS Occupied,
+  [Available],
+  Offline,
+  [Actual = Max minus Offline] AS [Actual available]
+FROM sicm
+WHERE [Report Date] IS NOT NULL;
