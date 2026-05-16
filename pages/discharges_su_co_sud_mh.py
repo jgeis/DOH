@@ -1,6 +1,6 @@
 from dash import register_page
 
-import substance_use_primary_dashboard as sub_dash
+import discharges_su_co_sud_mh_dashboard as sub_dash
 
 register_page(
     __name__,

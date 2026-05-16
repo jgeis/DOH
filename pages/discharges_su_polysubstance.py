@@ -1,6 +1,6 @@
 from dash import register_page
 
-import polysubstance_dashboard as poly
+import discharges_su_polysubstance_dashboard as poly
 
 register_page(
     __name__,

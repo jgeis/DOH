@@ -1,6 +1,6 @@
 from dash import register_page
 
-import mental_health_primary_dashboard as mental_dash
+import discharges_su_co_mh_sud_dashboard as mental_dash
 
 register_page(
     __name__,

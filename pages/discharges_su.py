@@ -1,6 +1,6 @@
 from dash import register_page
 
-import discharges_dashboard
+import discharges_su_dashboard
 
 register_page(
     __name__,
@@ -9,4 +9,4 @@ register_page(
     title="Any Discharge Related to Substance Use",
 )
 
-layout = discharges_dashboard.layout
+layout = discharges_su_dashboard.layout
