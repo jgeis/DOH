@@ -23,7 +23,7 @@ layout = dbc.Container(
                 dbc.ListGroupItem(html.A("Alcohol and Drug Abuse Division (ADAD)", href="/adad")),
                 dbc.ListGroupItem(html.A("Adult Mental Health Division (AMHD)", href="/amhd")),
                 dbc.ListGroupItem(html.A("Child and Adolescent Mental Health Division (CAMHD)", href="/camhd")),
-                dbc.ListGroupItem(html.A("Licensed Crisis Residential Services (LCRS)", href="/lcrs")),
+                dbc.ListGroupItem(html.A("Licensed Crisis Residential Facilities (LCRS)", href="/lcrs")),
 
             ]
         ),

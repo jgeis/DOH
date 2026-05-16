@@ -434,22 +434,21 @@ def _build_aggregate_table(dff, view):
         lambda row: (row["occupied"] / row["actual_available"]) if pd.notna(row.get("actual_available")) and row["actual_available"] else pd.NA,
         axis=1,
     )
-    grouped["status"] = grouped["has_invalid"].map({True: "Invalid rows excluded", False: "Valid"})
+    if view == "day":
+        grouped["status"] = grouped["has_invalid"].map({True: "Data not available", False: "Valid"})
+    else:
+        grouped["status"] = grouped["has_invalid"].map({True: "Invalid rows excluded", False: "Valid"})
     grouped.loc[grouped["occupied"].isna() | grouped["actual_available"].isna(), "occupancy_rate"] = pd.NA
 
-    display = grouped[["period", "occupied", "actual_available", "occupancy_rate", "status"]].copy()
-    display["occupied"] = display["occupied"].fillna(0).astype(int)
-    display["actual_available"] = display["actual_available"].fillna(0).astype(int)
+    # Always show period and occupancy rate. Show status only for day view.
+    display_cols = ["period", "occupancy_rate"]
+    col_rename = {"period": period_title, "occupancy_rate": "Occupancy Rate"}
+    if view == "day":
+        display_cols.append("status")
+        col_rename["status"] = "Status"
+    display = grouped[display_cols].copy()
     display["occupancy_rate"] = display["occupancy_rate"].apply(_format_rate)
-    display = display.rename(
-        columns={
-            "period": period_title,
-            "occupied": "Occupied",
-            "actual_available": "Actual Available",
-            "occupancy_rate": "Occupancy Rate",
-            "status": "Status",
-        }
-    )
+    display = display.rename(columns=col_rename)
     return display, period_title
 
 
@@ -479,7 +478,7 @@ def _line_chart(grouped, period_title, color_col=None, chart_title="Occupancy Ra
         margin=dict(l=10, r=10, t=30, b=50),
         xaxis_title=period_title,
         yaxis_title="Occupancy Rate",
-        yaxis=dict(tickformat=".0%", range=[0, 1]),
+        yaxis=dict(tickformat=".0%", range=[0, 1.05]),  # Add 5% headroom
         hovermode="closest",
         height=520,
     )

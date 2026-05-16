@@ -19,7 +19,7 @@ TAB_PATHS = {
     "/camhd-cooccurring": "CAMHD Co-Occurring Clients Served",
     "/amhd": "AMHD Clients Served",
     "/amhd-cooccurring": "AMHD Co-Occurring Clients Served",
-    "/lcrs": "Licensed Crisis Residential Facility Occupancy Rates",
+    "/lcrs": "Licensed Crisis Residential Facilities",
 }
 
 DEFAULT_PATH = "/discharges"
@@ -45,7 +45,7 @@ NAV_GROUPS = {
         ("/amhd-cooccurring", "AMHD Co-Occurring Clients Served"),
     ],
     "lcrs": [
-        ("/lcrs", "LCRS Occupancy Rates"),
+        ("/lcrs", "Licensed Crisis Residential Facilities"),
     ],
     # Example future group:
     # "new-visuals": [
