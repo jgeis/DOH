@@ -5,6 +5,7 @@ import dash_bootstrap_components as dbc
 TAB_PATHS = {
     "/": "Substance Use Dashboards",
     "/discharges-su": "Any Discharge Related to Substance Use",
+    "/discharges_mh": "Any Discharge Related to Mental Health Disorders",
     "/sudors": "SUDORS Overdose Deaths",
     "/sudors-polysubstance": "SUDORS Polysubstance Co-occurrence",
     "/dose": "Drug Overdose Surveillance and Epidemiology (DOSE)",
@@ -32,6 +33,9 @@ NAV_GROUPS = {
         ("/discharges-su-co-sud-mh", "Related to co-occuring SUD (primary) and MH disorder (secondary)"),
         ("/discharges-su-co-mh-sud", "Related to co-occuring MH disorder (primary) and SUD (secondary)"),
         # ("/polysubstance-alt", "Polysubstance Alternates"),
+    ],
+    "mental_health_discharges": [
+        ("/discharges_mh", "Any Discharge Related to Mental Health Disorders"),
     ],
     "adad": [
         ("/adad", "ADAD Clients Served"),
@@ -62,6 +66,7 @@ ROUTE_TO_GROUP = {
     "/discharges-su-polysubstance": "substance",
     "/discharges-su-co-sud-mh": "substance",
     "/discharges-su-co-mh-sud": "substance",
+    "/discharges_mh": "mental_health_discharges",
     "/adad": "adad",
     "/adad-cooccurring": "adad",
     "/camhd": "camhd",

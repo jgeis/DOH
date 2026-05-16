@@ -15,6 +15,7 @@ layout = dbc.Container(
         dbc.ListGroup(
             [
                 dbc.ListGroupItem(html.A("Any Discharge Related to Substance Use", href="/discharges-su")),
+                dbc.ListGroupItem(html.A("Any Discharge Related to Mental Health Disorders", href="/discharges_mh")),
                 dbc.ListGroupItem(html.A("SUDORS", href="/sudors")),
                 dbc.ListGroupItem(html.A("Drug Overdose Surveillance and Epidemiology (DOSE)", href="/dose")),
                 dbc.ListGroupItem(html.A("CARES call volume", href="/cares-call-volume")),

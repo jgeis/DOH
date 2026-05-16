@@ -19,6 +19,27 @@ FROM dx
 JOIN discharge_data_view_demographics_test m ON m.record_id = dx.record_id;
 
 
+-- name: load_discharge_data_view_diag_mh
+WITH dx AS (
+  SELECT DISTINCT record_id, TRIM(diagnosis) AS diagnosis
+  FROM discharge_data_view_diag_mh
+  WHERE diagnosis IS NOT NULL AND TRIM(diagnosis) <> ''
+)
+SELECT
+  dx.record_id,
+  dx.diagnosis,
+  m.county, 
+  m.city, 
+  m.zip, 
+  m.hawaii_residency,
+  m.age_group, 
+  m.sex, 
+  m.race_ethnicity,
+  m.year
+FROM dx
+JOIN discharge_data_view_demographics_test m ON m.record_id = dx.record_id;
+
+
 -- name: load_polysubstance_data
 WITH
 dx_union AS (
