@@ -165,7 +165,7 @@ def layout():
     # Center column: the main line and bar charts.
     center_col = dbc.Col(
         [
-            graph_block("bar-substances", "Discharges by Substance", bar_h),
+            graph_block("bar-substances", "Discharges by Substance", "560px"),
             html.P("Bar chart showing discharges by substance.", className="visually-hidden"),
             graph_block("substance-year-lines", "Yearly Discharges by Substance", line_h),
             html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
@@ -346,14 +346,24 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             dff.groupby("substance")["record_id"].nunique()
             .reset_index(name="count")
             .sort_values("count", ascending=True)
+            .tail(10)
         )
 
-        def ellipsize(text, max_len=25):
-            if text is None:
-                return text
-            return text if len(text) <= max_len else text[:max_len] + "..."
+        def wrap_substance_label(label: str, max_len: int = 22):
+            """
+            Break long labels into two lines so they don't stretch the chart.
 
-        by_sub["substance_label"] = by_sub["substance"].apply(ellipsize)
+            We look for the last space before `max_len` and insert a line break there.
+            """
+            s = str(label)
+            if len(s) <= max_len:
+                return s
+            cut = s.rfind(" ", 0, max_len)
+            if cut == -1:
+                return s
+            return s[:cut] + "<br>" + s[cut+1:]
+
+        by_sub["substance_label"] = by_sub["substance"].apply(wrap_substance_label)
         by_sub["display_count"] = by_sub["count"].apply(format_count_display)
 
         sub_bar = px.bar(
@@ -373,9 +383,15 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             customdata=by_sub["substance"]
         )
 
+        max_sub_count = int(by_sub["count"].max()) if not by_sub.empty else 0
+
         sub_bar.update_layout(
-            margin=dict(l=0, r=0, t=10, b=80),
-            xaxis=dict(automargin=True),
+            margin=dict(l=220, r=32, t=48, b=80),
+            xaxis=dict(
+                automargin=True,
+                range=[0, max_sub_count * 1.15 if max_sub_count else 1],
+            ),
+            yaxis=dict(automargin=True),
         )
     else:
         sub_bar = px.bar()

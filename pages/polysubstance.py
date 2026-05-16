@@ -4,7 +4,7 @@ import polysubstance_dashboard as poly
 
 register_page(
     __name__,
-    path="/polysubstance",
+    path="/discharges-su-polysubstance",
     name="Related to Polysubstance Use",
     title="Related to Polysubstance Use",
 )

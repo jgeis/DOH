@@ -4,7 +4,7 @@ import mental_health_primary_dashboard as mental_dash
 
 register_page(
     __name__,
-    path="/mental-health",
+    path="/discharges-su-co-mh-sud",
     name="Related to co-occuring MH disorder (primary) and SUD (secondary)",
     title="Related to co-occuring MH disorder (primary) and SUD (secondary)",
 )

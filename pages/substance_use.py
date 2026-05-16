@@ -4,7 +4,7 @@ import substance_use_primary_dashboard as sub_dash
 
 register_page(
     __name__,
-    path="/substance-use",
+    path="/discharges-su-co-sud-mh",
     name="Related to co-occuring SUD (primary) and MH disorder (secondary)",
     title="Related to co-occuring SUD (primary) and MH disorder (secondary)",
 )

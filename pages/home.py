@@ -14,10 +14,9 @@ layout = dbc.Container(
         html.P("Choose a page:"),
         dbc.ListGroup(
             [
-                dbc.ListGroupItem(html.A("Any Discharge Related to Substance Use", href="/discharges")),
+                dbc.ListGroupItem(html.A("Any Discharge Related to Substance Use", href="/discharges-su")),
                 dbc.ListGroupItem(html.A("SUDORS", href="/sudors")),
                 dbc.ListGroupItem(html.A("Drug Overdose Surveillance and Epidemiology (DOSE)", href="/dose")),
-                dbc.ListGroupItem(html.A("Related to Polysubstance Use", href="/polysubstance")),
                 dbc.ListGroupItem(html.A("CARES call volume", href="/cares-call-volume")),
                 dbc.ListGroupItem(html.A("Referral Destinations for Crisis Mobile Outreach Clients", href="/crisis-mobile-outreach")),
                 dbc.ListGroupItem(html.A("Alcohol and Drug Abuse Division (ADAD)", href="/adad")),

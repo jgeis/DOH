@@ -4,11 +4,11 @@ import dash_bootstrap_components as dbc
 
 TAB_PATHS = {
     "/": "Substance Use Dashboards",
-    "/discharges": "Any Discharge Related to Substance Use",
+    "/discharges-su": "Any Discharge Related to Substance Use",
     "/sudors": "SUDORS Overdose Deaths",
     "/sudors-polysubstance": "SUDORS Polysubstance Co-occurrence",
     "/dose": "Drug Overdose Surveillance and Epidemiology (DOSE)",
-    "/polysubstance": "Related to Polysubstance Use",
+    "/discharges-su-polysubstance": "Related to Polysubstance Use",
     "/wonder-overview": "CDC WONDER Overdose Deaths Overview",
     "/wonder-breakdown": "WONDER Overdose Deaths Breakdown",
     "/cares-call-volume": "Hawaiʻi CARES Crisis Center Volume",
@@ -23,14 +23,14 @@ TAB_PATHS = {
     "/sicm": "Stabilization Bed Facilities Occupancy Rates",
 }
 
-DEFAULT_PATH = "/discharges"
+DEFAULT_PATH = "/discharges-su"
 
 NAV_GROUPS = {
     "substance": [
-        ("/discharges", "Any Discharge Related to Substance Use"),
-        ("/polysubstance", "Related to Polysubstance Use"),
-        ("/substance-use", "Related to co-occuring SUD (primary) and MH disorder (secondary)"),
-       ("/mental-health", "Related to co-occuring MH disorder (primary) and SUD (secondary)"),
+        ("/discharges-su", "Any Discharge Related to Substance Use"),
+        ("/discharges-su-polysubstance", "Related to Polysubstance Use"),
+        ("/discharges-su-co-sud-mh", "Related to co-occuring SUD (primary) and MH disorder (secondary)"),
+        ("/discharges-su-co-mh-sud", "Related to co-occuring MH disorder (primary) and SUD (secondary)"),
         # ("/polysubstance-alt", "Polysubstance Alternates"),
     ],
     "adad": [
@@ -58,10 +58,10 @@ NAV_GROUPS = {
 }
 
 ROUTE_TO_GROUP = {
-    "/discharges": "substance",
-    "/polysubstance": "substance",
-    "/substance-use": "substance",
-    "/mental-health": "substance",
+    "/discharges-su": "substance",
+    "/discharges-su-polysubstance": "substance",
+    "/discharges-su-co-sud-mh": "substance",
+    "/discharges-su-co-mh-sud": "substance",
     "/adad": "adad",
     "/adad-cooccurring": "adad",
     "/camhd": "camhd",
