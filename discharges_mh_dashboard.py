@@ -6,6 +6,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
+import textwrap
 from dashboard_utils import (
     load_sql_query,
     sort_opts,
@@ -165,7 +166,7 @@ def layout():
     # Center column: the main line and bar charts.
     center_col = dbc.Col(
         [
-            graph_block("bar-diagnoses-mh", "Discharges by Mental Health Diagnosis", "560px"),
+            graph_block("bar-diagnoses-mh", "Discharges by Mental Health Diagnosis", "800px"),
             html.P("Bar chart showing discharges by mental health diagnosis.", className="visually-hidden"),
             graph_block("diagnosis-year-lines-mh", "Yearly Discharges by Mental Health Diagnosis", line_h),
             html.P("Line chart showing yearly discharges by mental health diagnosis.", className="visually-hidden"),
@@ -349,19 +350,13 @@ def update_dashboard(diagnosis, county, city, year, hawaii_residency, age, sex, 
             .tail(10)
         )
 
-        def wrap_diagnosis_label(label: str, max_len: int = 22):
+        def wrap_diagnosis_label(label: str, max_len: int = 45):
             """
-            Break long labels into two lines so they don't stretch the chart.
-
-            We look for the last space before `max_len` and insert a line break there.
+            Break long labels into multiple lines so they don't stretch the chart.
+            Using textwrap ensures even exceptionally long labels wrap completely.
             """
-            s = str(label)
-            if len(s) <= max_len:
-                return s
-            cut = s.rfind(" ", 0, max_len)
-            if cut == -1:
-                return s
-            return s[:cut] + "<br>" + s[cut+1:]
+            # textwrap.wrap returns a list of strings chunked by max_len
+            return "<br>".join(textwrap.wrap(str(label), width=max_len))
 
         by_dx["diagnosis_label"] = by_dx["diagnosis"].apply(wrap_diagnosis_label)
         by_dx["display_count"] = by_dx["count"].apply(format_count_display)
@@ -370,14 +365,13 @@ def update_dashboard(diagnosis, county, city, year, hawaii_residency, age, sex, 
             by_dx,
             x="count",
             y="diagnosis_label",
-            barmode="stack",
             text="display_count",
             labels={"count": "Number of Discharges", "diagnosis_label": "Mental Health Diagnosis"},
         )
 
         dx_bar.update_traces(
             marker_color="#22767C",
-            textposition="outside",
+            textposition="inside",
             cliponaxis=False,
             hovertemplate="Diagnosis: %{customdata}<br>Number of discharges: %{text}<extra></extra>",
             customdata=by_dx["diagnosis"]
@@ -386,12 +380,17 @@ def update_dashboard(diagnosis, county, city, year, hawaii_residency, age, sex, 
         max_dx_count = int(by_dx["count"].max()) if not by_dx.empty else 0
 
         dx_bar.update_layout(
-            margin=dict(l=220, r=32, t=48, b=80),
+            # Removed the hardcoded 'l' margin. Automargin will now handle the wrapped text perfectly.
+            margin=dict(r=20, t=20, b=20),
             xaxis=dict(
                 automargin=True,
-                range=[0, max_dx_count * 1.15 if max_dx_count else 1],
             ),
-            yaxis=dict(automargin=True),
+            yaxis=dict(
+                automargin=True,
+                # Optional: Ensures the Y-axis title doesn't crowd the multi-line text
+                title_standoff=20 
+            ),
+            width=None,
         )
     else:
         dx_bar = px.bar()
