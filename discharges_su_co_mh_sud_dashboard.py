@@ -110,7 +110,7 @@ reset_filters_button = dbc.Button(
 
 # Big green card that shows the total number of discharges.
 kpi_card = make_kpi_card(
-    label="Number of Discharges Related to Co-Occuring SUD (primary) and MH Disorder (secondary)",
+    label="Number of Discharges Related to Co-Occurring MH disorder (primary) and SUD (secondary)",
     count_id="mh-primary-kpi-total",
 )
 
