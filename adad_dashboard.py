@@ -157,8 +157,8 @@ filters_card = make_filters_card(
 )
 
 adad_sidebar_text = [
-    "ADAD client service volume shown by year, month, or date.",
-    "Use filters and custom date range to narrow clients served.",
+    "This data visual presents the numbers of Hawaiʻi's ADAD Clients. Data are collected from the Web Infrastructure for Treatment Services. The statistics are split by service modality, with time-based views available by day, month, and year.",
+    "* Per data sharing agreements, ED data values less than 11 are suppressed and are displayed as <11*."
 ]
 
 

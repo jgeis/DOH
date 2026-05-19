@@ -247,8 +247,8 @@ filters_card = make_filters_card(
 )
 
 amhd_sidebar_text = [
-    "AMHD co-occurring consumer volume shown by year, month, or date.",
-    "Data are filtered to PATIDs with co-occurring diagnoses and aggregated by period and service category.",
+    "This data visual presents the number of Hawaiʻi's ADAD Clients with co-occurring mental health and substance use. Data are collected from the Web Infrastructure for Treatment Services. The statistics are split by service modality, with time-based views available by day, month, and year.",
+    "* Per data sharing agreements, ED data values less than 11 are suppressed and are displayed as <11*."
 ]
 
 

@@ -110,10 +110,8 @@ filters_card_dose = make_filters_card(
 )
 
 dose_sidebar_text = [
-    "DOSE focuses on nonfatal overdose-related emergency department discharges.",
-    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*.",
-    "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
-    "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
+    "This data visual presents the number of emergency discharges related to nonfatal drug overdose by specific substance types (not mutually exclusive), as categorized by the CDC’s Drug Overdose Surveillance and Epidemiology (DOSE) definitions. Data elements include patient demographics (i.e., age, sex at birth), discharge outcomes, and temporal trends by month and year.",
+    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*."
 ]
 
 # ----------------------------
@@ -126,7 +124,6 @@ def layout():
     """
     line_h = "400px"
     bar_h  = "360px"
-    pie_h  = "260px"
     map_h  = "500px"
 
     left_col = make_left_sidebar(
@@ -181,11 +178,20 @@ def layout():
                                     ],
                                     xs=12, md=12, className="ps-1 mb-3",
                                 ),
+                                dbc.Col(
+                                    [
+                                        html.H6("By Gender", className="mb-2"),
+                                        html.Div(
+                                            id="table-sex-dose",
+                                            className="mobile-side-table",
+                                            style={"overflowX": "auto"}
+                                        ),
+                                    ],
+                                    xs=12, md=12, className="ps-1 mb-3",
+                                ),
                             ],
                             className="g-2"
                         ),
-                        graph_block("sex-pie-dose", "Discharges by Gender", pie_h),
-                        html.P("Pie chart showing discharges by gender.", className="visually-hidden"),
                     ],
                     xs=12, md=3
                 )
@@ -233,7 +239,7 @@ def reset_dose_filters(_n_clicks):
     Output("map-county", "figure"),
     Output("table-county-dose", "children"),
     Output("table-age-dose", "children"),
-    Output("sex-pie-dose", "figure"),
+    Output("table-sex-dose", "children"),
     Input("dose-substance-filter", "value"),
     Input("dose-county-filter", "value"),
     Input("dose-city-filter", "value"),
@@ -370,37 +376,14 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
 
         header_labels = {
             "age_group": "Age Group",
-            "county": "County"
+            "county": "County",
+            "sex": "Sex at Birth",
         }
         display_column = header_labels.get(column, column)
         g = g.rename(columns={column: display_column, "count": "Discharges"})
 
         return dbc.Table.from_dataframe(g, striped=True, bordered=True, hover=True)
     
-    # ---------- Pie chart: Discharges by Gender ----------
-    if "sex" in dose_df.columns:
-        pie_df = (
-            dose_df.groupby("sex")["record_id"].nunique()
-            .reset_index(name="count")
-            .sort_values("count", ascending=False)
-        )
-        pie_df["display_count"] = pie_df["count"].apply(format_count_display)
-        dose_sex_pie = px.pie(
-            pie_df,
-            names="sex",
-            values="count",
-            hole=0.35,
-            custom_data=["display_count"],
-        )
-        dose_sex_pie.update_traces(
-            textposition="inside",
-            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
-            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
-        )
-        dose_sex_pie.update_layout(margin=dict(l=0, r=0, t=10, b=0))
-    else:
-        dose_sex_pie = px.pie()
-
     # Extract age groups dynamically from the filtered DOSE data
     if "age_group" in dose_df.columns and not dose_df.empty:
         _dag_sorted = sorted([v for v in dose_df["age_group"].unique() if v not in ("<18", "Unknown")])
@@ -469,5 +452,5 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         map_fig,
         tbl("county"),
         tbl("age_group", dose_age_groups),
-        dose_sex_pie,
+        tbl("sex"),
     )

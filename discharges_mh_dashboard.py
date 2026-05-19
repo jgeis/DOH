@@ -135,10 +135,8 @@ filters_card = make_filters_card(
 )
 
 discharges_mh_sidebar_text = [
-    "Emergency department discharges are shown for selected mental-health-related visits.",
-    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*.",
-    "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
-    "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
+    "This data visual highlights emergency department (ED) discharges involving mental health as a primary factor. Data include diagnosis and demographic breakdowns by age group, sex at birth, county, and year. ",
+    "* Per data sharing agreements, ED data values less than 11 are suppressed and are displayed as <11*."
 ]
 
 # ----------------------------

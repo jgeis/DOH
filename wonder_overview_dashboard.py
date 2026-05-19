@@ -201,10 +201,8 @@ filters_card = make_filters_card(
 )
 
 wonder_overview_sidebar_text = [
-    "Overview trends summarize overdose deaths over time and by county.",
-    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*.",
-    "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
-    "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
+    "The CDC WONDER Overdose Deaths Overview presents the number of unintentional and undetermined intent drug overdose deaths in Hawaiʻi from 2018 to 2022 using a data query parameter that includes ICD-10 Codes T36-T50 for deaths caused by poisoning by drugs, medications, and biological substances sourced from the Wide-ranging ONline Data for Epidemiologic Research (WONDER). Data can be filtered by county of death and calendar year. The WONDER Breakdown presents the data by substance, race, age group, and sex. ",
+    "* Per data sharing agreements, ED data values less than 11 are suppressed and are displayed as <11*."
 ]
 
 def layout_for(

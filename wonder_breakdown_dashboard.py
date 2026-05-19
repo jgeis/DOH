@@ -9,6 +9,7 @@ from dashboard_utils import (
     make_left_sidebar,
     make_filters_card,
     radio_filter,
+    STATEWIDE_COUNTY,
     format_count_display,
 )
 import re
@@ -178,10 +179,8 @@ filters_card = make_filters_card(
 )
 
 wonder_breakdown_sidebar_text = [
-    "Breakdown charts split overdose deaths by substance, race, age group, and gender.",
-    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*.",
-    "† Unintentional and undetermined intent drug overdose death data sourced from the State Unintentional Drug Overdose Reporting System (SUDORS).",
-    "‡ Overdose death data sourced from the CDC Wide-ranging ONline Data for Epidemiologic Research (WONDER).",
+    "The CDC WONDER Overdose Deaths Overview presents the number of unintentional and undetermined intent drug overdose deaths in Hawaiʻi from 2018 to 2022 using a data query parameter that includes ICD-10 Codes T36-T50 for deaths caused by poisoning by drugs, medications, and biological substances sourced from the Wide-ranging ONline Data for Epidemiologic Research (WONDER). Data can be filtered by county of death and calendar year. The WONDER Breakdown presents the data by substance, race, age group, and sex. ",
+    "* Per data sharing agreements, ED data values less than 11 are suppressed and are displayed as <11*."
 ]
 
 def layout_for(
@@ -303,23 +302,54 @@ def update_dashboard(county, year):
             return frame[frame[col].isin(val)]
         return frame[frame[col] == val]
 
-    # Start from the full dataset each time.
-    dff = df_raw_gender.copy()
-
-    # Only apply filters for columns that actually exist.
-    if "county" in dff.columns:    dff = apply_filter(dff, "county", county)
-    if "year" in dff.columns:      dff = apply_filter(dff, "year", year)
-
-    # Count unique discharges (each record_id represents one discharge).
-    # Used to update the total on the KPI card when user selects the filter
-    filter_total = dff["deaths"].sum()
-
     def filter_df(df):
-        if "county" in df.columns:
-            df = apply_filter(df, "county", county)
         if "year" in df.columns:
             df = apply_filter(df, "year", year)
+
+        if "county" in df.columns and county is not None:
+            county_text = str(county).strip().lower()
+            statewide_text = STATEWIDE_COUNTY.lower()
+            statewide_rows = df[
+                df["county"].astype(str).str.strip().str.lower() == statewide_text
+            ]
+            non_statewide_rows = df[
+                df["county"].astype(str).str.strip().str.lower() != statewide_text
+            ]
+
+            if county_text == statewide_text:
+                # Statewide: prefer aggregating real county rows so years that
+                # lack a literal "Statewide" row still show data.
+                df = non_statewide_rows if not non_statewide_rows.empty else statewide_rows
+            else:
+                # Specific county: use that county's rows; fall back to the
+                # Statewide rows when the source only provides statewide-level
+                # data for this year (e.g. gender/race in 2023).
+                county_rows = apply_filter(non_statewide_rows, "county", county)
+                df = county_rows if not county_rows.empty else statewide_rows
+
         return df
+
+    # KPI: use age_group (has county-level data for all years including 2023).
+    # For the KPI we never fall back to Statewide when a specific county is
+    # selected — that would show the wrong total.
+    def kpi_filter_df(df):
+        if "year" in df.columns:
+            df = apply_filter(df, "year", year)
+        if "county" in df.columns and county is not None:
+            county_text = str(county).strip().lower()
+            statewide_text = STATEWIDE_COUNTY.lower()
+            if county_text == statewide_text:
+                non_statewide = df[
+                    df["county"].astype(str).str.strip().str.lower() != statewide_text
+                ]
+                df = non_statewide if not non_statewide.empty else df[
+                    df["county"].astype(str).str.strip().str.lower() == statewide_text
+                ]
+            else:
+                df = apply_filter(df, "county", county)
+        return df
+
+    filter_total = kpi_filter_df(df_raw_age_group.copy())["deaths"].sum()
 
     dff_substance = filter_df(df_raw_substance.copy())
     dff_race = filter_df(df_raw_race.copy())
@@ -345,6 +375,7 @@ def update_dashboard(county, year):
         )
 
         sub_bar.update_traces(
+            marker_color="#22767C",
             textposition="outside",
             cliponaxis=False,
             hovertemplate="%{y}: %{text}<extra></extra>",
@@ -382,6 +413,7 @@ def update_dashboard(county, year):
         )
 
         race_bar.update_traces(
+            marker_color="#22767C",
             textposition="outside",
             hovertemplate="%{y}: %{text}<extra></extra>",
         )
@@ -432,6 +464,7 @@ def update_dashboard(county, year):
         )
 
         age_group_bar.update_traces(
+            marker_color="#22767C",
             textposition="outside",
             hovertemplate="%{y}: %{text}<extra></extra>",
         )
