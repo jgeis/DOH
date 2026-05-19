@@ -284,8 +284,6 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
 
     cooccuring_ids = all_mh_ids.intersection(primary_su_ids)
 
-    dff = dff[dff["record_id"].isin(cooccuring_ids)]
-
     include_statewide_county_outputs = county_output_should_include_statewide(county)
 
     filter_total = dff["record_id"].nunique()

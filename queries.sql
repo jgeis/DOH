@@ -228,7 +228,7 @@ WHERE Date IS NOT NULL;
 
 
 -- name: load_discharge_data_view_diagnosis
-WITH dx_union AS (
+WITH diag AS (
  SELECT DISTINCT
    record_id,
    TRIM(diagnosis) AS diagnosis,
@@ -238,30 +238,32 @@ WITH dx_union AS (
  WHERE diagnosis IS NOT NULL
    AND TRIM(diagnosis) <> ''
 ),
-co_ids AS (
- SELECT record_id
- FROM dx_union
- GROUP BY record_id
-)
-SELECT
- u.record_id,
- u.diagnosis,
- u.diagnosis_type,
- u.is_primary,
- m.county,
- m.city,
- m.zip,
- m.hawaii_residency,
- m.age_group,
- m.sex,
- m.race_ethnicity,
- CAST(m.year AS INTEGER) AS year
-FROM dx_union u
-JOIN co_ids c
- ON c.record_id = u.record_id
-JOIN discharge_data_view_demographics_test m
- ON m.record_id = u.record_id
-WHERE LOWER(COALESCE(NULLIF(TRIM(m.age_group), ''), 'unknown')) <> 'unknown';
+cooccur as 
+(select distinct record_id from discharge_data_view 
+where 
+	num_substance > 0
+	and num_mental > 0
+	and su_primary = 1 
+	and mh_primary = 0)
+SELECT distinct
+ dx.record_id,
+ dx.diagnosis,
+ dx.diagnosis_type,
+ dx.is_primary,
+ demo.county,
+ demo.city,
+ demo.zip,
+ demo.hawaii_residency,
+ demo.age_group,
+ demo.sex,
+ demo.race_ethnicity,
+ CAST(demo.year AS INTEGER) AS year
+FROM diag dx
+INNER JOIN cooccur co 
+ ON co.record_id = dx.record_id
+INNER JOIN discharge_data_view_demographics_test demo
+ ON demo.record_id = dx.record_id
+WHERE LOWER(COALESCE(NULLIF(TRIM(demo.age_group), ''), 'unknown')) <> 'unknown';
 
 
 -- name: load_crisis_mobile_outreach
