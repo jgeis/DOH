@@ -129,8 +129,6 @@ app.layout = dbc.Container(
             className="mb-2",
         ),
 
-        html.H2(id="page-title", className="text-center mb-2"),
-
         html.Div(page_container, style={"marginTop": "12px"}),
     ],
     fluid=True,
@@ -139,11 +137,10 @@ app.layout = dbc.Container(
 @callback(
     Output("top-nav", "children"),
     Output("top-nav-wrapper", "style"),
-    Output("page-title", "children"),
     Input("url", "pathname"),
 )
 def update_active_tab(pathname):
-    """Render the active tab group for the current route and set title."""
+    """Render the active tab group for the current route."""
     if not pathname:
         pathname = "/"
 
@@ -174,9 +171,7 @@ def update_active_tab(pathname):
     else:
         nav_style = {"display": "none"}
 
-    title = TAB_PATHS.get(pathname, "Substance Use Dashboards")
-
-    return tabs, nav_style, title
+    return tabs, nav_style
 
 if __name__ == "__main__":
     app.run(debug=True)
