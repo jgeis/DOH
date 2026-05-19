@@ -119,10 +119,8 @@ filters_card = make_filters_card(
     ],
 )
 
-cares_sidebar_text = [
-    "Data from the Hawaiʻi CARES Crisis Center text and chat contacts.",
-    "Select 'Year View' to compare yearly totals or 'Month View' for a month-by-month breakdown.",
-]
+from section_texts import SECTION_TEXTS
+cares_sidebar_text = SECTION_TEXTS.get("cares", [])
 
 # ----------------------------
 # Layout

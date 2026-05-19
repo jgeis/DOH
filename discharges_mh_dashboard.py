@@ -134,10 +134,8 @@ filters_card = make_filters_card(
     ],
 )
 
-discharges_mh_sidebar_text = [
-    "This data visual highlights emergency department (ED) discharges involving mental health as a primary factor. Data include diagnosis and demographic breakdowns by age group, sex at birth, county, and year. ",
-    "* Per data sharing agreements, ED data values less than 11 are suppressed and are displayed as <11*."
-]
+from section_texts import SECTION_TEXTS
+discharges_mh_sidebar_text = SECTION_TEXTS.get("discharges_mh", [])
 
 # ----------------------------
 # Layout

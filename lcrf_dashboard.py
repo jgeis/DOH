@@ -203,10 +203,8 @@ filters_card = make_filters_card(
     ],
 )
 
-lcrf_sidebar_text = [
-    "Licensed Crisis Residential Facility occupancy rates by year, month, or date.",
-    "Filter by county, facility month, and custom date range.",
-]
+from section_texts import SECTION_TEXTS
+lcrf_sidebar_text = SECTION_TEXTS.get("lcrf", [])
 
 
 def build_layout():

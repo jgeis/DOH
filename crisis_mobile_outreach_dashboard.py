@@ -81,9 +81,8 @@ filters_card = make_filters_card(
     ],
 )
 
-sidebar_text = [
-    "Referral destinations shown for Crisis Mobile Outreach clients over the past 6 months.",
-]
+from section_texts import SECTION_TEXTS
+sidebar_text = SECTION_TEXTS.get("crisis_mobile_outreach", [])
 
 
 # ----------------------------

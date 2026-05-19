@@ -242,10 +242,8 @@ filters_card = make_filters_card(
     ],
 )
 
-amhd_sidebar_text = [
-    "AMHD consumer volume shown by year, month, or date.",
-    "Data are pre-aggregated in SQL by period and service category.",
-]
+from section_texts import SECTION_TEXTS
+amhd_sidebar_text = SECTION_TEXTS.get("amhd", [])
 
 
 def layout():

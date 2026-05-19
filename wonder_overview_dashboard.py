@@ -200,10 +200,8 @@ filters_card = make_filters_card(
     ],
 )
 
-wonder_overview_sidebar_text = [
-    "The CDC WONDER Overdose Deaths Overview presents the number of unintentional and undetermined intent drug overdose deaths in Hawaiʻi from 2018 to 2022 using a data query parameter that includes ICD-10 Codes T36-T50 for deaths caused by poisoning by drugs, medications, and biological substances sourced from the Wide-ranging ONline Data for Epidemiologic Research (WONDER). Data can be filtered by county of death and calendar year. The WONDER Breakdown presents the data by substance, race, age group, and sex. ",
-    "* Per data sharing agreements, ED data values less than 11 are suppressed and are displayed as <11*."
-]
+from section_texts import SECTION_TEXTS
+wonder_overview_sidebar_text = SECTION_TEXTS.get("wonder_overview", [])
 
 def layout_for(
     is_mobile: bool = False,

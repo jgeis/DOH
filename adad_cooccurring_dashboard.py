@@ -17,7 +17,9 @@ from dashboard_utils import (
     sort_opts,
 )
 
-register_template()
+
+# Import centralized section text
+from section_texts import SECTION_TEXTS
 
 MONTH_NAMES = {
     1: "January", 2: "February", 3: "March", 4: "April",
@@ -150,10 +152,7 @@ filters_card = make_filters_card(
     ],
 )
 
-adad_cooccurring_sidebar_text = [
-    "ADAD co-occurring client service volume shown by year, month, or date.",
-    "Use filters and custom date range to narrow clients served.",
-]
+adad_cooccurring_sidebar_text = SECTION_TEXTS.get("adad_cooccurring", [])
 
 
 def layout():

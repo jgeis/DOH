@@ -207,10 +207,8 @@ filters_card = make_filters_card(
    ],
 )
 
-sudors_cooccurrence_sidebar_text = [
-   "This data visual presents the number of unintentional and undetermined intent drug overdose deaths in Hawai’i involving multiple substances used simultaneously, at the same time, or sequentially, one after the other, sourced from the State Unintentional Drug Overdose Reporting System (SUDORS). Data can be filtered by substances that were deemed the cause of death (not mutually exclusive), housing status, race/ethnicity, sex, age group, and calendar year.",
-    "* Per data sharing agreements, ED data values less than 11 are suppressed and are displayed as <11*."
-]
+from section_texts import SECTION_TEXTS
+sudors_cooccurrence_sidebar_text = SECTION_TEXTS.get("sudors_polysubstance", [])
 
 def layout():
    """

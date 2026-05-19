@@ -132,10 +132,8 @@ filters_card = make_filters_card(
     ],
 )
 
-discharges_sidebar_text = [
-    "This data visual highlights emergency department (ED) discharges involving substance use as a primary factor. Data include substance types and demographic breakdowns by age group, sex at birth, county, and year. Specific substances tracked are not mutually exclusive and include alcohol, nicotine, cannabis, opioids, cocaine, stimulants, and psychoactive drugs, among others.",
-    "* Per data sharing agreements, ED data values less than 11 are suppressed and are displayed as <11*."
-]
+from section_texts import SECTION_TEXTS
+discharges_sidebar_text = SECTION_TEXTS.get("discharges_su_co_mh_sud", [])
 
 def layout():
     """

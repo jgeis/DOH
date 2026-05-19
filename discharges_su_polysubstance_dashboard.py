@@ -242,10 +242,8 @@ year_opts      = sorted(df_raw["year"].dropna().unique().tolist()) if "year" in 
 # Total number of unique records, used for the big KPI card.
 kpi_total = df_raw["record_id"].nunique() if "record_id" in df_raw.columns else 0
 
-polysubstance_sidebar_text = [
-    "This section offers a comprehensive view of ED discharges involving multiple substances used simultaneously (at the same time) or sequentially (one after another). Data include substance types and demographic breakdowns by age group, sex at birth, county, and year.",
-    "* Per data sharing agreements, ED data values less than 11 are suppressed and are displayed as <11*."
-]
+from section_texts import SECTION_TEXTS
+polysubstance_sidebar_text = SECTION_TEXTS.get("discharges_su_polysubstance", [])
 
 # Filter display order is managed centrally in dashboard_utils.make_filters_card.
 filters_card = make_filters_card(

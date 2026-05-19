@@ -203,10 +203,8 @@ filters_card = make_filters_card(
     ],
 )
 
-sicm_sidebar_text = [
-    "Stabilization bed facilities occupancy rates by year, month, or date.",
-    "Filter by county, facility, month, and custom date range.",
-]
+from section_texts import SECTION_TEXTS
+sicm_sidebar_text = SECTION_TEXTS.get("sicm", [])
 
 
 def build_layout():

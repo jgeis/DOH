@@ -246,10 +246,8 @@ filters_card = make_filters_card(
     ],
 )
 
-amhd_sidebar_text = [
-    "This data visual presents the number of Hawaiʻi's ADAD Clients with co-occurring mental health and substance use. Data are collected from the Web Infrastructure for Treatment Services. The statistics are split by service modality, with time-based views available by day, month, and year.",
-    "* Per data sharing agreements, ED data values less than 11 are suppressed and are displayed as <11*."
-]
+from section_texts import SECTION_TEXTS
+amhd_sidebar_text = SECTION_TEXTS.get("amhd_cooccurring", [])
 
 
 def layout():
