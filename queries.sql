@@ -69,7 +69,7 @@ WHERE
   LOWER(COALESCE(NULLIF(TRIM(m.age_group), ''), 'unknown')) <> 'unknown';  -- drop Unknown/blank ages
 
 
--- name: load_sud_primary_mh_secondary_v2
+-- name: load_sud_primary_mh_secondary
 WITH
 sud_union AS (
   SELECT DISTINCT record_id, TRIM(diagnosis) AS sud_substance, '' AS sud_pos
@@ -227,7 +227,7 @@ FROM cares_calls_volume_view
 WHERE Date IS NOT NULL;
 
 
--- name: load_discharge_data_view_diagnosis
+-- name: load_discharges_su_co_sud_mh
 WITH diag AS (
  SELECT DISTINCT
    record_id,
@@ -245,6 +245,44 @@ where
 	and num_mental > 0
 	and su_primary = 1 
 	and mh_primary = 0)
+SELECT distinct
+ dx.record_id,
+ dx.diagnosis,
+ dx.diagnosis_type,
+ dx.is_primary,
+ demo.county,
+ demo.city,
+ demo.zip,
+ demo.hawaii_residency,
+ demo.age_group,
+ demo.sex,
+ demo.race_ethnicity,
+ CAST(demo.year AS INTEGER) AS year
+FROM diag dx
+INNER JOIN cooccur co 
+ ON co.record_id = dx.record_id
+INNER JOIN discharge_data_view_demographics_test demo
+ ON demo.record_id = dx.record_id
+WHERE LOWER(COALESCE(NULLIF(TRIM(demo.age_group), ''), 'unknown')) <> 'unknown';
+
+-- name: load_discharges_su_co_mh_sud
+WITH diag AS (
+ SELECT DISTINCT
+   record_id,
+   TRIM(diagnosis) AS diagnosis,
+   diagnosis_type,
+   is_primary
+ FROM discharge_data_view_diagnosis
+ WHERE diagnosis IS NOT NULL
+   AND TRIM(diagnosis) <> ''
+),
+cooccur as 
+(select distinct record_id from discharge_data_view 
+where 
+	num_substance > 0
+	and num_mental > 0
+	and su_primary = 0 
+	and mh_primary = 1)
 SELECT distinct
  dx.record_id,
  dx.diagnosis,

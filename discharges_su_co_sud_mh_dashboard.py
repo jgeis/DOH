@@ -41,11 +41,11 @@ def load_diagnosis_dataframe_from_db():
     Note: Uses either SQLite or MSSQL automatically based on config.
     """
     # Grab the SQL for our main data
-    sql = load_sql_query("load_discharge_data_view_diagnosis")
+    sql = load_sql_query("load_discharges_su_co_sud_mh")
     
     # Execute query using db_utils (automatically uses correct database)
     df = execute_query(sql)
-    print(f"load_discharge_data_view_diagnosis returned {len(df):,} rows")
+    print(f"load_discharges_su_co_sud_mh returned {len(df):,} rows")
 
     # If there is no data, we stop early instead of showing a broken page
     if df.empty:
