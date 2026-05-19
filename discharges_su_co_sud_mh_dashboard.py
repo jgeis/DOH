@@ -123,7 +123,7 @@ filters_card = make_filters_card(
     title="Filter Data",
     filters=[
         dropdown_filter("Substance", "su-primary-su-filter", options=opts_list(su_opts), multi=True, placeholder="All"),
-        dropdown_filter("Mental Health Diagnosis", "su-primary-mh-filter", options=opts_list(mh_opts), multi=True, placeholder="All", optionHeight=125),
+        dropdown_filter("Mental Health Diagnosis", "su-primary-mh-filter", options=opts_list(mh_opts), multi=True, placeholder="All"),
         dropdown_filter("County", "su-primary-county-filter", options=opts_list(county_opts), multi=True, placeholder="All"),
         dropdown_filter("City", "su-primary-city-filter", options=opts_list(city_opts), multi=True, placeholder="All"),
         dropdown_filter("Year", "su-primary-year-filter", options=opts_list(year_opts), multi=True, placeholder="All"),
