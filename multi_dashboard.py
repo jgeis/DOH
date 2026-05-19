@@ -36,6 +36,8 @@ NAV_GROUPS = {
     ],
     "mental_health_discharges": [
         ("/discharges-mh", "Any Discharge Related to Mental Health Disorders"),
+        ("/discharges-mh-co-sud-mh", "Related to co-occuring SUD (primary) and MH disorder (secondary)"),
+        ("/discharges-mh-co-mh-sud", "Related to co-occuring MH disorder (primary) and SUD (secondary)"),
     ],
     "adad": [
         ("/adad", "ADAD Clients Served"),
@@ -67,6 +69,8 @@ ROUTE_TO_GROUP = {
     "/discharges-su-co-sud-mh": "substance",
     "/discharges-su-co-mh-sud": "substance",
     "/discharges-mh": "mental_health_discharges",
+    "/discharges-mh-co-sud-mh": "mental_health_discharges",
+    "/discharges-mh-co-mh-sud": "mental_health_discharges",
     "/adad": "adad",
     "/adad-cooccurring": "adad",
     "/camhd": "camhd",
