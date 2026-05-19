@@ -19,6 +19,7 @@ layout = dbc.Container(
                 dbc.ListGroupItem(html.A("SUDORS", href="/sudors")),
                 dbc.ListGroupItem(html.A("Drug Overdose Surveillance and Epidemiology (DOSE)", href="/dose")),
                 dbc.ListGroupItem(html.A("CARES call volume", href="/cares-call-volume")),
+                dbc.ListGroupItem(html.A("Hawai'i CARES 988 Statistics", href="/cares-statistics")),
                 dbc.ListGroupItem(html.A("Referral Destinations for Crisis Mobile Outreach Clients", href="/crisis-mobile-outreach")),
                 dbc.ListGroupItem(html.A("Alcohol and Drug Abuse Division (ADAD)", href="/adad")),
                 dbc.ListGroupItem(html.A("Adult Mental Health Division (AMHD)", href="/amhd")),

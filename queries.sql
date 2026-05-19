@@ -68,36 +68,6 @@ JOIN discharge_data_view_demographics_test AS m
 WHERE
   LOWER(COALESCE(NULLIF(TRIM(m.age_group), ''), 'unknown')) <> 'unknown';  -- drop Unknown/blank ages
 
-
--- name: load_sud_primary_mh_secondary
-WITH
-sud_union AS (
-  SELECT DISTINCT record_id, TRIM(diagnosis) AS sud_substance, '' AS sud_pos
-  FROM discharge_data_view_diag_su
-  WHERE diagnosis IS NOT NULL AND TRIM(diagnosis) <> ''
-),
-mh_union AS (
-  SELECT record_id, TRIM(diagnosis) AS mh_dx, '' AS mh_pos
-  FROM discharge_data_view_diag_mh
-  WHERE diagnosis IS NOT NULL AND TRIM(diagnosis) <> ''
-),
-co AS (
-  SELECT s.record_id, s.sud_substance, m.mh_dx
-  FROM sud_union s
-  JOIN mh_union m ON m.record_id = s.record_id
-)
-SELECT
-  co.record_id,
-  co.sud_substance                    AS su_diagnosis,
-  co.mh_dx                            AS mh_diagnosis,
-  d.county, d.city, d.zip, d.hawaii_residency,
-  d.age_group, d.sex, d.race_ethnicity,
-  CAST(d.year AS INTEGER)    AS year
-FROM co
-JOIN discharge_data_view_demographics_test d ON d.record_id = co.record_id
-WHERE LOWER(COALESCE(NULLIF(TRIM(d.age_group), ''), 'unknown')) <> 'unknown'; -- removed hardcoded year filter
-
-
 -- name: load_dose_data
 WITH dx AS (
   SELECT DISTINCT record_id, TRIM(diagnosis) AS substance
@@ -545,3 +515,155 @@ SELECT
   [Actual = Max minus Offline] AS [Actual available]
 FROM sicm
 WHERE [Report Date] IS NOT NULL;
+
+
+
+-- name: load_cares_calls_by_nature_top_10
+SELECT TOP 10
+    Nature_of_Call,
+    CAST((COUNT(*) * 100.0) / SUM(COUNT(*)) OVER() AS DECIMAL(5,2)) AS percentage_of_total
+FROM dbo.cares_calls_inbound 
+-- get last 6 months that actually have data
+WHERE Date >= DATEADD(month, -6, (SELECT MAX(Date) FROM dbo.cares_calls_inbound))
+GROUP BY Nature_of_Call 
+ORDER BY percentage_of_total desc;
+
+
+
+-- name: load_cares_calls_by_nature_top_10_sqlite
+SELECT 
+    Nature_of_Call,
+    ROUND((COUNT(*) * 100.0) / SUM(COUNT(*)) OVER(), 2) AS percentage_of_total
+FROM cares_calls_inbound 
+-- get last 6 months that actually have data
+WHERE Date >= date((SELECT MAX(Date) FROM cares_calls_inbound), '-6 months')
+GROUP BY Nature_of_Call 
+ORDER BY percentage_of_total DESC
+LIMIT 10;
+
+
+
+-- name: load_cares_calls_by_line_6_months
+WITH LatestRecord AS (
+    -- 1. Find the newest date in the table
+    SELECT MAX(Date) AS MaxDate 
+    FROM dbo.cares_calls_inbound
+),
+DateBoundaries AS (
+    -- 2. Calculate the exact 1st of the month boundaries
+    SELECT 
+        -- Start of the most recent month (used as the cut-off to drop the partial month)
+        DATEFROMPARTS(YEAR(MaxDate), MONTH(MaxDate), 1) AS CutoffDate,
+        -- Exactly 6 months before that
+        DATEADD(month, -6, DATEFROMPARTS(YEAR(MaxDate), MONTH(MaxDate), 1)) AS StartDate
+    FROM LatestRecord
+)
+SELECT
+    C.Line,
+    FORMAT(C.Date, 'yyyy-MM') AS Date_Month,
+    COUNT(*) AS num_calls 
+FROM dbo.cares_calls_inbound C
+CROSS JOIN DateBoundaries B
+-- 3. Filter using our first-of-the-month boundaries
+WHERE C.Date >= B.StartDate 
+  AND C.Date < B.CutoffDate
+GROUP BY 
+    C.Line,
+    FORMAT(C.Date, 'yyyy-MM')
+ORDER BY 
+    Date_Month DESC,
+    num_calls DESC;
+
+
+-- name: load_cares_calls_by_line_6_months_sqlite
+WITH LatestRecord AS (
+    -- 1. Find the newest date in the table
+    SELECT MAX(Date) AS MaxDate 
+    FROM cares_calls_inbound
+),
+DateBoundaries AS (
+    -- 2. Calculate the exact 1st of the month boundaries
+    SELECT 
+        -- Start of the most recent month (used as the cut-off to drop the partial month)
+        date(MaxDate, 'start of month') AS CutoffDate,
+        
+        -- Exactly 6 months before that
+        date(MaxDate, 'start of month', '-6 months') AS StartDate
+    FROM LatestRecord
+)
+SELECT
+    C.Line,
+    strftime('%Y-%m', C.Date) AS Date_Month,
+    COUNT(*) AS num_calls 
+FROM cares_calls_inbound C
+CROSS JOIN DateBoundaries B
+-- 3. Filter using our first-of-the-month boundaries
+WHERE C.Date >= B.StartDate 
+  AND C.Date < B.CutoffDate
+GROUP BY 
+    C.Line,
+    strftime('%Y-%m', C.Date)
+ORDER BY 
+    Date_Month DESC,
+    num_calls DESC;
+
+
+
+-- name: load_crisis_mobile_outreach_6_months
+WITH LatestRecord AS (
+    -- 1. Find the newest date in the table
+    SELECT MAX(DispatchDate) AS MaxDate 
+    FROM dbo.AMHD_Crisis_Mobile_Outreach
+),
+DateBoundaries AS (
+    -- 2. Calculate the exact 1st of the month for our boundaries
+    SELECT 
+        -- Start of the most recent month (used as the cut-off to drop the partial month)
+        DATEFROMPARTS(YEAR(MaxDate), MONTH(MaxDate), 1) AS CutoffDate,
+        
+        -- Exactly 6 months before that
+        DATEADD(month, -6, DATEFROMPARTS(YEAR(MaxDate), MONTH(MaxDate), 1)) AS StartDate
+    FROM LatestRecord
+)
+SELECT
+    FORMAT(O.DispatchDate, 'yyyy-MM') AS Date,
+    COUNT(*) AS num_calls 
+FROM dbo.AMHD_Crisis_Mobile_Outreach O
+CROSS JOIN DateBoundaries B
+-- 3. Filter using our perfect first-of-the-month boundaries
+WHERE O.DispatchDate >= B.StartDate 
+  AND O.DispatchDate < B.CutoffDate
+GROUP BY 
+    FORMAT(O.DispatchDate, 'yyyy-MM')
+ORDER BY 
+    Date DESC;
+
+
+-- name: load_crisis_mobile_outreach_6_months_sqlite
+WITH LatestRecord AS (
+    -- 1. Find the newest date in the table
+    SELECT MAX(DispatchDate) AS MaxDate 
+    FROM AMHD_Crisis_Mobile_Outreach
+),
+DateBoundaries AS (
+    -- 2. Calculate the exact 1st of the month for our boundaries
+    SELECT 
+        -- Start of the most recent month (used as the cut-off to drop the partial month)
+        date(MaxDate, 'start of month') AS CutoffDate,
+        
+        -- Exactly 7 months before that
+        date(MaxDate, 'start of month', '-6 months') AS StartDate
+    FROM LatestRecord
+)
+SELECT
+    strftime('%Y-%m', O.DispatchDate) AS Date,
+    COUNT(*) AS num_calls 
+FROM AMHD_Crisis_Mobile_Outreach O
+CROSS JOIN DateBoundaries B
+-- 3. Filter using our perfect first-of-the-month boundaries
+WHERE O.DispatchDate >= B.StartDate 
+  AND O.DispatchDate < B.CutoffDate
+GROUP BY 
+    strftime('%Y-%m', O.DispatchDate)
+ORDER BY 
+    Date DESC;

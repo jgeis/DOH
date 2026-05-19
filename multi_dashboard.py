@@ -13,6 +13,7 @@ TAB_PATHS = {
     "/wonder-overview": "CDC WONDER Overdose Deaths Overview",
     "/wonder-breakdown": "WONDER Overdose Deaths Breakdown",
     "/cares-call-volume": "Hawaiʻi CARES Crisis Center Volume",
+    "/cares-statistics": "Hawai'i CARES 988 Statistics",
     "/crisis-mobile-outreach": "Referral Destinations for Crisis Mobile Outreach Clients",
     "/adad": "ADAD Clients Served",
     "/adad-cooccurring": "ADAD Co-Occurring Clients Served",
