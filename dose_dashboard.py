@@ -305,7 +305,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             marker_color="#22767C",
             textposition="outside",
             cliponaxis=False,
-            customdata=dose_df["substance"],
+            customdata=by_dose["substance"],
             hovertemplate="Substance: %{customdata}<br>Count: %{text}<extra></extra>"
         )
 
@@ -319,6 +319,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             dose_df.groupby(["year", "substance"])["record_id"].nunique()
             .reset_index(name="count")
         )
+
         substances = sort_opts(dose_df["substance"]) if "substance" in dose_df.columns else []
         if substances:
             by_year_substance["substance"] = pd.Categorical(by_year_substance["substance"], categories=substances, ordered=True)
@@ -331,10 +332,8 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             markers=True,
             labels={"year": "Year", "count": "Discharges", "substance": "Substance"},
         )
-        by_year_substance["display_count"] = by_year_substance["count"].apply(format_count_display)
         dose_line.update_traces(
-            customdata=by_year_substance[["display_count"]],
-            hovertemplate="Year %{x}<br>%{customdata[0]} discharges<extra></extra>"
+            hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>%{y:,} discharges<extra></extra>"
         )
         dose_line.update_layout(
             margin=dict(l=0, r=20, t=10, b=0),
