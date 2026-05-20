@@ -295,6 +295,36 @@ def _wrap_label(label: str, max_len: int = 22):
     return s[:cut] + "<br>" + s[cut+1:]
 
 
+def _records_matching_all_selected_substances(frame: pd.DataFrame, selected_values) -> pd.DataFrame:
+    """
+    Return rows from records that contain ALL selected substances.
+
+    This applies record-level AND logic:
+    - No selections => return input frame unchanged.
+    - One selection => records containing that substance.
+    - Multiple selections => records containing every selected substance.
+    """
+    if not selected_values:
+        return frame.copy()
+
+    if not {"record_id", "substance"}.issubset(frame.columns):
+        return frame.iloc[0:0].copy()
+
+    selected = [str(v).strip() for v in selected_values if str(v).strip()]
+    if not selected:
+        return frame.copy()
+
+    selected_set = set(selected)
+    hits = (
+        frame[frame["substance"].astype(str).isin(selected_set)][["record_id", "substance"]]
+        .drop_duplicates()
+    )
+    required_count = len(selected_set)
+    record_match_counts = hits.groupby("record_id")["substance"].nunique()
+    matched_ids = record_match_counts[record_match_counts == required_count].index
+    return frame[frame["record_id"].isin(matched_ids)].copy()
+
+
 def graph_block(base_id: str, title_text: str, height: str):
     """
     Build a reusable chart "card" with a title and graph.
@@ -594,19 +624,14 @@ def update(substance, age, sex, county, year):
         bar_title = "Substance Type"
     elif len(selected_substances) == 1:
         bar_title = f"Substances found along with {selected_substances[0]}"
-    elif len(selected_substances) == 2:
-        bar_title = f"Substances found along with {selected_substances[0]} or {selected_substances[1]}"
     else:
         all_but_last = ", ".join(str(v) for v in selected_substances[:-1])
         last = str(selected_substances[-1])
-        bar_title = f"Substances found along with {all_but_last}, or {last}"
+        bar_title = f"Substances found along with {all_but_last} and {last}"
 
     bar_source = dff
     if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
-        selected_record_ids = dff_base[
-            dff_base["substance"].isin(selected_substances)
-        ]["record_id"].unique()
-        bar_source = dff_base[dff_base["record_id"].isin(selected_record_ids)]
+        bar_source = _records_matching_all_selected_substances(dff_base, selected_substances)
 
     if {"substance", "record_id"}.issubset(bar_source.columns) and not bar_source.empty:
         sub_counts = (
@@ -662,9 +687,16 @@ def update(substance, age, sex, county, year):
         fig_sub = px.bar()
 
     # ---------- Line: Yearly Discharges by Substance ----------
-    if {"year", "substance", "record_id"}.issubset(dff.columns) and not dff.empty:
+    line_source = dff
+    if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
+        line_source = _records_matching_all_selected_substances(dff_base, selected_substances)
+        if not line_source.empty:
+            selected_set = {str(v) for v in selected_substances}
+            line_source = line_source[~line_source["substance"].astype(str).isin(selected_set)]
+
+    if {"year", "substance", "record_id"}.issubset(line_source.columns) and not line_source.empty:
         top_substances = (
-            dff.groupby("substance")["record_id"]
+            line_source.groupby("substance")["record_id"]
                .nunique()
                .sort_values(ascending=False)
                .head(10)
@@ -672,7 +704,7 @@ def update(substance, age, sex, county, year):
         )
 
         by_year_substance = (
-            dff[dff["substance"].isin(top_substances)]
+            line_source[line_source["substance"].isin(top_substances)]
                .drop_duplicates(subset=["record_id", "year", "substance"])
                .groupby(["year", "substance"])["record_id"]
                .nunique()
@@ -688,6 +720,12 @@ def update(substance, age, sex, county, year):
             ordered=True,
         )
 
+        line_title = "Yearly Discharges by Polysubstance"
+        if selected_substances and len(selected_substances) > 1:
+            all_but_last = ", ".join(str(v) for v in selected_substances[:-1])
+            last = str(selected_substances[-1])
+            line_title = f"Yearly Discharges by Polysubstance (records containing all of: {all_but_last}, and {last})"
+
         fig_year_substance = px.line(
             by_year_substance,
             x="year",
@@ -697,9 +735,10 @@ def update(substance, age, sex, county, year):
             custom_data=["display_count"],
             category_orders={"substance": substance_order},
             labels={"year": "Year", "discharges": "Discharges", "substance": "Substance"},
+            title=line_title
         )
         fig_year_substance.update_traces(
-            hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
+            hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Discharges: %{customdata[0]}<br>Only records containing all selected substances are included.<extra></extra>"
         )
         fig_year_substance.update_layout(
             margin=dict(l=0, r=12, t=50, b=60),
@@ -717,10 +756,14 @@ def update(substance, age, sex, county, year):
     else:
         fig_year_substance = px.line()
 
+    demographic_source = dff
+    if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
+        demographic_source = _records_matching_all_selected_substances(dff_base, selected_substances)
+
     # ---------- Line: Year × County ----------
-    if {"year", "county", "record_id"}.issubset(dff.columns) and not dff.empty:
+    if {"year", "county", "record_id"}.issubset(demographic_source.columns) and not demographic_source.empty:
         yearly_counts = (
-            dff.drop_duplicates(subset=["record_id"])
+            demographic_source.drop_duplicates(subset=["record_id"])
                .groupby(["year", "county"])["record_id"]
                .nunique().reset_index(name="discharges")
         )
@@ -741,6 +784,12 @@ def update(substance, age, sex, county, year):
         yearly_counts = yearly_counts.sort_values(["year", "county"])
         yearly_counts["display_count"] = yearly_counts["discharges"].apply(format_count_display)
 
+        county_title = "Yearly Discharges by County"
+        if selected_substances and len(selected_substances) > 1:
+            all_but_last = ", ".join(str(v) for v in selected_substances[:-1])
+            last = str(selected_substances[-1])
+            county_title = f"Yearly Discharges by County (records containing all of: {all_but_last}, and {last})"
+
         fig_year_county = px.line(
             yearly_counts,
             x="year", y="discharges",
@@ -749,9 +798,10 @@ def update(substance, age, sex, county, year):
             custom_data=["display_count"],
             category_orders={"county": county_order},
             labels={"year": "Year", "discharges": "Discharges"},
+            title=county_title
         )
         fig_year_county.update_traces(
-            hovertemplate="Year %{x}<br>County: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
+            hovertemplate="Year %{x}<br>County: %{fullData.name}<br>Discharges: %{customdata[0]}<br>Only records containing all selected substances are included.<extra></extra>"
         )
 
         fig_year_county.update_layout(
@@ -763,7 +813,7 @@ def update(substance, age, sex, county, year):
         fig_year_county = px.line()
 
     # ---------- Table: county share ----------
-    uniq = dff.drop_duplicates(subset=["record_id"])
+    uniq = demographic_source.drop_duplicates(subset=["record_id"])
     if {"county", "record_id"}.issubset(uniq.columns) and not uniq.empty:
         county_counts = uniq.groupby("county")["record_id"].nunique().reset_index(name="discharges")
 
@@ -866,9 +916,8 @@ def update_heatmap(selected_substances, is_mobile):
         else ([selected_substances] if selected_substances else [])
     )
     if selected_values:
-        # Find all record_ids that contain any selected substance(s)
-        record_ids = dff[dff["substance"].isin(selected_values)]["record_id"].unique()
-        dff = dff[dff["record_id"].isin(record_ids)]
+        # Keep records that contain all selected substances.
+        dff = _records_matching_all_selected_substances(dff, selected_values)
         if dff.empty:
             return go.Figure().add_annotation(text="No data for selected substance(s)", showarrow=False)
 
@@ -900,6 +949,12 @@ def update_heatmap(selected_substances, is_mobile):
         title_size = 16
 
     # Create heatmap
+    subtitle = ""
+    if selected_values and len(selected_values) > 1:
+        all_but_last = ", ".join(str(v) for v in selected_values[:-1])
+        last = str(selected_values[-1])
+        subtitle = f" (records containing all of: {all_but_last}, and {last})"
+
     fig = go.Figure(data=go.Heatmap(
         z=corr_matrix.values,
         x=corr_matrix.columns,
@@ -913,7 +968,7 @@ def update_heatmap(selected_substances, is_mobile):
     ))
 
     fig.update_layout(
-        title=dict(text=title_text, font=dict(size=title_size)),
+        title=dict(text=title_text + subtitle, font=dict(size=title_size)),
         xaxis=dict(side='bottom', tickangle=45, tickfont=dict(size=text_size)),
         yaxis=dict(autorange='reversed', tickfont=dict(size=text_size)),
         height=height,
@@ -970,12 +1025,30 @@ def update_bar_chart(selected_substances, is_mobile):
 
     # Filter by selected substances from main Substance Type filter.
     if selected_values:
-        co_data = co_data[co_data['Primary'].isin(selected_values)]
-        if co_data.empty:
+        matched = _records_matching_all_selected_substances(df_raw, selected_values)
+        if matched.empty:
             return go.Figure().add_annotation(
                 text=f"No co-occurrence data for selected substance(s): {', '.join(str(v) for v in selected_values)}",
                 showarrow=False
             )
+
+        total_records = matched["record_id"].nunique()
+        selected_set = {str(v) for v in selected_values}
+        co_data = (
+            matched.groupby("substance")["record_id"]
+            .nunique()
+            .reset_index(name="Count")
+        )
+        co_data = co_data[~co_data["substance"].astype(str).isin(selected_set)]
+        if co_data.empty:
+            return go.Figure().add_annotation(
+                text="No additional co-substances found with all selected substances.",
+                showarrow=False
+            )
+
+        co_data = co_data.rename(columns={"substance": "Also Found"})
+        co_data["Total"] = total_records
+        co_data["Percentage"] = (co_data["Count"] / total_records) * 100
         
         # Sort by percentage descending (highest to lowest) for both mobile and desktop
         co_data = co_data.sort_values('Percentage', ascending=False)
@@ -994,13 +1067,11 @@ def update_bar_chart(selected_substances, is_mobile):
         if len(selected_values) == 1:
             selected_label = str(selected_values[0])
             title_text = f"When {selected_label} is present, % with other substances"
-        elif len(selected_values) == 2:
-            title_text = f"When {selected_values[0]} or {selected_values[1]} is present, % with other substances"
         else:
+            all_but_last = ", ".join(str(v) for v in selected_values[:-1])
+            last = str(selected_values[-1])
             title_text = (
-                "When "
-                + ", ".join(str(v) for v in selected_values[:-1])
-                + f", or {selected_values[-1]} is present, % with other substances"
+                f"When all of: {all_but_last}, and {last} are present, % with other substances"
             )
 
         if is_mobile:
