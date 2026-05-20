@@ -10,6 +10,7 @@ from dashboard_utils import (
     load_sql_query,
     make_kpi_card,
     make_left_sidebar,
+    compute_last_updated_value,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -42,6 +43,7 @@ def load_cares_dataframe():
 
 
 df_raw = load_cares_dataframe()
+last_updated_value = compute_last_updated_value(df_raw)
 
 year_opts = sorted(df_raw["year"].dropna().unique().tolist())
 month_nums_present = sorted(df_raw["month_num"].dropna().unique().tolist())
@@ -127,10 +129,16 @@ cares_sidebar_text = SECTION_TEXTS.get("cares", [])
 # ----------------------------
 
 def layout():
-    left_col = dbc.Col(
-        [kpi_card, reset_button, view_toggle_card, filters_card],
-        xs=12, md=3,
+    left_col = make_left_sidebar(
+        kpi_card,
+        reset_button,
+        filters_card,
+        helper_text=cares_sidebar_text,
+        last_updated_value=last_updated_value,
+        xs=12,
+        md=3,
     )
+    left_col.children.insert(2, view_toggle_card)
 
     center_col = dbc.Col(
         [

@@ -14,6 +14,8 @@ from dashboard_utils import (
     load_sql_query,
     make_kpi_card,
     make_filters_card,
+    make_last_updated_block,
+    compute_last_updated_value,
     dropdown_filter,
     opts_list,
 )
@@ -110,6 +112,7 @@ def load_lcrf_dataframe():
 
 
 df_raw = load_lcrf_dataframe()
+last_updated_value = compute_last_updated_value(df_raw)
 
 year_opts = sorted(df_raw["year"].dropna().unique().tolist(), reverse=True)
 month_nums_present = sorted(df_raw["month_num"].dropna().unique().tolist())
@@ -208,12 +211,14 @@ lcrf_sidebar_text = SECTION_TEXTS.get("lcrf", [])
 
 
 def build_layout():
+    last_updated_block = make_last_updated_block(last_updated_value)
     left_col = dbc.Col(
         [
             kpi_card,
             reset_button,
             view_toggle_card,
             filters_card,
+            last_updated_block,
             html.Div(
                 [html.P(text, className="mb-1") for text in lcrf_sidebar_text],
                 className="small text-muted px-1",

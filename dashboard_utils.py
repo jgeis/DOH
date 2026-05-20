@@ -396,11 +396,67 @@ def make_sidebar_helper_text(text: str | list[str] | tuple[str, ...]) -> html.Di
     )
 
 
+def compute_last_updated_value(df: pd.DataFrame | None) -> str | None:
+    """
+    Compute a display value for the most recent date found in a dataframe.
+
+    Prefers date-like columns; falls back to max year when only year data exists.
+    """
+    if df is None or df.empty:
+        return None
+
+    latest_ts = None
+    year_max = None
+
+    for col in df.columns:
+        col_name = str(col).strip().lower()
+        series = df[col]
+
+        if col_name == "year":
+            years = pd.to_numeric(series, errors="coerce").dropna()
+            if not years.empty:
+                candidate_year = int(years.max())
+                year_max = candidate_year if year_max is None else max(year_max, candidate_year)
+            continue
+
+        if "date" in col_name or col_name in {"day", "month", "period"}:
+            parsed = pd.to_datetime(series, errors="coerce")
+            parsed = parsed.dropna()
+            if parsed.empty:
+                continue
+            candidate_ts = parsed.max()
+            if latest_ts is None or candidate_ts > latest_ts:
+                latest_ts = candidate_ts
+
+    if latest_ts is not None:
+        return latest_ts.strftime("%Y-%m-%d")
+
+    if year_max is not None:
+        return str(year_max)
+
+    return None
+
+
+def make_last_updated_block(last_updated_value: str | None):
+    """Render standardized Last Updated text for the left sidebar."""
+    if not last_updated_value:
+        return None
+
+    return html.Div(
+        [
+            html.Small("Last Updated", className="fw-semibold text-muted d-block"),
+            html.Div(last_updated_value),
+        ],
+        className="mt-3 small",
+    )
+
+
 def make_left_sidebar(
     kpi_card_component,
     reset_filters_button,
     filters_card,
     helper_text: str | list[str] | tuple[str, ...] | None = None,
+    last_updated_value: str | None = None,
     xs: int = 12,
     md: int = 3,
 ) -> dbc.Col:
@@ -411,9 +467,13 @@ def make_left_sidebar(
       1) KPI card
       2) Reset button
       3) Filters card
-      4) Optional helper text block
+      4) Optional Last Updated
+      5) Optional helper text block
     """
     children = [kpi_card_component, reset_filters_button, filters_card]
+    last_updated_block = make_last_updated_block(last_updated_value)
+    if last_updated_block is not None:
+        children.append(last_updated_block)
     if helper_text:
         if isinstance(helper_text, (str, list, tuple)):
             children.append(make_sidebar_helper_text(helper_text))

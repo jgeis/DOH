@@ -19,6 +19,7 @@ from dashboard_utils import (
     make_kpi_card,
     make_left_sidebar,
     make_right_summary_tables_col,
+    compute_last_updated_value,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -54,6 +55,7 @@ if "zip" in df_dose_raw.columns:
 
 # Count how many unique DOSE records we have to show on the KPI card.
 total_dose_unique = df_dose_raw["record_id"].nunique()
+last_updated_value = compute_last_updated_value(df_dose_raw)
 
 # Build the lists of choices for DOSE filters
 dose_substance_opts = sort_opts(df_dose_raw["substance"])                       if "substance"  in df_dose_raw.columns else []
@@ -132,6 +134,7 @@ def layout():
         reset_filters_button_dose,
         filters_card_dose,
         helper_text=dose_sidebar_text,
+        last_updated_value=last_updated_value,
         xs=12,
         md=3,
     )

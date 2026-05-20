@@ -19,6 +19,7 @@ from dashboard_utils import (
     make_kpi_card,
     make_left_sidebar,
     make_right_summary_tables_col,
+    compute_last_updated_value,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -67,6 +68,7 @@ def load_discharge_mh_dataframe_from_db():
 # Load the full dataset once at startup.
 # The callbacks will reuse this instead of hitting the database every time.
 df_raw = load_discharge_mh_dataframe_from_db()
+last_updated_value = compute_last_updated_value(df_raw)
 
 # Normalize ZIP values (5-digit strings) so they look cleaner in the filters and tables.
 if "zip" in df_raw.columns:
@@ -156,6 +158,7 @@ def layout():
         reset_filters_button,
         filters_card,
         helper_text=discharges_mh_sidebar_text,
+        last_updated_value=last_updated_value,
         xs=12,
         md=3,
     )

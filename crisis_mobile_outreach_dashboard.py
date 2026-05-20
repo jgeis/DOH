@@ -12,6 +12,7 @@ from dashboard_utils import (
     graph_block,
     make_kpi_card,
     make_left_sidebar,
+    compute_last_updated_value,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -47,6 +48,7 @@ def load_cmo_referrals_dataframe():
 
 df_raw = load_cmo_referrals_dataframe()
 referral_opts = sorted(df_raw["referral_destination"].dropna().unique().tolist())
+last_updated_value = compute_last_updated_value(df_raw)
 
 # ----------------------------
 # UI Components
@@ -95,6 +97,7 @@ def layout():
         reset_button,
         filters_card,
         helper_text=sidebar_text,
+        last_updated_value=last_updated_value,
         xs=12,
         md=3,
     )

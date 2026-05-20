@@ -10,6 +10,8 @@ from dashboard_utils import (
     load_sql_query,
     make_kpi_card,
     make_filters_card,
+    make_last_updated_block,
+    compute_last_updated_value,
     dropdown_filter,
     format_count_display,
     opts_list,
@@ -46,6 +48,7 @@ def load_camhd_cooccurring_dataframe():
 
 
 df_raw = load_camhd_cooccurring_dataframe()
+last_updated_value = compute_last_updated_value(df_raw)
 
 year_opts = sorted(df_raw["year"].dropna().unique().tolist(), reverse=True)
 min_date = df_raw["service_date"].min().date()
@@ -108,11 +111,13 @@ filters_card = make_filters_card(
 
 
 def layout():
+    last_updated_block = make_last_updated_block(last_updated_value)
     left_col = dbc.Col(
         [
             kpi_card,
             view_toggle_card,
             filters_card,
+            last_updated_block,
         ],
         xs=12,
         md=3,

@@ -10,6 +10,7 @@ from dashboard_utils import (
     load_sql_query,
     make_kpi_card,
     make_left_sidebar,
+    compute_last_updated_value,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -54,6 +55,7 @@ def load_adad_cooccurring_dataframe():
 
 
 df_raw = load_adad_cooccurring_dataframe()
+last_updated_value = compute_last_updated_value(df_raw)
 
 year_opts = sorted(df_raw["year"].dropna().unique().tolist(), reverse=True)
 month_nums_present = sorted(df_raw["month_num"].dropna().unique().tolist())
@@ -161,6 +163,7 @@ def layout():
         reset_button,
         filters_card,
         helper_text=adad_cooccurring_sidebar_text,
+        last_updated_value=last_updated_value,
         xs=12,
         md=3,
     )

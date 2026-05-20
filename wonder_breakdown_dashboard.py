@@ -7,6 +7,7 @@ from theme import register_template
 from dashboard_utils import (
     make_kpi_card,
     make_left_sidebar,
+    compute_last_updated_value,
     make_filters_card,
     radio_filter,
     STATEWIDE_COUNTY,
@@ -57,6 +58,20 @@ df_raw_age_group = execute_query(sql_age_group)
 
 sql_gender = load_sql_query("load_wonder_gender")
 df_raw_gender = execute_query(sql_gender)
+
+last_updated_value = max(
+    (
+        value
+        for value in [
+            compute_last_updated_value(df_raw_substance),
+            compute_last_updated_value(df_raw_race),
+            compute_last_updated_value(df_raw_age_group),
+            compute_last_updated_value(df_raw_gender),
+        ]
+        if value
+    ),
+    default=None,
+)
 
 # Count number of deaths in wonder_gender.csv "deaths" column
 total_unique = df_raw_gender["deaths"].count()
@@ -202,6 +217,7 @@ def layout_for(
         reset_filters_button,
         filters_card,
         helper_text=wonder_breakdown_sidebar_text,
+        last_updated_value=last_updated_value,
         xs=12,
         md=3,
     )

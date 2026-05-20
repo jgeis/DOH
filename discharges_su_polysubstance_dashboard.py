@@ -20,6 +20,7 @@ from db_utils import execute_query
 from dashboard_utils import (
     make_kpi_card,
     make_left_sidebar,
+    compute_last_updated_value,
     make_filters_card,
     dropdown_filter,
     sort_opts,
@@ -222,6 +223,7 @@ mask_age = ~df_raw["age_group"].apply(_is_unknown_age) if "age_group" in df_raw.
 
 # Keep only rows that pass both filters
 df_raw = df_raw[mask_year & mask_age].copy()
+last_updated_value = compute_last_updated_value(df_raw)
 
 
 # ---------- filter options ----------
@@ -350,6 +352,7 @@ def layout_for(is_mobile: bool = False):
         ),
         filters_card,
         helper_text=polysubstance_sidebar_text,
+        last_updated_value=last_updated_value,
         xs=12,
         md=3,
     )

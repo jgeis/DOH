@@ -13,6 +13,7 @@ from dashboard_utils import (
     make_kpi_card,
     make_left_sidebar,
     make_right_summary_tables_col,
+    compute_last_updated_value,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -61,6 +62,7 @@ def load_sudors_dataframe_from_db():
 # Load the full dataset once at startup.
 # The callbacks will reuse this instead of hitting the database every time.
 df_raw = load_sudors_dataframe_from_db()
+last_updated_value = compute_last_updated_value(df_raw)
 
 # Count how many unique records we have to show on the KPI card.
 total_unique = df_raw["incident_id"].nunique() if "incident_id" in df_raw.columns else 0
@@ -133,6 +135,7 @@ def layout():
         reset_filters_button,
         filters_card,
         helper_text=sudors_sidebar_text,
+        last_updated_value=last_updated_value,
         xs=12,
         md=3,
     )

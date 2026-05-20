@@ -10,6 +10,7 @@ from dashboard_utils import (
     load_sql_query,
     make_kpi_card,
     make_left_sidebar,
+    compute_last_updated_value,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -53,6 +54,7 @@ def load_adad_dataframe():
 
 
 df_raw = load_adad_dataframe()
+last_updated_value = compute_last_updated_value(df_raw)
 
 # Filter option lists
 year_opts = sorted(df_raw["year"].dropna().unique().tolist(), reverse=True)
@@ -170,6 +172,7 @@ def layout():
         reset_button,
         filters_card,
         helper_text=adad_sidebar_text,
+        last_updated_value=last_updated_value,
         xs=12,
         md=3,
     )

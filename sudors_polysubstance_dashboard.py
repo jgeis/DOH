@@ -16,6 +16,7 @@ from dashboard_utils import (
    graph_block,
    make_kpi_card,
    make_left_sidebar,
+    compute_last_updated_value,
     make_right_summary_tables_col,
    make_filters_card,
    dropdown_filter,
@@ -47,7 +48,7 @@ def load_sudors_dataframe_from_db():
    df = execute_query(sql)
    print(f"load_sudors_polysubstance_data returned {len(df):,} rows")
 
-   # If there is no data, we stop early instead of showing a broken page
+    # If there is no data, we stop early instead of showing a broken page
    if df.empty:
        raise RuntimeError("Query returned 0 rows.")
 
@@ -65,6 +66,7 @@ def load_sudors_dataframe_from_db():
 # Load the full dataset once at startup.
 # The callbacks will reuse this instead of hitting the database every time.
 df_raw = load_sudors_dataframe_from_db()
+last_updated_value = compute_last_updated_value(df_raw)
 
 # Total unique incidents for the static KPI card.
 total_unique = df_raw["incident_id"].nunique() if "incident_id" in df_raw.columns else 0
@@ -224,6 +226,7 @@ def layout():
        reset_filters_button,
        filters_card,
        helper_text=sudors_cooccurrence_sidebar_text,
+       last_updated_value=last_updated_value,
        xs=12,
        md=3,
    )
