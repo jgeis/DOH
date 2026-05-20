@@ -29,6 +29,7 @@ from dashboard_utils import (
     county_output_should_include_statewide,
     append_statewide_aggregate_rows,
     format_count_display,
+    format_display_list,
 )
 
 # This applies our custom Plotly look (colors, fonts, etc.) everywhere in this app.
@@ -439,12 +440,10 @@ def layout_for(is_mobile: bool = False):
                     dbc.CardBody([
                         html.P([
                             "Heatmap showing how often substances appear together in the same polysubstance record. ",
-                            "Darker cells indicate stronger co-occurrence.  When you select a substance to filter on, ",
+                            "Darker cells indicate stronger co-occurrence.  When you select one or more substances to filter on, ",
                             "the heatmap updates to show how often each pair of substances co-occur among all records ", 
-                            "that include your selected substance(s). This helps you see which other substances are ", 
-                            "most likely to appear together with your selection.  When multiple substances are ", 
-                            "selected, this heatmap shows co-occurrence relationships among all substances in records ", 
-                            "that include any selected substance.",
+                            "that include all of your selected substance(s). This helps you see which other substances are ", 
+                            "most likely to appear together with your selection.",
                             html.Br() if is_mobile else "",
                             html.Small("(Scroll horizontally to see full chart)", className="text-muted") if is_mobile else ""
                         ], className="text-muted mb-3"),
@@ -582,6 +581,8 @@ layout = layout_for(is_mobile=False)
 # ---------- callbacks (figures + tables) ----------
 @callback(
     Output("bar-top-substances-title", "children"),
+    Output("line-year-substance-title", "children"),
+    Output("stack-year-county-title", "children"),
     Output("bar-top-substances", "figure"),
     Output("line-year-substance", "figure"),
     Output("stack-year-county", "figure"),
@@ -625,9 +626,19 @@ def update(substance, age, sex, county, year):
     elif len(selected_substances) == 1:
         bar_title = f"Substances found along with {selected_substances[0]}"
     else:
-        all_but_last = ", ".join(str(v) for v in selected_substances[:-1])
-        last = str(selected_substances[-1])
-        bar_title = f"Substances found along with {all_but_last} and {last}"
+        bar_title = f"Substances found along with {format_display_list(selected_substances)}"
+
+    # Dynamic top titles for line charts (replace in-figure titles).
+    if not selected_substances:
+        line_title = "Yearly Discharges by Polysubstance"
+        county_title = "Yearly Discharges by County"
+    elif len(selected_substances) == 1:
+        line_title = f"Yearly Discharges by Polysubstance (found along with {selected_substances[0]})"
+        county_title = f"Yearly Discharges by County (where {selected_substances[0]} is present)"
+    else:
+        selected_text = format_display_list(selected_substances)
+        line_title = f"Yearly Discharges by Polysubstance (found along with {selected_text})"
+        county_title = f"Yearly Discharges by County (where {selected_text} are present)"
 
     bar_source = dff
     if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
@@ -686,6 +697,7 @@ def update(substance, age, sex, county, year):
     else:
         fig_sub = px.bar()
 
+
     # ---------- Line: Yearly Discharges by Substance ----------
     line_source = dff
     if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
@@ -720,12 +732,6 @@ def update(substance, age, sex, county, year):
             ordered=True,
         )
 
-        line_title = "Yearly Discharges by Polysubstance"
-        if selected_substances and len(selected_substances) > 1:
-            all_but_last = ", ".join(str(v) for v in selected_substances[:-1])
-            last = str(selected_substances[-1])
-            line_title = f"Yearly Discharges by Polysubstance (records containing all of: {all_but_last}, and {last})"
-
         fig_year_substance = px.line(
             by_year_substance,
             x="year",
@@ -734,13 +740,13 @@ def update(substance, age, sex, county, year):
             markers=True,
             custom_data=["display_count"],
             category_orders={"substance": substance_order},
-            labels={"year": "Year", "discharges": "Discharges", "substance": "Substance"},
-            title=line_title
+            labels={"year": "Year", "discharges": "Discharges", "substance": "Substance"}
         )
         fig_year_substance.update_traces(
             hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Discharges: %{customdata[0]}<br>Only records containing all selected substances are included.<extra></extra>"
         )
         fig_year_substance.update_layout(
+            title=None,
             margin=dict(l=0, r=12, t=50, b=60),
             xaxis=dict(dtick=1, automargin=True),
             yaxis=dict(rangemode="tozero"),
@@ -784,12 +790,6 @@ def update(substance, age, sex, county, year):
         yearly_counts = yearly_counts.sort_values(["year", "county"])
         yearly_counts["display_count"] = yearly_counts["discharges"].apply(format_count_display)
 
-        county_title = "Yearly Discharges by County"
-        if selected_substances and len(selected_substances) > 1:
-            all_but_last = ", ".join(str(v) for v in selected_substances[:-1])
-            last = str(selected_substances[-1])
-            county_title = f"Yearly Discharges by County (records containing all of: {all_but_last}, and {last})"
-
         fig_year_county = px.line(
             yearly_counts,
             x="year", y="discharges",
@@ -797,14 +797,14 @@ def update(substance, age, sex, county, year):
             markers=True,
             custom_data=["display_count"],
             category_orders={"county": county_order},
-            labels={"year": "Year", "discharges": "Discharges"},
-            title=county_title
+            labels={"year": "Year", "discharges": "Discharges"}
         )
         fig_year_county.update_traces(
             hovertemplate="Year %{x}<br>County: %{fullData.name}<br>Discharges: %{customdata[0]}<br>Only records containing all selected substances are included.<extra></extra>"
         )
 
         fig_year_county.update_layout(
+            title=None,
             margin=dict(l=0, r=12, t=50, b=0),   # <-- extra top space
             xaxis=dict(dtick=1, automargin=True),
             yaxis=dict(rangemode="tozero"),
@@ -871,7 +871,7 @@ def update(substance, age, sex, county, year):
     tbl_age = simple_table(uniq, "age_group", age_groups)
     tbl_sex = simple_table(uniq, "sex")
 
-    return bar_title, fig_sub, fig_year_substance, fig_year_county, tbl_county, tbl_age, tbl_sex
+    return bar_title, line_title, county_title, fig_sub, fig_year_substance, fig_year_county, tbl_county, tbl_age, tbl_sex
 
 
 
@@ -951,9 +951,7 @@ def update_heatmap(selected_substances, is_mobile):
     # Create heatmap
     subtitle = ""
     if selected_values and len(selected_values) > 1:
-        all_but_last = ", ".join(str(v) for v in selected_values[:-1])
-        last = str(selected_values[-1])
-        subtitle = f" (records containing all of: {all_but_last}, and {last})"
+        subtitle = f" (records containing all of: {format_display_list(selected_values)})"
 
     fig = go.Figure(data=go.Heatmap(
         z=corr_matrix.values,
@@ -1068,10 +1066,8 @@ def update_bar_chart(selected_substances, is_mobile):
             selected_label = str(selected_values[0])
             title_text = f"When {selected_label} is present, % with other substances"
         else:
-            all_but_last = ", ".join(str(v) for v in selected_values[:-1])
-            last = str(selected_values[-1])
             title_text = (
-                f"When all of: {all_but_last}, and {last} are present, % with other substances"
+                f"When all of: {format_display_list(selected_values)} are present, % with other substances"
             )
 
         if is_mobile:
@@ -1103,6 +1099,11 @@ def update_bar_chart(selected_substances, is_mobile):
                              'Total: %{customdata[1]}<extra></extra>',
                 textfont=dict(size=text_size)
             )
+            # Keep visual order explicitly descending left-to-right.
+            fig.update_xaxes(
+                categoryorder='array',
+                categoryarray=co_data['Also Found'].tolist()
+            )
         else:
             fig = px.bar(
                 co_data,
@@ -1130,6 +1131,11 @@ def update_bar_chart(selected_substances, is_mobile):
                              'Count: %{customdata[0]}<br>' +
                              'Total: %{customdata[1]}<extra></extra>',
                 textfont=dict(size=text_size)
+            )
+            # Horizontal bars render categories bottom-to-top; reverse for descending top-to-bottom.
+            fig.update_yaxes(
+                categoryorder='array',
+                categoryarray=co_data['Also Found'].tolist()[::-1]
             )
         
     else:

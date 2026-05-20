@@ -214,6 +214,25 @@ def opts_list(values):
     return [{"label": v, "value": v} for v in values]
 
 
+def format_display_list(values) -> str:
+    """
+    Format a list of values for display using natural-language "and" rules.
+
+    Examples:
+    - [A] -> "A"
+    - [A, B] -> "A and B"
+    - [A, B, C] -> "A, B, and C" (Oxford comma)
+    """
+    items = [str(v).strip() for v in values if str(v).strip()]
+    if not items:
+        return ""
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return f"{', '.join(items[:-1])}, and {items[-1]}"
+
+
 def with_statewide_county(values) -> list[str]:
     """
     Return county values with a synthetic "Statewide" option prepended.
