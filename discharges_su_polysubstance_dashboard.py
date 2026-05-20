@@ -363,7 +363,7 @@ def layout_for(is_mobile: bool = False):
         # Hidden description for screen readers.
         html.P("Horizontal bar chart showing the top substances among polysubstance records.", className="visually-hidden"),
 
-        graph_block("line-year-substance", "Yearly Discharges by Polysubstance Discharges", h_stack),
+        graph_block("line-year-substance", "Yearly Discharges by Polysubstance", h_stack),
         html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
 
         graph_block("stack-year-county", "Yearly Discharges by County", h_stack),
@@ -577,54 +577,88 @@ layout = layout_for(is_mobile=False)
     Input("polysubstance-year-filter", "value"),
 )
 def update(substance, age, sex, county, year):
-    dff = df_raw.copy()
+    # Base frame for co-occurrence-aware charts: apply non-substance filters only.
+    dff_base = df_raw.copy()
+    if "age_group" in dff_base.columns:
+        dff_base = _apply_filter(dff_base, "age_group", age)
+    if "sex" in dff_base.columns:
+        dff_base = _apply_filter(dff_base, "sex", sex)
+    if "county" in dff_base.columns:
+        dff_base = apply_county_filter(dff_base, county)
+    if "year" in dff_base.columns:
+        dff_base = _apply_filter(dff_base, "year", year)
 
-    if "substance" in dff.columns:     dff = _apply_filter(dff, "substance", substance)
-    if "age_group" in dff.columns:     dff = _apply_filter(dff, "age_group", age)
-    if "sex" in dff.columns:           dff = _apply_filter(dff, "sex", sex)
-    if "county" in dff.columns:        dff = apply_county_filter(dff, county)
-    if "year" in dff.columns: dff = _apply_filter(dff, "year", year)
+    # Main frame for existing visuals: includes substance filter.
+    dff = dff_base.copy()
+    if "substance" in dff.columns:
+        dff = _apply_filter(dff, "substance", substance)
 
     include_statewide_on_line = county_output_should_include_statewide(county)
 
     # ---------- Bar: Top substances ----------
-    if {"substance", "record_id"}.issubset(dff.columns) and not dff.empty:
+    selected_substances = (
+        [v for v in substance if v]
+        if isinstance(substance, (list, tuple, set))
+        else ([substance] if substance else [])
+    )
+
+    bar_source = dff
+    if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
+        selected_record_ids = dff_base[
+            dff_base["substance"].isin(selected_substances)
+        ]["record_id"].unique()
+        bar_source = dff_base[dff_base["record_id"].isin(selected_record_ids)]
+
+    if {"substance", "record_id"}.issubset(bar_source.columns) and not bar_source.empty:
         sub_counts = (
-            dff.groupby("substance")["record_id"]
-               .nunique().reset_index(name="discharges")
-               .sort_values("discharges", ascending=True)
-               .tail(10)
+            bar_source.groupby("substance")["record_id"]
+            .nunique().reset_index(name="discharges")
+            .sort_values("discharges", ascending=True)
         )
 
-        sub_counts["substance_wrapped"] = sub_counts["substance"].apply(_wrap_label)
+        # When filtering by substance, show only co-substances (exclude selected values).
+        if selected_substances:
+            selected_set = {str(v) for v in selected_substances}
+            sub_counts = sub_counts[~sub_counts["substance"].astype(str).isin(selected_set)]
 
-        sub_counts["display_count"] = sub_counts["discharges"].apply(format_count_display)
+        # Keep current default behavior (top 10) only when no substance is selected.
+        if not selected_substances:
+            sub_counts = sub_counts.tail(10)
 
-        fig_sub = px.bar(
-            sub_counts,
-            x="discharges",
-            y="substance_wrapped",
-            orientation="h",
-            labels={
-                "discharges": "Number of Discharges",
-                "substance_wrapped": "Substance Type",
-            },
-            text="display_count",
-        )
-        fig_sub.update_traces(
-            marker_color="#22767C",
-            textposition="outside",
-            cliponaxis=False
-        )
-        max_x = int(sub_counts["discharges"].max()) if not sub_counts.empty else 0
-        fig_sub.update_layout(
-            margin=dict(l=0, r=12, t=50, b=0),   # <-- extra top space for tools
-            xaxis=dict(
-                range=[0, max_x * 1.15 if max_x else 1],
-                automargin=True
-            ),
-            yaxis=dict(automargin=True),
-        )
+        if sub_counts.empty:
+            fig_sub = px.bar()
+            fig_sub.add_annotation(text="No co-substances found for selected filter.", showarrow=False)
+            fig_sub.update_layout(margin=dict(l=0, r=12, t=50, b=0))
+        else:
+            sub_counts["substance_wrapped"] = sub_counts["substance"].apply(_wrap_label)
+
+            sub_counts["display_count"] = sub_counts["discharges"].apply(format_count_display)
+
+            fig_sub = px.bar(
+                sub_counts,
+                x="discharges",
+                y="substance_wrapped",
+                orientation="h",
+                labels={
+                    "discharges": "Number of Discharges",
+                    "substance_wrapped": "Substance Type",
+                },
+                text="display_count",
+            )
+            fig_sub.update_traces(
+                marker_color="#22767C",
+                textposition="outside",
+                cliponaxis=False
+            )
+            max_x = int(sub_counts["discharges"].max()) if not sub_counts.empty else 0
+            fig_sub.update_layout(
+                margin=dict(l=0, r=12, t=50, b=0),   # <-- extra top space for tools
+                xaxis=dict(
+                    range=[0, max_x * 1.15 if max_x else 1],
+                    automargin=True
+                ),
+                yaxis=dict(automargin=True),
+            )
     else:
         fig_sub = px.bar()
 
