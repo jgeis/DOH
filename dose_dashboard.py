@@ -155,9 +155,9 @@ def layout():
 
                 make_right_summary_tables_col(
                     [
-                        ("County", "table-county-dose", "By County"),
-                        ("Age Group", "table-age-dose", "By Age Group"),
-                        ("Sex", "table-sex-dose", "By Gender"),
+                        ("County", "table-county-dose"),
+                        ("Age Group", "table-age-dose"),
+                        ("Sex", "table-sex-dose"),
                     ],
                     xs=12,
                     md=3,
