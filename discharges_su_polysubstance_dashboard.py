@@ -606,9 +606,13 @@ def update(substance, age, sex, county, year):
     if not selected_substances:
         bar_title = "Substance Type"
     elif len(selected_substances) == 1:
-        bar_title = f"Substance found along with {selected_substances[0]}"
+        bar_title = f"Substances found along with {selected_substances[0]}"
+    elif len(selected_substances) == 2:
+        bar_title = f"Substances found along with {selected_substances[0]} or {selected_substances[1]}"
     else:
-        bar_title = "Substance found along with " + ", ".join(str(v) for v in selected_substances)
+        all_but_last = ", ".join(str(v) for v in selected_substances[:-1])
+        last = str(selected_substances[-1])
+        bar_title = f"Substances found along with {all_but_last}, or {last}"
 
     bar_source = dff
     if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
