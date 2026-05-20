@@ -446,33 +446,15 @@ def layout_for(is_mobile: bool = False):
             dbc.Col([
                 dbc.Card([
                     dbc.CardHeader([
-                        html.H5("Co-occurrence by Primary Substance", className="mb-0")
+                        html.H5("Co-occurrence by Selected Substance", className="mb-0")
                     ]),
                     dbc.CardBody([
                         html.P([
-                            "Grouped bar chart showing what percentage of cases with a given primary substance also contain each other substance. ",
-                            "Use the filter below to focus on one substance.",
+                            "Grouped bar chart showing what percentage of cases with a given substance also contain each other substance. ",
+                            "Use the Substance Type filter above to focus on one or more substances.",
                             html.Br() if is_mobile else "",
                             html.Small("(Scroll horizontally to see all substances)", className="text-muted") if is_mobile else ""
                         ], className="text-muted mb-3"),
-                        html.Hr(className="my-3"),
-                        html.Label(
-                            "Primary Substance",
-                            htmlFor="polysubstance-cooccurrence-primary-substance",
-                            className="form-label",
-                        ),
-                        dcc.Dropdown(
-                            id="polysubstance-cooccurrence-primary-substance",
-                            options=[{"label": "All substances (no filter)", "value": ""}] + 
-                                    [{"label": s, "value": s} for s in sorted(df_raw['substance'].unique())],
-                            value="",
-                            clearable=False,
-                            className="mb-2",
-                            persistence="polysubstance-cooccurrence-primary-substance",
-                            persistence_type="session",
-                        ),
-                        html.Small("Select a specific substance to see what co-occurs with it, or choose 'All substances' to see the full overview.", 
-                                   className="text-muted"),
                         dcc.Loading(
                             html.Div(
                                 html.Div(
@@ -487,7 +469,7 @@ def layout_for(is_mobile: bool = False):
                             )
                         ),
                         html.P(
-                            "Grouped bar chart showing the percentage of cases where each primary substance co-occurs with other substances.",
+                            "Grouped bar chart showing the percentage of cases where each substance co-occurs with other substances.",
                             className="visually-hidden",
                         )
                     ])
@@ -862,7 +844,7 @@ def _reset_filters(n):
 
 @callback(
     Output("polysubstance-cooccurrence-heatmap", "figure"),
-    Input("polysubstance-cooccurrence-primary-substance", "value"),  # Not used, but keeps callback structure
+    Input("polysubstance-substance-filter", "value"),  # Not used, but keeps callback structure
     Input("polysubstance-cooccurrence-is-mobile", "data"),
 )
 def update_heatmap(_, is_mobile):
@@ -924,10 +906,10 @@ def update_heatmap(_, is_mobile):
 
 @callback(
     Output("polysubstance-cooccurrence-bar-chart", "figure"),
-    Input("polysubstance-cooccurrence-primary-substance", "value"),
+    Input("polysubstance-substance-filter", "value"),
     Input("polysubstance-cooccurrence-is-mobile", "data"),
 )
-def update_bar_chart(primary_substance, is_mobile):
+def update_bar_chart(selected_substances, is_mobile):
     """Create grouped bar chart showing co-occurrence percentages."""
     
     if df_raw.empty or 'substance' not in df_raw.columns:
@@ -959,12 +941,18 @@ def update_bar_chart(primary_substance, is_mobile):
         margin_top = 120  # More room for horizontal legend
         margin_bottom = 120  # More room for x-axis labels
     
-    # Filter by primary substance if selected (and not empty string)
-    if primary_substance and primary_substance != "":
-        co_data = co_data[co_data['Primary'] == primary_substance]
+    selected_values = (
+        [v for v in selected_substances if v]
+        if isinstance(selected_substances, (list, tuple, set))
+        else ([selected_substances] if selected_substances else [])
+    )
+
+    # Filter by selected substances from main Substance Type filter.
+    if selected_values:
+        co_data = co_data[co_data['Primary'].isin(selected_values)]
         if co_data.empty:
             return go.Figure().add_annotation(
-                text=f"No co-occurrence data for {primary_substance}",
+                text=f"No co-occurrence data for selected substance(s): {', '.join(str(v) for v in selected_values)}",
                 showarrow=False
             )
         
@@ -982,13 +970,25 @@ def update_bar_chart(primary_substance, is_mobile):
         co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
         
         # Mobile: vertical bars (x=substance, y=percentage), Desktop: horizontal bars (x=percentage, y=substance)
+        if len(selected_values) == 1:
+            selected_label = str(selected_values[0])
+            title_text = f"When {selected_label} is present, % with other substances"
+        elif len(selected_values) == 2:
+            title_text = f"When {selected_values[0]} or {selected_values[1]} is present, % with other substances"
+        else:
+            title_text = (
+                "When "
+                + ", ".join(str(v) for v in selected_values[:-1])
+                + f", or {selected_values[-1]} is present, % with other substances"
+            )
+
         if is_mobile:
             fig = px.bar(
                 co_data,
                 x='Also Found',
                 y='Percentage',
                 orientation='v',
-                title=f"When {primary_substance} is present, % with other substances",
+                title=title_text,
                 labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
                 text='label',
                 hover_data={
@@ -1017,7 +1017,7 @@ def update_bar_chart(primary_substance, is_mobile):
                 x='Percentage',
                 y='Also Found',
                 orientation='h',
-                title=f"When {primary_substance} is present, % with other substances",
+                title=title_text,
                 labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
                 text='label',
                 hover_data={
@@ -1084,7 +1084,7 @@ def update_bar_chart(primary_substance, is_mobile):
     
     # Apply mobile-responsive layout
     # X-axis angle: 45° for grouped view (substance names), 45° for mobile filtered (substance names), 0° for desktop filtered (percentages)
-    x_angle = 45 if (not primary_substance or primary_substance == "") else (45 if is_mobile else 0)
+    x_angle = 45 if not selected_values else (45 if is_mobile else 0)
     
     fig.update_layout(
         height=height,
@@ -1096,7 +1096,7 @@ def update_bar_chart(primary_substance, is_mobile):
         ),
         yaxis=dict(tickfont=dict(size=text_size)),
         margin=dict(
-            l=margin_left if primary_substance and primary_substance != "" else (margin_left - 10), 
+            l=margin_left if selected_values else (margin_left - 10), 
             r=margin_right, 
             t=margin_top, 
             b=margin_bottom
@@ -1108,7 +1108,7 @@ def update_bar_chart(primary_substance, is_mobile):
             y=1.02,  # Position above plot area
             xanchor="center",
             x=0.5  # Center horizontally
-        ) if not primary_substance or primary_substance == "" else dict(font=dict(size=text_size)),
+        ) if not selected_values else dict(font=dict(size=text_size)),
         autosize=False if is_mobile else True
     )
     
@@ -1117,7 +1117,7 @@ def update_bar_chart(primary_substance, is_mobile):
 
 @callback(
     Output("polysubstance-cooccurrence-network", "figure"),
-    Input("polysubstance-cooccurrence-primary-substance", "value"),  # Not used, but keeps callback structure
+    Input("polysubstance-substance-filter", "value"),  # Not used, but keeps callback structure
 )
 def update_network(_):
     """Create a network graph showing substance co-occurrences."""
@@ -1252,7 +1252,7 @@ def update_network(_):
 
 @callback(
     Output("polysubstance-cooccurrence-sankey", "figure"),
-    Input("polysubstance-cooccurrence-primary-substance", "value"),  # Not used, but keeps callback structure
+    Input("polysubstance-substance-filter", "value"),  # Not used, but keeps callback structure
 )
 def update_sankey(_):
     """Create a Sankey diagram showing substance flow patterns."""
