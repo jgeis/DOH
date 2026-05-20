@@ -370,20 +370,16 @@ def layout_for(is_mobile: bool = False):
         html.P("Line chart showing discharges by year and county.", className="visually-hidden"),
     ], xs=12, md=6)
 
-    # RIGHT: county share chart + two small summary tables
+    # RIGHT: county share chart + two small summary tables (no headers per site-wide standard)
     right = dbc.Col([
-        graph_block("pie-county-share", "County Share (Unique Discharges)", h_tree),
-        html.P("Pie chart showing the share of unique discharges by county.", className="visually-hidden"),
+        html.Div(id="tbl-county-share", className="sidebar-table mb-4"),
 
-        # Two summary tables (Age + Sex at Birth)
-        # Match Discharges tab behavior: 2-up on phones, stacked on md+.
+        # Two summary tables (Age + Sex at Birth) — NO HEADERS
         dbc.Row([
             dbc.Col([
-                html.H5("Age Group", className="mb-2"),
                 html.Div(id="tbl-age", className="sidebar-table"),
             ], xs=12, md=12),
             dbc.Col([
-                html.H5("Sex", className="mb-2"),
                 html.Div(id="tbl-sex", className="sidebar-table"),
             ], xs=12, md=12),
         ], className="g-3"),
@@ -571,7 +567,7 @@ layout = layout_for(is_mobile=False)
     Output("bar-top-substances", "figure"),
     Output("line-year-substance", "figure"),
     Output("stack-year-county", "figure"),
-    Output("pie-county-share", "figure"),
+    Output("tbl-county-share", "children"),
     Output("tbl-age", "children"),
     Output("tbl-sex", "children"),
     Input("polysubstance-substance-filter", "value"),
@@ -733,7 +729,7 @@ def update(substance, age, sex, county, year):
     else:
         fig_year_county = px.line()
 
-    # ---------- Pie chart: county share ----------
+    # ---------- Table: county share ----------
     uniq = dff.drop_duplicates(subset=["record_id"])
     if {"county", "record_id"}.issubset(uniq.columns) and not uniq.empty:
         county_counts = uniq.groupby("county")["record_id"].nunique().reset_index(name="discharges")
@@ -745,25 +741,18 @@ def update(substance, age, sex, county, year):
             ordered=True,
         )
         county_counts = county_counts.sort_values("county")
-
-        fig_tree = px.pie(
+        county_counts["discharges"] = county_counts["discharges"].map(format_count_display)
+        header_labels = {"county": "County", "discharges": "Unique Discharges"}
+        county_counts = county_counts.rename(columns=header_labels)
+        tbl_county = dbc.Table.from_dataframe(
             county_counts,
-            names="county",
-            values="discharges",
-            hole=0.35,
-            category_orders={"county": county_order},
-        )
-        county_counts["display_count"] = county_counts["discharges"].apply(format_count_display)
-        fig_tree.update_traces(
-            customdata=county_counts[["display_count"]],
-            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
-            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
-        )
-        fig_tree.update_layout(
-            margin=dict(l=0, r=0, t=50, b=0)   # <-- extra top space
+            striped=True,
+            bordered=True,
+            hover=True,
+            size="sm"
         )
     else:
-        fig_tree = px.pie()
+        tbl_county = dbc.Alert("No county data available.", color="warning", className="mb-0")
 
     # ---------- Small tables ----------
     def simple_table(df, col, ordered=None):
@@ -799,7 +788,7 @@ def update(substance, age, sex, county, year):
     tbl_age = simple_table(uniq, "age_group", age_groups)
     tbl_sex = simple_table(uniq, "sex")
 
-    return fig_sub, fig_year_substance, fig_year_county, fig_tree, tbl_age, tbl_sex
+    return fig_sub, fig_year_substance, fig_year_county, tbl_county, tbl_age, tbl_sex
 
 
 
