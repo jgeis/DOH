@@ -155,22 +155,32 @@ def build_correlation_matrix(df):
     return substance_matrix.corr()
 
 
-def build_cooccurrence_data(df):
+def build_cooccurrence_data(df, age=None, sex=None, county=None, year=None):
     """
     Build data for grouped bar chart showing co-occurrence percentages.
-    
+
     For each substance, calculate what % of records also have other substances.
     """
+    # Apply filters to match sunburst logic
+    if "age_group" in df.columns:
+        df = _apply_filter(df, "age_group", age)
+    if "sex" in df.columns:
+        df = _apply_filter(df, "sex", sex)
+    if "county" in df.columns:
+        df = apply_county_filter(df, county).copy()
+    if "year" in df.columns:
+        df = _apply_filter(df, "year", year)
+
     results = []
-    
+
     for primary_substance in df['substance'].unique():
-        # Get all records with this primary substance
+        # Get all records where the substance is present (not just primary)
         records = df[df['substance'] == primary_substance]['record_id'].unique()
         total = len(records)
-        
+
         if total == 0:
             continue
-        
+
         # For each other substance, count how many of these records also have it
         for other_substance in df['substance'].unique():
             if other_substance != primary_substance:
@@ -178,7 +188,7 @@ def build_cooccurrence_data(df):
                     (df['record_id'].isin(records)) & 
                     (df['substance'] == other_substance)
                 ]['record_id'].nunique()
-                
+
                 results.append({
                     'Primary': primary_substance,
                     'Also Found': other_substance,
@@ -186,7 +196,7 @@ def build_cooccurrence_data(df):
                     'Count': count,
                     'Total': total
                 })
-    
+
     return pd.DataFrame(results)
 
 
@@ -1150,7 +1160,7 @@ def update_bar_chart(selected_substances, is_mobile):
                     'Count_formatted': ':.0f',
                     'Total_formatted': ':.0f'
                 },
-                custom_data=['Count_formatted', 'Total_formatted']
+                custom_data=['Count_formatted', 'Total_formatted', 'Also Found']
             )
             
             fig.update_traces(
@@ -1474,7 +1484,7 @@ def update_sankey(_):
                     (df_filtered['record_id'].isin(records)) & 
                     (df_filtered['substance'] == other_sub)
                 ]['record_id'].nunique()
-                
+
                 if count > 20:  # Only show significant connections
                     edges.append({
                         'source': substance,
