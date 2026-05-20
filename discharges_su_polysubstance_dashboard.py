@@ -564,6 +564,7 @@ layout = layout_for(is_mobile=False)
 
 # ---------- callbacks (figures + tables) ----------
 @callback(
+    Output("bar-top-substances-title", "children"),
     Output("bar-top-substances", "figure"),
     Output("line-year-substance", "figure"),
     Output("stack-year-county", "figure"),
@@ -601,6 +602,13 @@ def update(substance, age, sex, county, year):
         if isinstance(substance, (list, tuple, set))
         else ([substance] if substance else [])
     )
+
+    if not selected_substances:
+        bar_title = "Substance Type"
+    elif len(selected_substances) == 1:
+        bar_title = f"Substance found along with {selected_substances[0]}"
+    else:
+        bar_title = "Substance found along with " + ", ".join(str(v) for v in selected_substances)
 
     bar_source = dff
     if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
@@ -822,7 +830,7 @@ def update(substance, age, sex, county, year):
     tbl_age = simple_table(uniq, "age_group", age_groups)
     tbl_sex = simple_table(uniq, "sex")
 
-    return fig_sub, fig_year_substance, fig_year_county, tbl_county, tbl_age, tbl_sex
+    return bar_title, fig_sub, fig_year_substance, fig_year_county, tbl_county, tbl_age, tbl_sex
 
 
 
