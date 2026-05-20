@@ -142,17 +142,6 @@ def layout():
             graph_block("sudors-bar", "Deaths by Substance", bar_h),
             html.P("Bar chart showing deaths by substance.", className="visually-hidden"),
 
-            dbc.Row([
-                dbc.Col([
-                    graph_block("sudors-pie-sex", "Sex at Birth", pie_h),
-                    html.P("Pie chart showing sex at birth.", className="visually-hidden"),
-                ], xs=12, md=6),
-                dbc.Col([
-                    graph_block("sudors-pie-homeless", "Homeless status", pie_h),
-                    html.P("Pie chart showing homeless status.", className="visually-hidden"),
-                ], xs=12, md=6),
-            ], className="g-2"),
-
             graph_block("sudors-line", "Yearly Deaths by Substance", line_h),
             html.P("Line chart showing deaths by substance over time.", className="visually-hidden"),
         ],
@@ -168,6 +157,18 @@ def layout():
                     className="mobile-side-table",
                     style={"overflowX": "auto"}
                 )], xs=12, md=12, className="pe-1 mb-3"),
+            dbc.Col([
+                html.Div(
+                    id="sudors-table-sex",
+                    className="mobile-side-table",
+                    style={"overflowX": "auto"}
+                )], xs=12, md=12, className="ps-1 mb-3"),
+            dbc.Col([
+                html.Div(
+                    id="sudors-table-homeless",
+                    className="mobile-side-table",
+                    style={"overflowX": "auto"}
+                )], xs=12, md=12, className="ps-1 mb-3"),
             dbc.Col([
                 html.Div(
                     id="sudors-table-year",
@@ -221,11 +222,11 @@ def reset_all_filters(_n_clicks):
     Output("sudors-bar", "figure"),
     # tables
     Output("sudors-table-race", "children"),
+    Output("sudors-table-sex", "children"),
+    Output("sudors-table-homeless", "children"),
     Output("sudors-table-year", "children"),
     Output("sudors-table-age", "children"),
     # graphs
-    Output("sudors-pie-sex", "figure"),
-    Output("sudors-pie-homeless", "figure"),
     Output("sudors-line", "figure"),
     # filters
     Input("sudors-substance-filter", "value"),
@@ -315,57 +316,6 @@ def update_dashboard(substance, homeless, sex, age, race, year):
     else:
         sud_bar = px.bar()
 
-
-    # ---------- Pie chart: Deaths by Sex at Birth ----------
-    if "sex" in dff.columns:
-        pie_df = (
-            dff.groupby("sex")["incident_id"].nunique()
-            .reset_index(name="count")
-            .sort_values("count", ascending=False)
-        )
-        pie_df["display_count"] = pie_df["count"].apply(format_count_display)
-        sex_pie = px.pie(
-            pie_df,
-            names="sex",
-            values="count",
-            hole=0.35,
-            custom_data=["display_count"],
-        )
-        sex_pie.update_traces(
-            textposition="inside",
-            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
-            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
-        )
-        sex_pie.update_layout(margin=dict(l=0, r=0, t=10, b=0))
-    else:
-        sex_pie = px.pie()
-
-
-    # ---------- Pie chart: Deaths by Homeless Status ----------
-    if "homeless" in dff.columns:
-        homeless_pie_df = (
-            dff.groupby("homeless")["incident_id"].nunique()
-            .reset_index(name="count")
-            .sort_values("count", ascending=False)
-        )
-        homeless_pie_df["display_count"] = homeless_pie_df["count"].apply(format_count_display)
-        homeless_pie = px.pie(
-            homeless_pie_df,
-            names="homeless",
-            values="count",
-            hole=0.35,
-            custom_data=["display_count"],
-        )
-        homeless_pie.update_traces(
-            textposition="inside",
-            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
-            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
-        )
-        homeless_pie.update_layout(margin=dict(l=0, r=0, t=10, b=0))
-    else:
-        homeless_pie = px.pie()
-
-
     # ---------- Line chart: Deaths by Substance Over Time ----------
     if {"year", "substance"}.issubset(dff.columns):
         by_year_substance = (
@@ -423,6 +373,8 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             g = g.sort_values(column)
         elif column == "race_ethnicity":
             g = g.sort_values("count", ascending=False)
+        elif column == "sex":
+            g = g.sort_values("count", ascending=False)
         elif column == "homeless":
             g = g.sort_values("count", ascending=False)
 
@@ -432,6 +384,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
         # Use friendly display labels for table headers
         header_labels = {
             "race_ethnicity": "Race/Ethnicity",
+            "sex": "Sex at Birth",
             "homeless": "Is Homeless",
             "year": "Calendar Year",
             "age_cat": "Age Group",
@@ -470,9 +423,9 @@ def update_dashboard(substance, homeless, sex, age, race, year):
         format_count_display(filter_total),
         sud_bar,
         tbl("race_ethnicity"),
+        tbl("sex"),
+        tbl("homeless"),
         tbl("year"),
         tbl("age_cat", age_table_order),
-        sex_pie,
-        homeless_pie,
         line_fig,
     )
