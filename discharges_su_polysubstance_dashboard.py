@@ -1097,8 +1097,11 @@ def update_bar_chart(selected_substances, is_mobile):
                              'Co-occurrence: %{y:.1f}%<br>' +
                              'Count: %{customdata[0]}<br>' +
                              'Total: %{customdata[1]}<extra></extra>',
-                textfont=dict(size=text_size)
+                textfont=dict(size=text_size),
+                cliponaxis=False
             )
+            max_pct = float(co_data['Percentage'].max()) if not co_data.empty else 0.0
+            fig.update_yaxes(range=[0, max_pct * 1.15 if max_pct else 1])
             # Keep visual order explicitly descending left-to-right.
             fig.update_xaxes(
                 categoryorder='array',
@@ -1130,8 +1133,11 @@ def update_bar_chart(selected_substances, is_mobile):
                              'Co-occurrence: %{x:.1f}%<br>' +
                              'Count: %{customdata[0]}<br>' +
                              'Total: %{customdata[1]}<extra></extra>',
-                textfont=dict(size=text_size)
+                textfont=dict(size=text_size),
+                cliponaxis=False
             )
+            max_pct = float(co_data['Percentage'].max()) if not co_data.empty else 0.0
+            fig.update_xaxes(range=[0, max_pct * 1.15 if max_pct else 1])
             # Horizontal bars render categories bottom-to-top; reverse for descending top-to-bottom.
             fig.update_yaxes(
                 categoryorder='array',
@@ -1177,7 +1183,8 @@ def update_bar_chart(selected_substances, is_mobile):
                          'Co-occurrence: %{y:.1f}%<br>' +
                          'Count: %{customdata[0]}<br>' +
                          'Total: %{customdata[1]}<extra></extra>',
-            textfont=dict(size=text_size)
+            textfont=dict(size=text_size),
+            cliponaxis=False
         )
     
     # Apply mobile-responsive layout
