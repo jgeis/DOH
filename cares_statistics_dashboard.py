@@ -7,7 +7,7 @@ import plotly.express as px
 
 from config import USE_MSSQL
 from db_utils import execute_query
-from dashboard_utils import load_sql_query
+from dashboard_utils import load_sql_query, make_last_updated_block
 from theme import register_template
 
 register_template()
@@ -53,6 +53,18 @@ def _load_top_10_reasons_table():
 
     keep_cols = [col for col in ["Category", "Percent"] if col in df.columns]
     return df[keep_cols]
+
+
+def _load_last_updated_value():
+    sql = load_sql_query(_query_name("load_cares_calls_last_updated"))
+    df = execute_query(sql)
+    if df.empty or "last_updated" not in df.columns:
+        return None
+
+    parsed = pd.to_datetime(df.iloc[0]["last_updated"], errors="coerce")
+    if pd.isna(parsed):
+        return None
+    return parsed.strftime("%Y-%m-%d")
 
 
 def _load_calls_line_chart():
@@ -151,6 +163,7 @@ def _load_cmo_bar_chart():
 def layout():
     try:
         top_10_df = _load_top_10_reasons_table()
+        last_updated_value = _load_last_updated_value()
         calls_line_fig = _load_calls_line_chart()
         cmo_bar_fig = _load_cmo_bar_chart()
     except Exception as exc:
@@ -179,6 +192,7 @@ def layout():
                     [
                         html.H5("Top 10 reasons for contacting Hawai'i CARES 988", className="plot-card-header mb-2"),
                         html.Div(table_component, style={"overflowX": "auto"}),
+                        html.Div(make_last_updated_block(last_updated_value), className="mt-2"),
                     ],
                     xs=12,
                     md=4,

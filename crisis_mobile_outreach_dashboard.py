@@ -47,17 +47,12 @@ def load_cmo_referrals_dataframe():
 
 def load_cmo_last_updated_value():
     """Fetch the most recent DispatchDate from the source table for Last Updated."""
-    if USE_MSSQL:
-        sql = """
-        SELECT CAST(MAX(DispatchDate) AS date) AS last_updated
-        FROM dbo.AMHD_Crisis_Mobile_Outreach
-        """
-    else:
-        sql = """
-        SELECT date(MAX(DispatchDate)) AS last_updated
-        FROM AMHD_Crisis_Mobile_Outreach
-        """
-
+    query_name = (
+        "load_crisis_mobile_outreach_last_updated"
+        if USE_MSSQL
+        else "load_crisis_mobile_outreach_last_updated_sqlite"
+    )
+    sql = load_sql_query(query_name)
     result = execute_query(sql)
     if result.empty or "last_updated" not in result.columns:
         return None

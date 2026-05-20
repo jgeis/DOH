@@ -308,6 +308,16 @@ FROM GroupedCounts
 ORDER BY ct DESC;
 
 
+-- name: load_crisis_mobile_outreach_last_updated
+SELECT CAST(MAX(DispatchDate) AS date) AS last_updated
+FROM dbo.AMHD_Crisis_Mobile_Outreach;
+
+
+-- name: load_crisis_mobile_outreach_last_updated_sqlite
+SELECT date(MAX(DispatchDate)) AS last_updated
+FROM AMHD_Crisis_Mobile_Outreach;
+
+
 -- name: crisis-bed-occupancy
 SELECT 
     FORMAT(DispatchDate, 'yyyy-MM') AS dispatch_month, 
@@ -540,6 +550,16 @@ WHERE Date >= date((SELECT MAX(Date) FROM cares_calls_inbound), '-6 months')
 GROUP BY Nature_of_Call 
 ORDER BY percentage_of_total DESC
 LIMIT 10;
+
+
+-- name: load_cares_calls_last_updated
+SELECT CAST(MAX(Date) AS date) AS last_updated
+FROM dbo.cares_calls_inbound;
+
+
+-- name: load_cares_calls_last_updated_sqlite
+SELECT date(MAX(Date)) AS last_updated
+FROM cares_calls_inbound;
 
 
 
