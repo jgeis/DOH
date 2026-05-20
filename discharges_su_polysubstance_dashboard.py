@@ -274,10 +274,10 @@ def _apply_filter(frame: pd.DataFrame, col: str, val) -> pd.DataFrame:
     short and consistent.
     """
     if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
-        return frame
+        return frame.copy()
     if isinstance(val, (list, tuple)):
-        return frame[frame[col].isin(val)]
-    return frame[frame[col] == val]
+        return frame[frame[col].isin(val)].copy()
+    return frame[frame[col] == val].copy()
 
 
 def _wrap_label(label: str, max_len: int = 22):
@@ -409,7 +409,12 @@ def layout_for(is_mobile: bool = False):
                     dbc.CardBody([
                         html.P([
                             "Heatmap showing how often substances appear together in the same polysubstance record. ",
-                            "Darker cells indicate stronger co-occurrence.",
+                            "Darker cells indicate stronger co-occurrence.  When you select a substance to filter on, ",
+                            "the heatmap updates to show how often each pair of substances co-occur among all records ", 
+                            "that include your selected substance(s). This helps you see which other substances are ", 
+                            "most likely to appear together with your selection.  When multiple substances are ", 
+                            "selected, this heatmap shows co-occurrence relationships among all substances in records ", 
+                            "that include any selected substance.",
                             html.Br() if is_mobile else "",
                             html.Small("(Scroll horizontally to see full chart)", className="text-muted") if is_mobile else ""
                         ], className="text-muted mb-3"),
@@ -567,7 +572,7 @@ def update(substance, age, sex, county, year):
     if "sex" in dff_base.columns:
         dff_base = _apply_filter(dff_base, "sex", sex)
     if "county" in dff_base.columns:
-        dff_base = apply_county_filter(dff_base, county)
+        dff_base = apply_county_filter(dff_base, county).copy()
     if "year" in dff_base.columns:
         dff_base = _apply_filter(dff_base, "year", year)
 
@@ -772,13 +777,13 @@ def update(substance, age, sex, county, year):
         county_counts["discharges"] = county_counts["discharges"].map(format_count_display)
         header_labels = {"county": "County", "discharges": "Unique Discharges"}
         county_counts = county_counts.rename(columns=header_labels)
-        tbl_county = dbc.Table.from_dataframe(
-            county_counts,
-            striped=True,
-            bordered=True,
-            hover=True,
-            size="sm"
-        )
+        # Manual table builder for compatibility
+        tbl_county = dbc.Table([
+            html.Thead(html.Tr([html.Th(col) for col in county_counts.columns])),
+            html.Tbody([
+                html.Tr([html.Td(val) for val in row]) for row in county_counts.values
+            ])
+        ], striped=True, bordered=True, hover=True, size="sm")
     else:
         tbl_county = dbc.Alert("No county data available.", color="warning", className="mb-0")
 
@@ -802,13 +807,13 @@ def update(substance, age, sex, county, year):
         }
         g = g.rename(columns=header_labels)
 
-        return dbc.Table.from_dataframe(
-            g,
-            striped=True,
-            bordered=True,
-            hover=True,
-            size="sm"
-        )
+        # Manual table builder for compatibility
+        return dbc.Table([
+            html.Thead(html.Tr([html.Th(col) for col in g.columns])),
+            html.Tbody([
+                html.Tr([html.Td(val) for val in row]) for row in g.values
+            ])
+        ], striped=True, bordered=True, hover=True, size="sm")
 
     # Extract age groups dynamically from the filtered data (excluding Unknown for polysubstance analysis)
     age_groups = sorted(uniq["age_group"].unique()) if "age_group" in uniq.columns and not uniq.empty else None
@@ -842,20 +847,36 @@ def _reset_filters(n):
 
 # ---------- Callbacks ----------
 
+
 @callback(
     Output("polysubstance-cooccurrence-heatmap", "figure"),
-    Input("polysubstance-substance-filter", "value"),  # Not used, but keeps callback structure
+    Input("polysubstance-substance-filter", "value"),
     Input("polysubstance-cooccurrence-is-mobile", "data"),
 )
-def update_heatmap(_, is_mobile):
-    """Create a heatmap showing correlation between substances."""
-    
+def update_heatmap(selected_substances, is_mobile):
+    """Create a heatmap showing correlation between substances, filtered by selected substance(s)."""
     if df_raw.empty or 'substance' not in df_raw.columns:
         return go.Figure().add_annotation(text="No data available", showarrow=False)
-    
-    # Build correlation matrix
-    corr_matrix = build_correlation_matrix(df_raw)
-    
+
+    # Filter the dataframe by selected substances if any are selected
+    dff = df_raw.copy()
+    selected_values = (
+        [v for v in selected_substances if v]
+        if isinstance(selected_substances, (list, tuple, set))
+        else ([selected_substances] if selected_substances else [])
+    )
+    if selected_values:
+        # Find all record_ids that contain any selected substance(s)
+        record_ids = dff[dff["substance"].isin(selected_values)]["record_id"].unique()
+        dff = dff[dff["record_id"].isin(record_ids)]
+        if dff.empty:
+            return go.Figure().add_annotation(text="No data for selected substance(s)", showarrow=False)
+
+    # Build correlation matrix on filtered data
+    corr_matrix = build_correlation_matrix(dff)
+    if corr_matrix.empty:
+        return go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
+
     # Adjust parameters based on mobile state
     if is_mobile:
         text_size = 9
@@ -877,7 +898,7 @@ def update_heatmap(_, is_mobile):
         margin_bottom = 150
         title_text = "Substance Co-occurrence Correlation Matrix"
         title_size = 16
-    
+
     # Create heatmap
     fig = go.Figure(data=go.Heatmap(
         z=corr_matrix.values,
@@ -890,7 +911,7 @@ def update_heatmap(_, is_mobile):
         textfont={"size": text_size},
         colorbar=dict(title="Correlation")
     ))
-    
+
     fig.update_layout(
         title=dict(text=title_text, font=dict(size=title_size)),
         xaxis=dict(side='bottom', tickangle=45, tickfont=dict(size=text_size)),
@@ -900,7 +921,7 @@ def update_heatmap(_, is_mobile):
         margin=dict(l=margin_left, r=margin_right, t=margin_top, b=margin_bottom),
         autosize=False if is_mobile else True
     )
-    
+
     return fig
 
 
@@ -1139,9 +1160,14 @@ def update_network(_):
         for j, sub2 in enumerate(substances):
             if i < j:  # Only upper triangle to avoid duplicates
                 weight = cooccurrence.loc[sub1, sub2]
-                if weight > threshold:
+                # Ensure weight is numeric for comparison
+                try:
+                    weight_num = float(weight)
+                except Exception:
+                    continue
+                if weight_num > threshold:
                     edges.append((sub1, sub2))
-                    edge_weights.append(weight)
+                    edge_weights.append(weight_num)
     
     if not edges:
         return go.Figure().add_annotation(
@@ -1213,7 +1239,13 @@ def update_network(_):
     # Create node trace
     node_x = [pos[sub][0] for sub in substances]
     node_y = [pos[sub][1] for sub in substances]
-    node_size = [cooccurrence.loc[sub, sub] / 50 for sub in substances]  # Size by frequency
+    node_size = []
+    for sub in substances:
+        try:
+            freq = float(cooccurrence.loc[sub, sub])
+        except Exception:
+            freq = 1.0
+        node_size.append(freq / 50)
     
     node_trace = go.Scatter(
         x=node_x,
@@ -1226,7 +1258,7 @@ def update_network(_):
             color='lightblue',
             line=dict(width=2, color='darkblue'),
             sizemode='area',
-            sizeref=2.*max(node_size)/(40.**2),
+            sizeref=2.*max(node_size)/(40.**2) if node_size else 1,
             sizemin=4
         ),
         hovertext=[f"{sub}<br>Frequency: {cooccurrence.loc[sub, sub]:,.0f}" for sub in substances],
