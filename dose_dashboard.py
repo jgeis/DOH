@@ -354,14 +354,8 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
 
         return dbc.Table.from_dataframe(g, striped=True, bordered=True, hover=True)
     
-    # Extract age groups dynamically from the filtered DOSE data
-    if "age_group" in dose_df.columns and not dose_df.empty:
-        _dag_sorted = sorted([v for v in dose_df["age_group"].unique() if v not in ("<18", "Unknown")])
-        _dag_prefix = ["<18"] if "<18" in dose_df["age_group"].values else []
-        _dag_unknown = ["Unknown"] if "Unknown" in dose_df["age_group"].values else []
-        dose_age_groups = _dag_prefix + _dag_sorted + _dag_unknown
-    else:
-        dose_age_groups = None
+    # Extract age groups dynamically from the filtered DOSE data using shared sort rules.
+    dose_age_groups = sort_opts(dose_df["age_group"]) if "age_group" in dose_df.columns and not dose_df.empty else None
 
     # ---------- Map: Discharges by ZIP Code ----------
     try:

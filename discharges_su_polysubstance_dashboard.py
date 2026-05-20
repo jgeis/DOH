@@ -866,7 +866,7 @@ def update(substance, age, sex, county, year):
         ], striped=True, bordered=True, hover=True, size="sm")
 
     # Extract age groups dynamically from the filtered data (excluding Unknown for polysubstance analysis)
-    age_groups = sorted(uniq["age_group"].unique()) if "age_group" in uniq.columns and not uniq.empty else None
+    age_groups = sort_opts(uniq["age_group"]) if "age_group" in uniq.columns and not uniq.empty else None
 
     tbl_age = simple_table(uniq, "age_group", age_groups)
     tbl_sex = simple_table(uniq, "sex")

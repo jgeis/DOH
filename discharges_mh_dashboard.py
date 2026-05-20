@@ -535,14 +535,8 @@ def update_dashboard(diagnosis, county, city, year, hawaii_residency, age, sex, 
 
         return dbc.Table.from_dataframe(g, striped=True, bordered=True, hover=True)
 
-    # Extract age groups dynamically from the filtered data
-    if "age_group" in dff.columns and not dff.empty:
-        _ag_sorted = sorted([v for v in dff["age_group"].unique() if v not in ("<18", "Unknown")])
-        _ag_prefix = ["<18"] if "<18" in dff["age_group"].values else []
-        _ag_unknown = ["Unknown"] if "Unknown" in dff["age_group"].values else []
-        age_groups = _ag_prefix + _ag_sorted + _ag_unknown
-    else:
-        age_groups = None
+    # Extract age groups dynamically from the filtered data using shared sort rules.
+    age_groups = sort_opts(dff["age_group"]) if "age_group" in dff.columns and not dff.empty else None
 
     # Return all the updated visuals and tables to Dash
     return (
