@@ -18,6 +18,7 @@ from dashboard_utils import (
     graph_block,
     make_kpi_card,
     make_left_sidebar,
+    make_right_summary_tables_col,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -152,48 +153,14 @@ def layout():
                     ]),
                 ], xs=12, md=6),
 
-                dbc.Col(
+                make_right_summary_tables_col(
                     [
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.H6("By County", className="mb-2"),
-                                        html.Div(
-                                            id="table-county-dose",
-                                            className="mobile-side-table",
-                                            style={"overflowX": "auto"}
-                                        ),
-                                    ],
-                                    xs=12, md=12, className="pe-1 mb-3",
-                                ),
-                                dbc.Col(
-                                    [
-                                        html.H6("By Age Group", className="mb-2"),
-                                        html.Div(
-                                            id="table-age-dose",
-                                            className="mobile-side-table",
-                                            style={"overflowX": "auto"}
-                                        ),
-                                    ],
-                                    xs=12, md=12, className="ps-1 mb-3",
-                                ),
-                                dbc.Col(
-                                    [
-                                        html.H6("By Gender", className="mb-2"),
-                                        html.Div(
-                                            id="table-sex-dose",
-                                            className="mobile-side-table",
-                                            style={"overflowX": "auto"}
-                                        ),
-                                    ],
-                                    xs=12, md=12, className="ps-1 mb-3",
-                                ),
-                            ],
-                            className="g-2"
-                        ),
+                        ("County", "table-county-dose", "By County"),
+                        ("Age Group", "table-age-dose", "By Age Group"),
+                        ("Sex", "table-sex-dose", "By Gender"),
                     ],
-                    xs=12, md=3
+                    xs=12,
+                    md=3,
                 )
             ], className="g-3"),
             id="dose-section",

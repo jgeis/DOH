@@ -34,6 +34,21 @@ FILTER_LABEL_ORDER = [
 ]
 
 
+# Global preferred order for right-column summary tables.
+RIGHT_TABLE_LABEL_ORDER = [
+    "Calendar Year",
+    "Year",
+    "County",
+    "Age Group",
+    "Sex",
+    "Sex at Birth",
+    "Race/Ethnicity",
+    "Hawaii Resident",
+    "Homeless",
+    "Is Homeless",
+]
+
+
 def _normalize_filter_label(label: str) -> str:
     """Normalize filter labels so ordering is resilient to punctuation/case variants."""
     text = re.sub(r"[^a-z0-9]+", " ", str(label).strip().lower())
@@ -43,6 +58,11 @@ def _normalize_filter_label(label: str) -> str:
 _FILTER_LABEL_RANK = {
     _normalize_filter_label(label): idx
     for idx, label in enumerate(FILTER_LABEL_ORDER)
+}
+
+_RIGHT_TABLE_LABEL_RANK = {
+    _normalize_filter_label(label): idx
+    for idx, label in enumerate(RIGHT_TABLE_LABEL_ORDER)
 }
 
 
@@ -56,6 +76,55 @@ def _ordered_filters(filters):
         return rank, original_idx
 
     return [flt for _idx, flt in sorted(indexed, key=_sort_key)]
+
+
+def make_right_summary_tables_col(table_specs, xs: int = 12, md: int = 3):
+    """
+    Build a right-column block of summary tables in a shared, site-wide order.
+
+    Args:
+        table_specs: list of tuples in the form (label, table_id) or
+            (label, table_id, heading)
+        xs, md: responsive widths for the right column
+    """
+    indexed = list(enumerate(table_specs))
+
+    def _sort_key(item):
+        original_idx, spec = item
+        label = spec[0]
+        norm = _normalize_filter_label(label)
+        rank = _RIGHT_TABLE_LABEL_RANK.get(norm, len(_RIGHT_TABLE_LABEL_RANK))
+        return rank, original_idx
+
+    ordered_specs = [spec for _idx, spec in sorted(indexed, key=_sort_key)]
+
+    table_cols = []
+    for idx, spec in enumerate(ordered_specs):
+        label = spec[0]
+        table_id = spec[1]
+        heading = spec[2] if len(spec) > 2 else None
+        side_class = "pe-1 mb-3" if idx == 0 else "ps-1 mb-3"
+        children = []
+        if heading:
+            children.append(html.H6(heading, className="mb-2"))
+        children.append(
+            html.Div(
+                id=table_id,
+                className="mobile-side-table",
+                style={"overflowX": "auto"},
+            )
+        )
+
+        table_cols.append(
+            dbc.Col(
+                children,
+                xs=12,
+                md=12,
+                className=side_class,
+            )
+        )
+
+    return dbc.Col([dbc.Row(table_cols, className="g-2")], xs=xs, md=md)
 
 # This applies our custom Plotly theme (colors, fonts, etc.)
 register_template()

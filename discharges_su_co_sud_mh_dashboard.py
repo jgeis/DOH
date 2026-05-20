@@ -17,6 +17,7 @@ from dashboard_utils import (
     graph_block,
     make_kpi_card,
     make_left_sidebar,
+    make_right_summary_tables_col,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -165,29 +166,16 @@ def layout():
         html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
     ], xs=12, md=6)
 
-    # Right column: summary tables
-    right_col = dbc.Col([
-        dbc.Row([
-            dbc.Col([
-                html.Div(
-                    id="su-primary-table-county",
-                    className="mobile-side-table",
-                    style={"overflowX": "auto"}
-                )], xs=12, md=12, className="pe-1 mb-3"),
-            dbc.Col([
-                html.Div(
-                    id="su-primary-table-age",
-                    className="mobile-side-table",
-                    style={"overflowX": "auto"}
-                )], xs=12, md=12, className="ps-1 mb-3"),
-            dbc.Col([
-                html.Div(
-                    id="su-primary-table-sex",
-                    className="mobile-side-table",
-                    style={"overflowX": "auto"}
-                )], xs=12, md=12, className="ps-1 mb-3"),
-        ], className="g-2"),
-    ], xs=12, md=3)
+    # Right column: summary tables (ordered by shared site-wide utility)
+    right_col = make_right_summary_tables_col(
+        [
+            ("County", "su-primary-table-county"),
+            ("Age Group", "su-primary-table-age"),
+            ("Sex", "su-primary-table-sex"),
+        ],
+        xs=12,
+        md=3,
+    )
 
     return dbc.Container([
         skip_link,

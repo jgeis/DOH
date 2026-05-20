@@ -18,6 +18,7 @@ from dashboard_utils import (
     graph_block,
     make_kpi_card,
     make_left_sidebar,
+    make_right_summary_tables_col,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -176,79 +177,18 @@ def layout():
         xs=12, md=6
     )
 
-    # Right column: summary tables
-    right_col = dbc.Col(
+    # Right column: summary tables (ordered by shared site-wide utility)
+    right_col = make_right_summary_tables_col(
         [
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.Div(
-                                id="table-year-mh",
-                                className="mobile-side-table",
-                                style={"overflowX": "auto"}
-                            ),
-                        ],
-                        xs=12, md=12, className="pe-1 mb-3",
-                    ),
-                    dbc.Col(
-                        [
-                            #html.H6("By County", className="mb-2"),
-                            html.Div(
-                                id="table-county-mh",
-                                className="mobile-side-table",
-                                style={"overflowX": "auto"}
-                            ),
-                        ],
-                        xs=12, md=12, className="pe-1 mb-3",
-                    ),
-                    dbc.Col(
-                        [
-                            #html.H6("By Age Group", className="mb-2"),
-                            html.Div(
-                                id="table-age-mh",
-                                className="mobile-side-table",
-                                style={"overflowX": "auto"}
-                            ),
-                        ],
-                        xs=12, md=12, className="ps-1 mb-3",
-                    ),
-                    dbc.Col(
-                        [
-                            #html.H6("By Gender", className="mb-2"),
-                            html.Div(
-                                id="table-sex-mh",
-                                className="mobile-side-table",
-                                style={"overflowX": "auto"}
-                            ),
-                        ],
-                        xs=12, md=12, className="ps-1 mb-3",
-                    ),
-                    dbc.Col(
-                        [
-                            html.Div(
-                                id="table-race-ethnicity-mh",
-                                className="mobile-side-table",
-                                style={"overflowX": "auto"}
-                            ),
-                        ],
-                        xs=12, md=12, className="ps-1 mb-3",
-                    ),
-                    dbc.Col(
-                        [
-                            html.Div(
-                                id="table-hawaii-residency-mh",
-                                className="mobile-side-table",
-                                style={"overflowX": "auto"}
-                            ),
-                        ],
-                        xs=12, md=12, className="ps-1 mb-3",
-                    ),
-                ],
-                className="g-2"
-            ),
+            ("Calendar Year", "table-year-mh"),
+            ("County", "table-county-mh"),
+            ("Age Group", "table-age-mh"),
+            ("Sex", "table-sex-mh"),
+            ("Race/Ethnicity", "table-race-ethnicity-mh"),
+            ("Hawaii Resident", "table-hawaii-residency-mh"),
         ],
-        xs=12, md=3
+        xs=12,
+        md=3,
     )
 
     return dbc.Container([

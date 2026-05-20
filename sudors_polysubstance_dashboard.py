@@ -16,6 +16,7 @@ from dashboard_utils import (
    graph_block,
    make_kpi_card,
    make_left_sidebar,
+    make_right_summary_tables_col,
    make_filters_card,
    dropdown_filter,
    format_count_display,
@@ -303,29 +304,16 @@ def layout():
        ]),
    ], xs=12, md=12, className="mb-4")
 
-   # Right column: summary tables
-   right_col = dbc.Col([
-       dbc.Row([
-           dbc.Col([
-               html.Div(
-                   id="sudors-cooccurrence-table-race",
-                   className="mobile-side-table",
-                   style={"overflowX": "auto"}
-               )], xs=12, md=12, className="pe-1 mb-3"),
-           dbc.Col([
-               html.Div(
-                   id="sudors-cooccurrence-table-year",
-                   className="mobile-side-table",
-                   style={"overflowX": "auto"}
-               )], xs=12, md=12, className="ps-1 mb-3"),
-           dbc.Col([
-               html.Div(
-                   id="sudors-cooccurrence-table-age",
-                   className="mobile-side-table",
-                   style={"overflowX": "auto"}
-               )], xs=12, md=12, className="ps-1 mb-3"),
-       ], className="g-2"),
-   ], xs=12, md=3)
+   # Right column: summary tables (ordered by shared site-wide utility)
+   right_col = make_right_summary_tables_col(
+       [
+           ("Race/Ethnicity", "sudors-cooccurrence-table-race"),
+           ("Calendar Year", "sudors-cooccurrence-table-year"),
+           ("Age Group", "sudors-cooccurrence-table-age"),
+       ],
+       xs=12,
+       md=3,
+   )
 
    return dbc.Container([
        skip_link,
