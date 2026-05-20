@@ -190,6 +190,23 @@ def build_cooccurrence_data(df):
     return pd.DataFrame(results)
 
 
+def build_sunburst_cooccurrence_data(df):
+    """Build Primary -> Also Found rows for sunburst co-occurrence visualization."""
+    results = []
+
+    grouped = df.groupby("record_id")["substance"].unique()
+    for substances in grouped:
+        for i in range(len(substances)):
+            for j in range(len(substances)):
+                if i != j:
+                    results.append({
+                        "Primary": substances[i],
+                        "Also Found": substances[j],
+                    })
+
+    return pd.DataFrame(results)
+
+
 
 
 # Load the cleaned dataset once when the module is imported.
@@ -366,6 +383,7 @@ def layout_for(is_mobile: bool = False):
     # Make charts taller on phones so they are easier to read.
     h_bar = "60vh" if is_mobile else "400px"
     h_stack = "55vh" if is_mobile else "360px"
+    h_full_row = "55vh" if is_mobile else "420px"
     h_tree = "46vh" if is_mobile else "280px"
 
     # LEFT: KPI + filters
@@ -388,7 +406,7 @@ def layout_for(is_mobile: bool = False):
         md=3,
     )
 
-    # CENTER: main charts focused on substance and county over time
+    # CENTER: main charts focused on substance over time
     center = dbc.Col([
         graph_block("bar-top-substances", "Substance Type", h_bar),
         # Hidden description for screen readers.
@@ -396,9 +414,6 @@ def layout_for(is_mobile: bool = False):
 
         graph_block("line-year-substance", "Yearly Discharges by Polysubstance", h_stack),
         html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
-
-        graph_block("stack-year-county", "Yearly Discharges by County", h_stack),
-        html.P("Line chart showing discharges by year and county.", className="visually-hidden"),
     ], xs=12, md=6)
 
     # RIGHT: county share chart + two small summary tables (no headers per site-wide standard)
@@ -428,6 +443,18 @@ def layout_for(is_mobile: bool = False):
         dcc.Store(id="polysubstance-cooccurrence-is-mobile", data=is_mobile),
 
         dbc.Row([left, center, right], className="g-3"),
+
+        # Full-width row under filters/blurbs: county trend (left) + sunburst co-occurrence (right)
+        dbc.Row([
+            dbc.Col([
+                graph_block("stack-year-county", "Yearly Discharges by County", h_full_row),
+                html.P("Line chart showing discharges by year and county.", className="visually-hidden"),
+            ], xs=12, md=6),
+            dbc.Col([
+                graph_block("sunburst-cooccurrence", "Substance Co-occurrence Sunburst", h_full_row),
+                html.P("Sunburst chart showing co-occurring substances in the selected cohort.", className="visually-hidden"),
+            ], xs=12, md=6),
+        ], className="g-3"),
 
         
         # Visualization 1: Heatmap
@@ -1217,6 +1244,55 @@ def update_bar_chart(selected_substances, is_mobile):
         autosize=False if is_mobile else True
     )
     
+    return fig
+
+
+@callback(
+    Output("sunburst-cooccurrence", "figure"),
+    Input("polysubstance-substance-filter", "value"),
+    Input("polysubstance-age-filter", "value"),
+    Input("polysubstance-sex-filter", "value"),
+    Input("polysubstance-county-filter", "value"),
+    Input("polysubstance-year-filter", "value"),
+)
+def update_sunburst(selected_substances, age, sex, county, year):
+    """Create a sunburst chart showing Primary -> Also Found co-occurrences."""
+    if df_raw.empty or not {"record_id", "substance"}.issubset(df_raw.columns):
+        return go.Figure().add_annotation(text="No data available", showarrow=False)
+
+    dff = df_raw.copy()
+    if "age_group" in dff.columns:
+        dff = _apply_filter(dff, "age_group", age)
+    if "sex" in dff.columns:
+        dff = _apply_filter(dff, "sex", sex)
+    if "county" in dff.columns:
+        dff = apply_county_filter(dff, county).copy()
+    if "year" in dff.columns:
+        dff = _apply_filter(dff, "year", year)
+    if "substance" in dff.columns:
+        dff = _apply_filter(dff, "substance", selected_substances)
+
+    if dff.empty:
+        return go.Figure().add_annotation(text="No data matching filters", showarrow=False)
+
+    sunburst_data = build_sunburst_cooccurrence_data(dff)
+    if sunburst_data.empty:
+        return go.Figure().add_annotation(
+            text="No co-occurrence data available",
+            showarrow=False,
+        )
+
+    sunburst_counts = sunburst_data.value_counts().reset_index(name="Count")
+
+    fig = px.sunburst(
+        sunburst_counts,
+        path=["Primary", "Also Found"],
+        values="Count",
+    )
+    fig.update_layout(
+        title="Substance Co-occurrence Sunburst",
+        margin=dict(l=0, r=0, t=50, b=0),
+    )
     return fig
 
 
