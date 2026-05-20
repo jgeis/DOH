@@ -12,7 +12,6 @@ from dashboard_utils import (
     graph_block,
     make_kpi_card,
     make_left_sidebar,
-    compute_last_updated_value,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -46,9 +45,32 @@ def load_cmo_referrals_dataframe():
     return df.sort_values("ct", ascending=False).reset_index(drop=True)
 
 
+def load_cmo_last_updated_value():
+    """Fetch the most recent DispatchDate from the source table for Last Updated."""
+    if USE_MSSQL:
+        sql = """
+        SELECT CAST(MAX(DispatchDate) AS date) AS last_updated
+        FROM dbo.AMHD_Crisis_Mobile_Outreach
+        """
+    else:
+        sql = """
+        SELECT date(MAX(DispatchDate)) AS last_updated
+        FROM AMHD_Crisis_Mobile_Outreach
+        """
+
+    result = execute_query(sql)
+    if result.empty or "last_updated" not in result.columns:
+        return None
+
+    parsed = pd.to_datetime(result.iloc[0]["last_updated"], errors="coerce")
+    if pd.isna(parsed):
+        return None
+    return parsed.strftime("%Y-%m-%d")
+
+
 df_raw = load_cmo_referrals_dataframe()
 referral_opts = sorted(df_raw["referral_destination"].dropna().unique().tolist())
-last_updated_value = compute_last_updated_value(df_raw)
+last_updated_value = load_cmo_last_updated_value()
 
 # ----------------------------
 # UI Components
