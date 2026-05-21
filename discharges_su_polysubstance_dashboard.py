@@ -201,15 +201,16 @@ def build_cooccurrence_data(df, age=None, sex=None, county=None, year=None):
 
 
 def build_sunburst_cooccurrence_data(df):
-    """Build Primary -> Also Found rows for sunburst co-occurrence visualization."""
+    """Build Primary -> Also Found rows for sunburst co-occurrence visualization with record_id for aggregation."""
     results = []
 
     grouped = df.groupby("record_id")["substance"].unique()
-    for substances in grouped:
+    for record_id, substances in grouped.items():
         for i in range(len(substances)):
             for j in range(len(substances)):
                 if i != j:
                     results.append({
+                        "record_id": record_id,
                         "Primary": substances[i],
                         "Also Found": substances[j],
                     })
@@ -1292,13 +1293,64 @@ def update_sunburst(selected_substances, age, sex, county, year):
             showarrow=False,
         )
 
-    sunburst_counts = sunburst_data.value_counts().reset_index(name="Count")
+    # Count unique records per (Primary, Also Found) pair
+    pair_counts = sunburst_data.groupby(["Primary", "Also Found"])["record_id"].nunique().reset_index(name="Count")
+    
+    # Also get the total unique records per Primary substance
+    primary_totals = dff.groupby("substance")["record_id"].nunique().reset_index(name="Count")
+    
+    # Build arrays for go.Sunburst with explicit unique ids.
+    # We normalize child wedge sizes per parent so the outer ring fully covers each parent arc.
+    ids = []
+    labels = []
+    parents = []
+    values = []
+    customdata = []
 
-    fig = px.sunburst(
-        sunburst_counts,
-        path=["Primary", "Also Found"],
-        values="Count",
-    )
+    primary_total_map = dict(zip(primary_totals["substance"], primary_totals["Count"]))
+
+    # Inner ring: one node per substance.
+    for _, row in primary_totals.iterrows():
+        substance = row["substance"]
+        total = float(row["Count"])
+        ids.append(f"sub::{substance}")
+        labels.append(substance)
+        parents.append("")
+        values.append(total)
+        # [raw_count, primary_substance]
+        customdata.append([int(total), substance])
+
+    # Outer ring: co-occurrence children under each primary substance.
+    # Raw counts overlap by design, so we scale child arc lengths to fill each parent exactly.
+    for primary, sub_df in pair_counts.groupby("Primary"):
+        parent_total = float(primary_total_map.get(primary, 0))
+        raw_sum = float(sub_df["Count"].sum())
+        if parent_total <= 0 or raw_sum <= 0:
+            continue
+
+        for _, row in sub_df.iterrows():
+            also_found = row["Also Found"]
+            raw_count = float(row["Count"])
+            scaled_value = parent_total * (raw_count / raw_sum)
+            ids.append(f"pair::{primary}::{also_found}")
+            labels.append(also_found)
+            parents.append(f"sub::{primary}")
+            values.append(scaled_value)
+            customdata.append([int(raw_count), primary])
+
+    fig = go.Figure(go.Sunburst(
+        ids=ids,
+        labels=labels,
+        parents=parents,
+        values=values,
+        customdata=customdata,
+        branchvalues="total",
+        hovertemplate=(
+            "<b>%{label}</b><br>"
+            "Raw Count: %{customdata[0]:,}<br>"
+            "Primary: %{customdata[1]}<extra></extra>"
+        ),
+    ))
     fig.update_layout(
         title="Substance Co-occurrence Sunburst",
         margin=dict(l=0, r=0, t=50, b=0),
