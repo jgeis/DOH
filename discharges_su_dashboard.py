@@ -324,10 +324,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             customdata=by_sub["substance"]
         )
 
-        apply_standard_bar_layout(
-            sub_bar,
-            margin=dict(l=220),
-        )
+        apply_standard_bar_layout(sub_bar)
     else:
         sub_bar = px.bar()
 

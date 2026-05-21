@@ -717,7 +717,7 @@ def update(substance, age, sex, county, year):
         if sub_counts.empty:
             fig_sub = px.bar()
             fig_sub.add_annotation(text="No co-substances found for selected filter.", showarrow=False)
-            apply_standard_bar_layout(fig_sub, margin=dict(b=0))
+            apply_standard_bar_layout(fig_sub)
         else:
             sub_counts["substance_wrapped"] = sub_counts["substance"].apply(_wrap_label)
 
@@ -736,14 +736,12 @@ def update(substance, age, sex, county, year):
             )
             fig_sub.update_traces(
                 marker_color="#22767C",
-                textposition="outside",
-                cliponaxis=False
+                textposition="auto",
+                cliponaxis=True
             )
-            max_x = int(sub_counts["discharges"].max()) if not sub_counts.empty else 0
             apply_standard_bar_layout(
                 fig_sub,
-                margin=dict(b=0),
-                xaxis=dict(range=[0, max_x * 1.15 if max_x else 1]),
+                xaxis=dict(rangemode="tozero"),
             )
     else:
         fig_sub = px.bar()
@@ -1044,7 +1042,7 @@ def update_heatmap(selected_substances, is_mobile):
         yaxis=dict(autorange='reversed', tickfont=dict(size=text_size)),
         height=height,
         width=width,
-        margin=dict(l=margin_left, r=margin_right, t=margin_top, b=margin_bottom),
+        margin=dict(l=0, r=12, t=30, b=30),
         autosize=False if is_mobile else True
     )
 
@@ -1273,12 +1271,7 @@ def update_bar_chart(selected_substances, is_mobile):
             tickfont=dict(size=text_size)
         ),
         yaxis=dict(tickfont=dict(size=text_size)),
-        margin=dict(
-            l=margin_left if selected_values else (margin_left - 10), 
-            r=margin_right, 
-            t=margin_top, 
-            b=margin_bottom
-        ),
+        margin=dict(l=0, r=12, t=30, b=30),
         legend=dict(
             font=dict(size=text_size),
             orientation="h",  # Horizontal legend

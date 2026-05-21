@@ -530,6 +530,6 @@ def update_sicm_figures(view, sel_years, sel_months, sel_counties, start_date, e
 
     facility_fig = _line_chart(facility_grouped, period_title, color_col="facility")
 
-    apply_standard_line_layout(facility_fig, margin=dict(l=10, r=10, b=120))
+    apply_standard_line_layout(facility_fig)
 
     return facility_fig, html.Div(_render_table(agg_table), className="table-responsive")

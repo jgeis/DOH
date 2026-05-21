@@ -372,12 +372,12 @@ def graph_block(base_id: str, title_text: str, height_px: str):
     )
 
 
-# Shared chart spacing defaults to keep line/bar modebar overlap consistent site-wide.
-STANDARD_CHART_SIDE_MARGINS = {"l": 0, "r": 12}
-STANDARD_BAR_MARGIN = {**STANDARD_CHART_SIDE_MARGINS, "t": 30, "b": 80}
-STANDARD_LINE_MARGIN = {**STANDARD_CHART_SIDE_MARGINS, "t": 30, "b": 80}
-STANDARD_MAP_MARGIN = {"l": 0, "r": 0, "t": 30, "b": 0}
-STANDARD_NON_AXIS_MARGIN = {**STANDARD_CHART_SIDE_MARGINS, "t": 30, "b": 0}
+# Shared chart spacing defaults to keep all bar/line/map charts consistent site-wide.
+STANDARD_CHART_MARGIN = {"l": 0, "r": 12, "t": 30, "b": 50}
+STANDARD_BAR_MARGIN = STANDARD_CHART_MARGIN.copy()
+STANDARD_LINE_MARGIN = STANDARD_CHART_MARGIN.copy()
+STANDARD_MAP_MARGIN = STANDARD_CHART_MARGIN.copy()
+STANDARD_NON_AXIS_MARGIN = {"l": STANDARD_CHART_MARGIN["l"], "r": STANDARD_CHART_MARGIN["r"], "t": 30, "b": 0}
 
 
 def apply_standard_bar_layout(
@@ -389,8 +389,6 @@ def apply_standard_bar_layout(
 ):
     """Apply standardized layout defaults for bar charts, with optional overrides."""
     merged_margin = STANDARD_BAR_MARGIN.copy()
-    if margin:
-        merged_margin.update(margin)
 
     merged_xaxis = {"automargin": True}
     if xaxis:
@@ -418,8 +416,6 @@ def apply_standard_line_layout(
 ):
     """Apply standardized layout defaults for line charts, with optional overrides."""
     merged_margin = STANDARD_LINE_MARGIN.copy()
-    if margin:
-        merged_margin.update(margin)
 
     merged_xaxis = {"automargin": True}
     if xaxis:
@@ -445,8 +441,6 @@ def apply_standard_map_layout(
 ):
     """Apply standardized layout defaults for map charts, with optional overrides."""
     merged_margin = STANDARD_MAP_MARGIN.copy()
-    if margin:
-        merged_margin.update(margin)
 
     fig.update_layout(
         margin=merged_margin,
