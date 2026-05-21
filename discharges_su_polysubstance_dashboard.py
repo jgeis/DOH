@@ -813,10 +813,6 @@ def update(substance, age, sex, county, year):
 
         apply_standard_line_layout(
             fig_year_substance,
-            xaxis=dict(dtick=1),
-            yaxis=dict(rangemode="tozero"),
-            title=None,
-            legend_title_text=None,
         )
 
     else:
@@ -865,10 +861,6 @@ def update(substance, age, sex, county, year):
 
         apply_standard_line_layout(
             fig_year_county,
-            xaxis=dict(dtick=1),
-            yaxis=dict(rangemode="tozero"),
-            title=None,
-            legend_title_text=None,
         )
     else:
         fig_year_county = px.line()

@@ -320,10 +320,6 @@ def update_dashboard(substance, homeless, sex, age, race, year):
 
         apply_standard_line_layout(
             line_fig,
-            xaxis=dict(dtick=1),
-            yaxis=dict(rangemode="tozero"),
-            title=None,
-            legend_title_text=None,
         )
 
     else:

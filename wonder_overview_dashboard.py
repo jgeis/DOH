@@ -360,7 +360,7 @@ def update_dashboard(county, year):
             hovertemplate="Year %{x}<br>County: %{fullData.name}<br>Deaths: %{text}<extra></extra>",
         )
 
-        apply_standard_line_layout(year_line, xaxis=dict(dtick=1))
+        apply_standard_line_layout(year_line)
 
     else:
         year_line = px.line()

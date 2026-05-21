@@ -316,9 +316,6 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         )
         apply_standard_line_layout(
             dose_line,
-            xaxis=dict(dtick=1),
-            title=None,
-            legend_title_text=None,
         )
     else:
         dose_line = px.line()

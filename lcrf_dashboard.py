@@ -489,10 +489,6 @@ def _line_chart(grouped, period_title, color_col=None, chart_title="Occupancy Ra
 
     apply_standard_line_layout(
         fig,
-        xaxis=dict(dtick=1),
-        yaxis=dict(rangemode="tozero"),
-        title=None,
-        legend_title_text=None,
     )
 
     return fig

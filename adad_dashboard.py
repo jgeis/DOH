@@ -446,9 +446,6 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
     apply_standard_line_layout(
         county_line_fig,
         xaxis=dict(dtick=5),
-        yaxis=dict(rangemode="tozero"),
-        title=None,
-        legend_title_text=None,
     )
 
     county_line_fig.update_traces(

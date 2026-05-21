@@ -358,7 +358,6 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
 
         apply_standard_line_layout(
             sub_line,
-            xaxis=dict(dtick=1),
             yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
             legend=dict(
                 title_text="Substance",
@@ -368,7 +367,6 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
                 xanchor="left",
                 x=0,
             ),
-            legend_title_text=None,
         )
     else:
         sub_line = px.line()

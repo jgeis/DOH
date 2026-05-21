@@ -427,15 +427,18 @@ def apply_standard_line_layout(
     **layout_kwargs,
 ):
     """Apply standardized layout defaults for line charts, with optional overrides."""
+    layout_kwargs.setdefault("title", None)
+    layout_kwargs.setdefault("legend_title_text", None)
+
     merged_margin = STANDARD_LINE_MARGIN.copy()
     if margin:
         merged_margin.update(margin)
 
-    merged_xaxis = {"automargin": True}
+    merged_xaxis = {"automargin": True, "dtick": 1}
     if xaxis:
         merged_xaxis.update(xaxis)
 
-    merged_yaxis = {"automargin": True}
+    merged_yaxis = {"automargin": True, "rangemode": "tozero"}
     if yaxis:
         merged_yaxis.update(yaxis)
 

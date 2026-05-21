@@ -362,10 +362,6 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         
         apply_standard_line_layout(
             substance_line_fig,
-            xaxis=dict(dtick=1),
-            yaxis=dict(rangemode="tozero"),
-            title=None,
-            legend_title_text=None,
         )
 
     
@@ -403,10 +399,6 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         
         apply_standard_line_layout(
             line_fig,
-            xaxis=dict(dtick=1),
-            yaxis=dict(rangemode="tozero"),
-            title=None,
-            legend_title_text=None,
         )
         
     else:
@@ -441,10 +433,6 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         
         apply_standard_line_layout(
             age_line_fig,
-            xaxis=dict(dtick=1),
-            yaxis=dict(rangemode="tozero"),
-            title=None,
-            legend_title_text=None,
         )
         
     else:

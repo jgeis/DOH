@@ -404,8 +404,6 @@ def update_adad_cooccurring(view, sel_years, sel_months, sel_modalities, sel_cou
     apply_standard_line_layout(
         modality_line_fig,
         xaxis=dict(dtick=2),
-        yaxis=dict(rangemode="tozero"),
-        legend_title_text=None,
     )
 
     modality_line_fig.update_traces(
@@ -438,8 +436,6 @@ def update_adad_cooccurring(view, sel_years, sel_months, sel_modalities, sel_cou
     apply_standard_line_layout(
         county_line_fig,
         xaxis=dict(dtick=2),
-        yaxis=dict(rangemode="tozero"),
-        legend_title_text=None,
     )
 
     county_line_fig.update_traces(
