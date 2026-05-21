@@ -1324,11 +1324,74 @@ def update_sunburst(selected_substances, age, sex, county, year):
         dff = apply_county_filter(dff, county).copy()
     if "year" in dff.columns:
         dff = _apply_filter(dff, "year", year)
-    if "substance" in dff.columns:
-        dff = _apply_filter(dff, "substance", selected_substances)
+
+    selected_values = (
+        [v for v in selected_substances if v]
+        if isinstance(selected_substances, (list, tuple, set))
+        else ([selected_substances] if selected_substances else [])
+    )
+
+    if selected_values and {"record_id", "substance"}.issubset(dff.columns):
+        dff = _records_matching_all_selected_substances(dff, selected_values)
 
     if dff.empty:
         return go.Figure().add_annotation(text="No data matching filters", showarrow=False)
+
+    if selected_values:
+        selected_label = selected_values[0] if len(selected_values) == 1 else format_display_list(selected_values)
+        selected_set = {str(v) for v in selected_values}
+
+        cohort_records = dff.drop_duplicates(subset=["record_id", "substance"])
+        outer_counts = (
+            cohort_records.groupby("substance")["record_id"]
+            .nunique()
+            .sort_values(ascending=False)
+        )
+        outer_counts = outer_counts[~outer_counts.index.astype(str).isin(selected_set)]
+
+        if outer_counts.empty:
+            return go.Figure().add_annotation(
+                text="No co-occurrence data available",
+                showarrow=False,
+            )
+
+        root_value = float(outer_counts.sum())
+        if root_value <= 0:
+            return go.Figure().add_annotation(
+                text="No co-occurrence data available",
+                showarrow=False,
+            )
+
+        ids = ["root"]
+        labels = [selected_label]
+        parents = [""]
+        values = [root_value]
+        customdata = [[int(dff["record_id"].nunique()), selected_label]]
+
+        for substance, raw_count in outer_counts.items():
+            scaled_value = float(raw_count)
+            ids.append(f"sub::{substance}")
+            labels.append(substance)
+            parents.append("root")
+            values.append(scaled_value)
+            customdata.append([int(raw_count), selected_label])
+
+        fig = go.Figure(go.Sunburst(
+            ids=ids,
+            labels=labels,
+            parents=parents,
+            values=values,
+            customdata=customdata,
+            branchvalues="total",
+            hovertemplate=(
+                "<b>%{label}</b><br>"
+                "Raw Count: %{customdata[0]:,}<br>"
+                "Cohort: %{customdata[1]}<extra></extra>"
+            ),
+        ))
+        #apply_standard_non_axis_layout(fig, title="Substance Co-occurrence Sunburst")
+        apply_standard_non_axis_layout(fig)
+        return fig
 
     sunburst_data = build_sunburst_cooccurrence_data(dff)
     if sunburst_data.empty:
