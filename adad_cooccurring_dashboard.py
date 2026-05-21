@@ -349,7 +349,7 @@ def update_adad_cooccurring(view, sel_years, sel_months, sel_modalities, sel_cou
     )
     apply_standard_bar_layout(
         bar_fig,
-        margin=dict(l=10, r=10, b=10),
+        margin=dict(b=10),
         xaxis=dict(title="Number of Clients"),
         yaxis=dict(
             title=y_title,
@@ -364,7 +364,7 @@ def update_adad_cooccurring(view, sel_years, sel_months, sel_modalities, sel_cou
         marker_color="#22767C",
         texttemplate="%{text}",
         textposition="auto",
-        cliponaxis=False,
+        cliponaxis=True,
         hovertemplate="%{y}: %{x:,}<extra></extra>",
     )
 

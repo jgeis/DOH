@@ -373,9 +373,11 @@ def graph_block(base_id: str, title_text: str, height_px: str):
 
 
 # Shared chart spacing defaults to keep line/bar modebar overlap consistent site-wide.
-STANDARD_BAR_MARGIN = {"l": 0, "r": 12, "t": 30, "b": 80}
-STANDARD_LINE_MARGIN = {"l": 0, "r": 12, "t": 30, "b": 80}
+STANDARD_CHART_SIDE_MARGINS = {"l": 0, "r": 12}
+STANDARD_BAR_MARGIN = {**STANDARD_CHART_SIDE_MARGINS, "t": 30, "b": 80}
+STANDARD_LINE_MARGIN = {**STANDARD_CHART_SIDE_MARGINS, "t": 30, "b": 80}
 STANDARD_MAP_MARGIN = {"l": 0, "r": 0, "t": 30, "b": 0}
+STANDARD_NON_AXIS_MARGIN = {**STANDARD_CHART_SIDE_MARGINS, "t": 30, "b": 0}
 
 
 def apply_standard_bar_layout(
@@ -443,6 +445,23 @@ def apply_standard_map_layout(
 ):
     """Apply standardized layout defaults for map charts, with optional overrides."""
     merged_margin = STANDARD_MAP_MARGIN.copy()
+    if margin:
+        merged_margin.update(margin)
+
+    fig.update_layout(
+        margin=merged_margin,
+        **layout_kwargs,
+    )
+    return fig
+
+
+def apply_standard_non_axis_layout(
+    fig,
+    margin: dict | None = None,
+    **layout_kwargs,
+):
+    """Apply standardized layout defaults for non-axis charts (pie/sunburst), with optional overrides."""
+    merged_margin = STANDARD_NON_AXIS_MARGIN.copy()
     if margin:
         merged_margin.update(margin)
 

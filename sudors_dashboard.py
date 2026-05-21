@@ -18,6 +18,7 @@ from dashboard_utils import (
     dropdown_filter,
     format_count_display,
     apply_standard_bar_layout,
+    apply_standard_line_layout,
 )
 
 register_template()
@@ -316,9 +317,10 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             customdata=by_year_substance[["display_count"]],
             hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Deaths: %{customdata[0]}<extra></extra>"
         )
-        line_fig.update_layout(
+        apply_standard_line_layout(
+            line_fig,
             margin=dict(l=10, r=10, t=80, b=70),
-            xaxis=dict(dtick=1, automargin=True, title_standoff=12),
+            xaxis=dict(dtick=1, title_standoff=12),
             yaxis=dict(rangemode="tozero"),
             legend=dict(
                 orientation="h",

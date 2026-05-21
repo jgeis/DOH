@@ -324,12 +324,9 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             customdata=by_sub["substance"]
         )
 
-        max_sub_count = int(by_sub["count"].max()) if not by_sub.empty else 0
-
         apply_standard_bar_layout(
             sub_bar,
-            margin=dict(l=220, r=32),
-            xaxis=dict(range=[0, max_sub_count * 1.15 if max_sub_count else 1]),
+            margin=dict(l=220),
         )
     else:
         sub_bar = px.bar()

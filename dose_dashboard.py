@@ -288,7 +288,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             hovertemplate="Substance: %{customdata}<br>Count: %{text}<extra></extra>"
         )
 
-        apply_standard_bar_layout(dose_bar, margin=dict(r=40, b=10))
+        apply_standard_bar_layout(dose_bar, margin=dict(b=10))
     else:
         dose_bar = px.bar()
 

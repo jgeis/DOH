@@ -18,6 +18,7 @@ from dashboard_utils import (
     compute_last_updated_value,
     dropdown_filter,
     opts_list,
+    apply_standard_line_layout,
 )
 
 register_template()
@@ -486,11 +487,11 @@ def _line_chart(grouped, period_title, color_col=None, chart_title="Occupancy Ra
         )
         fig.update_traces(hovertemplate="%{x}<br>Occupancy Rate: %{y:.1%}<extra></extra>")
 
-    fig.update_layout(
-        margin=dict(l=10, r=10, t=30, b=50),
-        xaxis_title=period_title,
-        yaxis_title="Occupancy Rate",
-        yaxis=dict(tickformat=".0%", range=[0, 1.05]),  # Add 5% headroom
+    apply_standard_line_layout(
+        fig,
+        margin=dict(l=10, r=10, b=50),
+        xaxis=dict(title=period_title),
+        yaxis=dict(title="Occupancy Rate", tickformat=".0%", range=[0, 1.05]),  # Add 5% headroom
         hovermode="closest",
         height=520,
     )
@@ -529,6 +530,6 @@ def update_sicm_figures(view, sel_years, sel_months, sel_counties, start_date, e
 
     facility_fig = _line_chart(facility_grouped, period_title, color_col="facility")
 
-    facility_fig.update_layout(margin=dict(l=10, r=10, t=30, b=120))
+    apply_standard_line_layout(facility_fig, margin=dict(l=10, r=10, b=120))
 
     return facility_fig, html.Div(_render_table(agg_table), className="table-responsive")

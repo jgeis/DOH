@@ -318,11 +318,9 @@ def update_dashboard(diagnosis, county, city, year, hawaii_residency, age, sex, 
             customdata=by_dx["diagnosis"]
         )
 
-        max_dx_count = int(by_dx["count"].max()) if not by_dx.empty else 0
-
         apply_standard_bar_layout(
             dx_bar,
-            margin=dict(r=20, b=20),
+            margin=dict(b=20),
             yaxis=dict(title_standoff=20),
             width=None,
         )

@@ -16,6 +16,7 @@ from dashboard_utils import (
     dropdown_filter,
     format_count_display,
     opts_list,
+    apply_standard_bar_layout,
 )
 from theme import register_template
 
@@ -189,11 +190,11 @@ def update_cmo_dashboard(selected_destinations):
             "referral_destination": "Referral Destination",
         },
     )
-    fig.update_layout(
-        margin=dict(l=10, r=10, t=30, b=10),
-        xaxis_title="Number of Clients",
-        yaxis_title="Referral Destination",
-        yaxis=dict(categoryorder="array", categoryarray=y_order),
+    apply_standard_bar_layout(
+        fig,
+        margin=dict(l=10, r=10, b=10),
+        xaxis=dict(title="Number of Clients"),
+        yaxis=dict(title="Referral Destination", categoryorder="array", categoryarray=y_order),
         height=max(360, len(dff) * 30),
     )
     fig.update_traces(

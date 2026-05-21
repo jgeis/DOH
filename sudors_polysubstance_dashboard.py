@@ -439,8 +439,8 @@ def update_dashboard(substance, homeless, sex, age, race, year):
 
        sud_bar.update_traces(
            marker_color="#22767C",
-           textposition="outside",
-           cliponaxis=False,
+           textposition="auto",
+           cliponaxis=True,
            hovertemplate="Cause of Death: %{customdata}<br>Number of Deaths: %{text}<extra></extra>",
            customdata=by_sub["substance"],
        )
