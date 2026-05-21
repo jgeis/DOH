@@ -399,7 +399,6 @@ def update_dashboard(county, year):
 
         apply_standard_bar_layout(
             sub_bar,
-            margin=dict(l=140),
             xaxis=dict(rangemode="tozero"),
             yaxis=dict(autorange="reversed"),
         )

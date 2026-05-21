@@ -254,7 +254,6 @@ def update_cares(view, sel_years, sel_months, sel_crisis):
     )
     apply_standard_bar_layout(
         fig,
-        margin=dict(l=10, r=10, b=10),
         xaxis=dict(title="Number of Calls"),
         yaxis=dict(title=y_title, categoryorder="array", categoryarray=y_order),
         height=chart_height,

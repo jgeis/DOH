@@ -280,11 +280,11 @@ def layout():
            dbc.Col([
                dbc.Card([
                    dbc.CardHeader([
-                       html.H5("Co-occurrence by Primary Substance", className="mb-0")
+                       html.H5("Co-occurrence with selected substance", className="mb-0")
                    ]),
                    dbc.CardBody([
                        html.P([
-                           "Grouped bar chart showing what percentage of cases with a given primary substance also contain each other substance. ",
+                           "Grouped bar chart showing what percentage of cases with a given substance also contain each other substance. ",
                            "Use the filter in the left panel to focus on one substance.",
                        ], className="text-muted mb-3"),
                        dcc.Loading(
@@ -299,7 +299,7 @@ def layout():
                            )
                        ),
                        html.P(
-                           "Grouped bar chart showing the percentage of cases where each primary substance co-occurs with other substances.",
+                           "Grouped bar chart showing the percentage of cases where the selected substance co-occurs with other substances.",
                            className="visually-hidden",
                        ),
                    ])

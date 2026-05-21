@@ -320,7 +320,6 @@ def update_dashboard(diagnosis, county, city, year, hawaii_residency, age, sex, 
 
         apply_standard_bar_layout(
             dx_bar,
-            margin=dict(b=20),
             yaxis=dict(title_standoff=20),
             width=None,
         )
@@ -404,7 +403,6 @@ def update_dashboard(diagnosis, county, city, year, hawaii_residency, age, sex, 
         max_y = int(by_cy["count"].max()) if not by_cy.empty else 0
         apply_standard_line_layout(
             line_fig,
-            margin=dict(b=0),
             xaxis=dict(dtick=1),
             yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
         )
@@ -439,7 +437,6 @@ def update_dashboard(diagnosis, county, city, year, hawaii_residency, age, sex, 
         max_y = int(by_ya["count"].max()) if not by_ya.empty else 0
         apply_standard_line_layout(
             age_line_fig,
-            margin=dict(b=0),
             xaxis=dict(dtick=1),
             yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
             legend=dict(title_text="Age Group"),
@@ -483,7 +480,6 @@ def update_dashboard(diagnosis, county, city, year, hawaii_residency, age, sex, 
         max_y = int(totals["count"].max()) if not totals.empty else 0
         apply_standard_bar_layout(
             sex_bar,
-            margin=dict(b=0),
             yaxis=dict(range=[0, max_y * 1.15 if max_y else 1]),
         )
     else:

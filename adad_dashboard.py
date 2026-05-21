@@ -364,7 +364,6 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
     )
     apply_standard_bar_layout(
         bar_fig,
-        margin=dict(l=10, r=10, b=10),
         xaxis=dict(title="Number of Clients"),
         yaxis=dict(
             title=y_title,
@@ -416,21 +415,6 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
     #         "modality": "Modality",
     #     },
     # )
-    # modality_line_fig.update_layout(
-    #     margin=dict(l=10, r=10, t=30, b=120),
-    #     xaxis_title="Year",
-    #     yaxis_title="Number of Clients",
-    #     legend_title_text="Modality",
-    #     legend=dict(
-    #         orientation="h",
-    #         x=0,
-    #         y=-0.22,
-    #         xanchor="left",
-    #         yanchor="top",
-    #         bgcolor="rgba(255,255,255,0.9)",
-    #     ),
-    #     hovermode="closest",
-    #     height=520,
     # )
     # modality_line_fig.update_traces(
     #     hovertemplate="%{fullData.name}<br>Year: %{x}<br>Clients: %{y:,}<extra></extra>"
@@ -460,7 +444,6 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
     )
     apply_standard_line_layout(
         county_line_fig,
-        margin=dict(l=10, r=10, b=120),
         xaxis=dict(title="Year"),
         yaxis=dict(title="Number of Clients"),
         legend_title_text="County",

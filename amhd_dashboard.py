@@ -380,7 +380,6 @@ def _build_amhd_figures(view, query_context):
     )
     apply_standard_bar_layout(
         bar_fig,
-        margin=dict(l=10, r=10, b=10),
         xaxis=dict(title="Number of AMHD Consumers"),
         yaxis=dict(
             title=period_title,

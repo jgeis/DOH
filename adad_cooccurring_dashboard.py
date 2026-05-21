@@ -349,7 +349,6 @@ def update_adad_cooccurring(view, sel_years, sel_months, sel_modalities, sel_cou
     )
     apply_standard_bar_layout(
         bar_fig,
-        margin=dict(b=10),
         xaxis=dict(title="Number of Clients"),
         yaxis=dict(
             title=y_title,
@@ -403,7 +402,6 @@ def update_adad_cooccurring(view, sel_years, sel_months, sel_modalities, sel_cou
     )
     apply_standard_line_layout(
         modality_line_fig,
-        margin=dict(l=10, r=10, b=120),
         xaxis=dict(title="Year"),
         yaxis=dict(title="Number of Clients"),
         legend_title_text="Modality",
@@ -446,7 +444,6 @@ def update_adad_cooccurring(view, sel_years, sel_months, sel_modalities, sel_cou
     )
     apply_standard_line_layout(
         county_line_fig,
-        margin=dict(l=10, r=10, b=120),
         xaxis=dict(title="Year"),
         yaxis=dict(title="Number of Clients"),
         legend_title_text="County",

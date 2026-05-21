@@ -215,7 +215,6 @@ def update_camhd_cooccurring(view, sel_years, start_date, end_date):
     )
     apply_standard_bar_layout(
         bar_fig,
-        margin=dict(l=10, r=10, b=10),
         xaxis=dict(title="Number of Clients"),
         yaxis=dict(
             title=y_title,

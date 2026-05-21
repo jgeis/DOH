@@ -32,6 +32,7 @@ from dashboard_utils import (
     format_display_list,
     apply_standard_bar_layout,
     apply_standard_line_layout,
+    apply_standard_non_axis_layout,
 )
 
 # This applies our custom Plotly look (colors, fonts, etc.) everywhere in this app.
@@ -796,7 +797,6 @@ def update(substance, age, sex, county, year):
         )
         apply_standard_line_layout(
             fig_year_substance,
-            margin=dict(b=60),
             xaxis=dict(dtick=1),
             yaxis=dict(rangemode="tozero"),
             title=None,
@@ -855,7 +855,6 @@ def update(substance, age, sex, county, year):
 
         apply_standard_line_layout(
             fig_year_county,
-            margin=dict(b=0),
             xaxis=dict(dtick=1),
             yaxis=dict(rangemode="tozero"),
             title=None,
@@ -1042,9 +1041,10 @@ def update_heatmap(selected_substances, is_mobile):
         yaxis=dict(autorange='reversed', tickfont=dict(size=text_size)),
         height=height,
         width=width,
-        margin=dict(l=0, r=12, t=30, b=30),
         autosize=False if is_mobile else True
     )
+
+    apply_standard_line_layout(fig)
 
     return fig
 
@@ -1271,7 +1271,6 @@ def update_bar_chart(selected_substances, is_mobile):
             tickfont=dict(size=text_size)
         ),
         yaxis=dict(tickfont=dict(size=text_size)),
-        margin=dict(l=0, r=12, t=30, b=30),
         legend=dict(
             font=dict(size=text_size),
             orientation="h",  # Horizontal legend
@@ -1282,6 +1281,8 @@ def update_bar_chart(selected_substances, is_mobile):
         ) if not selected_values else dict(font=dict(size=text_size)),
         autosize=False if is_mobile else True
     )
+
+    apply_standard_bar_layout(fig)
     
     return fig
 
@@ -1379,10 +1380,7 @@ def update_sunburst(selected_substances, age, sex, county, year):
             "Primary: %{customdata[1]}<extra></extra>"
         ),
     ))
-    fig.update_layout(
-        title="Substance Co-occurrence Sunburst",
-        margin=dict(l=0, r=0, t=50, b=0),
-    )
+    apply_standard_non_axis_layout(fig, title="Substance Co-occurrence Sunburst")
     return fig
 
 

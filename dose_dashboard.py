@@ -316,7 +316,6 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         )
         apply_standard_line_layout(
             dose_line,
-            margin=dict(b=0),
             xaxis=dict(dtick=1),
         )
     else:
