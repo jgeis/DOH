@@ -401,7 +401,7 @@ def layout_for(is_mobile: bool = False):
     left = make_left_sidebar(
         make_kpi_card(
             label="Number of Discharges Related to Polysubstance Use",
-            count=kpi_total,
+            count_id="polysubstance-kpi-total",
         ),
         dbc.Button(
             "Reset All Filters", id="polysubstance-reset-filters-btn",
@@ -618,6 +618,7 @@ layout = layout_for(is_mobile=False)
 
 # ---------- callbacks (figures + tables) ----------
 @callback(
+    Output("polysubstance-kpi-total", "children"),
     Output("bar-top-substances-title", "children"),
     Output("line-year-substance-title", "children"),
     Output("stack-year-county-title", "children"),
@@ -657,6 +658,16 @@ def update(substance, age, sex, county, year):
         [v for v in substance if v]
         if isinstance(substance, (list, tuple, set))
         else ([substance] if substance else [])
+    )
+
+    # KPI uses the same record-level AND cohort logic used by co-occurrence visuals.
+    kpi_source = dff_base
+    if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
+        kpi_source = _records_matching_all_selected_substances(dff_base, selected_substances)
+    kpi_value = (
+        format_count_display(kpi_source["record_id"].nunique())
+        if "record_id" in kpi_source.columns and not kpi_source.empty
+        else "0"
     )
 
     if not selected_substances:
@@ -909,7 +920,7 @@ def update(substance, age, sex, county, year):
     tbl_age = simple_table(uniq, "age_group", age_groups)
     tbl_sex = simple_table(uniq, "sex")
 
-    return bar_title, line_title, county_title, fig_sub, fig_year_substance, fig_year_county, tbl_county, tbl_age, tbl_sex
+    return kpi_value, bar_title, line_title, county_title, fig_sub, fig_year_substance, fig_year_county, tbl_county, tbl_age, tbl_sex
 
 
 
