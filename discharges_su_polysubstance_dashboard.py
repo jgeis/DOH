@@ -535,6 +535,18 @@ def layout_for(is_mobile: bool = False):
                             html.Br() if is_mobile else "",
                             html.Small("(Scroll horizontally to see all substances)", className="text-muted") if is_mobile else ""
                         ], className="text-muted mb-3"),
+                        html.Div(
+                            id="polysubstance-cooccurrence-bar-caption",
+                            className="plot-card-header text-center mb-2",
+                            style={
+                                "minHeight": "2.2rem",
+                                "lineHeight": "1.25",
+                                "overflow": "visible",
+                                "whiteSpace": "normal",
+                                "paddingTop": "0.25rem",
+                                "paddingBottom": "0.25rem",
+                            },
+                        ),
                         dcc.Loading(
                             html.Div(
                                 html.Div(
@@ -1054,6 +1066,7 @@ def update_heatmap(selected_substances, is_mobile):
 
 @callback(
     Output("polysubstance-cooccurrence-bar-chart", "figure"),
+    Output("polysubstance-cooccurrence-bar-caption", "children"),
     Input("polysubstance-substance-filter", "value"),
     Input("polysubstance-cooccurrence-is-mobile", "data"),
 )
@@ -1094,6 +1107,7 @@ def update_bar_chart(selected_substances, is_mobile):
         if isinstance(selected_substances, (list, tuple, set))
         else ([selected_substances] if selected_substances else [])
     )
+    bar_caption = ""
 
     # Filter by selected substances from main Substance Type filter.
     if selected_values:
@@ -1143,6 +1157,7 @@ def update_bar_chart(selected_substances, is_mobile):
             title_text = (
                 f"When all of: {format_display_list(selected_values)} are present, % with other substances"
             )
+        bar_caption = title_text
 
         if is_mobile:
             fig = px.bar(
@@ -1150,7 +1165,6 @@ def update_bar_chart(selected_substances, is_mobile):
                 x='Also Found',
                 y='Percentage',
                 orientation='v',
-                title=title_text,
                 labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
                 text='label',
                 hover_data={
@@ -1187,7 +1201,6 @@ def update_bar_chart(selected_substances, is_mobile):
                 x='Percentage',
                 y='Also Found',
                 orientation='h',
-                title=title_text,
                 labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
                 text='label',
                 hover_data={
@@ -1236,9 +1249,7 @@ def update_bar_chart(selected_substances, is_mobile):
             y='Percentage',
             color='Also Found',
             barmode='group',
-            title='Co-occurrence patterns: When [Primary] is present, % with other substances',
             labels={'Percentage': 'Co-occurrence %', 'Primary': 'Primary Substance'},
-            text='label',
             hover_data={
                 'Count': False, 
                 'Total': False, 
@@ -1250,7 +1261,9 @@ def update_bar_chart(selected_substances, is_mobile):
         )
         
         fig.update_traces(
-            textposition='outside',
+            # Grouped view has many traces; outside labels can clip and leave artifacts.
+            textposition='none',
+            text=None,
             textangle=0,
             hovertemplate='<b>%{customdata[2]}</b><br>' +
                          'Primary: %{x}<br>' +
@@ -1264,11 +1277,10 @@ def update_bar_chart(selected_substances, is_mobile):
     # Apply mobile-responsive layout
     # X-axis angle: 45° for grouped view (substance names), 45° for mobile filtered (substance names), 0° for desktop filtered (percentages)
     x_angle = 45 if not selected_values else (45 if is_mobile else 0)
-    
+
     fig.update_layout(
         height=height,
         width=width,
-        title=dict(font=dict(size=title_size)),
         xaxis=dict(
             tickangle=x_angle,
             tickfont=dict(size=text_size)
@@ -1285,9 +1297,9 @@ def update_bar_chart(selected_substances, is_mobile):
         autosize=False if is_mobile else True
     )
 
-    apply_standard_bar_layout(fig)
+    apply_standard_bar_layout(fig, margin={"t": 30, "b": 50})
     
-    return fig
+    return fig, bar_caption
 
 
 @callback(

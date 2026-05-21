@@ -392,6 +392,8 @@ def apply_standard_bar_layout(
 ):
     """Apply standardized layout defaults for bar charts, with optional overrides."""
     merged_margin = STANDARD_BAR_MARGIN.copy()
+    if margin:
+        merged_margin.update(margin)
 
     merged_xaxis = {"automargin": True}
     if xaxis:
@@ -419,6 +421,8 @@ def apply_standard_line_layout(
 ):
     """Apply standardized layout defaults for line charts, with optional overrides."""
     merged_margin = STANDARD_LINE_MARGIN.copy()
+    if margin:
+        merged_margin.update(margin)
 
     merged_xaxis = {"automargin": True}
     if xaxis:
@@ -444,6 +448,8 @@ def apply_standard_map_layout(
 ):
     """Apply standardized layout defaults for map charts, with optional overrides."""
     merged_margin = STANDARD_MAP_MARGIN.copy()
+    if margin:
+        merged_margin.update(margin)
 
     fig.update_layout(
         margin=merged_margin,
@@ -503,7 +509,7 @@ def apply_standard_sankey_layout(
     """Apply standardized layout defaults for Sankey charts with adaptive height/margins."""
     sankey_height = max(860, 680 + int(node_count) * 40)
     # Sankey labels and lower links need extra room beyond standard chart spacing.
-    sankey_bottom_margin = max(110, int(sankey_height * 0.12))
+    sankey_bottom_margin = max(140, int(sankey_height * 0.15))
     return apply_standard_non_axis_layout(
         fig,
         margin={"b": sankey_bottom_margin},
