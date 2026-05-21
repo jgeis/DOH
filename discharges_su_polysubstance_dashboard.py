@@ -431,6 +431,8 @@ def layout_for(is_mobile: bool = False):
     right = dbc.Col([
         html.Div(id="tbl-county-share", className="sidebar-table mb-4"),
 
+        html.Div(id="tbl-year", className="sidebar-table mb-4"),
+
         # Two summary tables (Age + Sex at Birth) — NO HEADERS
         dbc.Row([
             dbc.Col([
@@ -626,6 +628,7 @@ layout = layout_for(is_mobile=False)
     Output("line-year-substance", "figure"),
     Output("stack-year-county", "figure"),
     Output("tbl-county-share", "children"),
+    Output("tbl-year", "children"),
     Output("tbl-age", "children"),
     Output("tbl-sex", "children"),
     Input("polysubstance-substance-filter", "value"),
@@ -874,7 +877,7 @@ def update(substance, age, sex, county, year):
         )
         county_counts = county_counts.sort_values("county")
         county_counts["discharges"] = county_counts["discharges"].map(format_count_display)
-        header_labels = {"county": "County", "discharges": "Unique Discharges"}
+        header_labels = {"county": "County", "discharges": "Discharges"}
         county_counts = county_counts.rename(columns=header_labels)
         # Manual table builder for compatibility
         tbl_county = dbc.Table([
@@ -900,6 +903,7 @@ def update(substance, age, sex, county, year):
         g["discharges"] = g["discharges"].map(format_count_display)
 
         header_labels = {
+            "year": "Year",
             "age_group": "Age Group",
             "sex": "Sex at Birth",
             "discharges": "Discharges",
@@ -914,13 +918,32 @@ def update(substance, age, sex, county, year):
             ])
         ], striped=True, bordered=True, hover=True, size="sm")
 
-    # Extract age groups dynamically from the filtered data (excluding Unknown for polysubstance analysis)
+    # Extract year groups dynamically in descending order (newest first).
+    year_groups = None
+    if "year" in uniq.columns and not uniq.empty:
+        year_vals = (
+            uniq["year"]
+            .dropna()
+            .astype(str)
+            .drop_duplicates()
+            .tolist()
+        )
+        year_groups = sorted(
+            year_vals,
+            key=lambda v: int(v) if str(v).isdigit() else str(v),
+            reverse=True,
+        )
     age_groups = sort_opts(uniq["age_group"]) if "age_group" in uniq.columns and not uniq.empty else None
 
+    year_source = uniq.copy()
+    if "year" in year_source.columns and not year_source.empty:
+        year_source["year"] = year_source["year"].astype(str)
+
+    tbl_year = simple_table(year_source, "year", year_groups)
     tbl_age = simple_table(uniq, "age_group", age_groups)
     tbl_sex = simple_table(uniq, "sex")
 
-    return kpi_value, bar_title, line_title, county_title, fig_sub, fig_year_substance, fig_year_county, tbl_county, tbl_age, tbl_sex
+    return kpi_value, bar_title, line_title, county_title, fig_sub, fig_year_substance, fig_year_county, tbl_county, tbl_year, tbl_age, tbl_sex
 
 
 
