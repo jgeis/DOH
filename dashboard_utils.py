@@ -409,6 +409,13 @@ def apply_standard_bar_layout(
         yaxis=merged_yaxis,
         **layout_kwargs,
     )
+
+    # Default bar label placement to inside for consistency across dashboards.
+    fig.update_traces(
+        textposition="inside",
+        cliponaxis=True,
+        selector={"type": "bar"},
+    )
     return fig
 
 
