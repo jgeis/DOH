@@ -439,10 +439,27 @@ def apply_standard_line_layout(
     if yaxis:
         merged_yaxis.update(yaxis)
 
+    explicit_legend = layout_kwargs.pop("legend", None)
+    merged_legend = {
+        "orientation": "h",
+        "yanchor": "top",      # Flipped from "bottom" so it builds downward
+        "y": -0.15,            # Moved much closer to the 0 line
+        "xanchor": "left",
+        "x": 0,
+        "bgcolor": "rgba(0,0,0,0)",
+    }
+
+    # Keep semantic legend settings (e.g., title) but enforce shared position/background.
+    if explicit_legend:
+        for key in ("title", "title_text", "font", "itemsizing", "itemwidth", "traceorder"):
+            if key in explicit_legend:
+                merged_legend[key] = explicit_legend[key]
+
     fig.update_layout(
         margin=merged_margin,
         xaxis=merged_xaxis,
         yaxis=merged_yaxis,
+        legend=merged_legend,
         **layout_kwargs,
     )
     return fig

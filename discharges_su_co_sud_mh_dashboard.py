@@ -368,6 +368,7 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
                 xanchor="left",
                 x=0,
             ),
+            legend_title_text=None,
         )
     else:
         sub_line = px.line()

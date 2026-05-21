@@ -442,22 +442,15 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
             "county": "County",
         },
     )
+
     apply_standard_line_layout(
         county_line_fig,
-        xaxis=dict(title="Year"),
-        yaxis=dict(title="Number of Clients"),
-        legend_title_text="County",
-        legend=dict(
-            orientation="h",
-            x=0,
-            y=-0.22,
-            xanchor="left",
-            yanchor="top",
-            bgcolor="rgba(255,255,255,0.9)",
-        ),
-        hovermode="closest",
-        height=520,
+        xaxis=dict(dtick=5),
+        yaxis=dict(rangemode="tozero"),
+        title=None,
+        legend_title_text=None,
     )
+
     county_line_fig.update_traces(
         hovertemplate="%{fullData.name}<br>Year: %{x}<br>Clients: %{y:,}<extra></extra>"
     )

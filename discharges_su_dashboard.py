@@ -359,19 +359,16 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
         )
         max_y = int(by_ysub["count"].max()) if not by_ysub.empty else 0
+        
         apply_standard_line_layout(
             substance_line_fig,
             xaxis=dict(dtick=1),
-            yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
-            legend=dict(
-                title_text="Substance",
-                orientation="h",
-                yanchor="top",
-                y=-0.22,
-                xanchor="left",
-                x=0,
-            ),
+            yaxis=dict(rangemode="tozero"),
+            title=None,
+            legend_title_text=None,
         )
+
+    
     else:
         substance_line_fig = px.line()
 
@@ -403,11 +400,15 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             hovertemplate="Year %{x}<br>%{customdata[0]} discharges<extra></extra>"
         )
         max_y = int(by_cy["count"].max()) if not by_cy.empty else 0
+        
         apply_standard_line_layout(
             line_fig,
             xaxis=dict(dtick=1),
-            yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
+            yaxis=dict(rangemode="tozero"),
+            title=None,
+            legend_title_text=None,
         )
+        
     else:
         line_fig = px.line()
 
@@ -437,12 +438,15 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             hovertemplate="Year %{x}<br>Age Group: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
         )
         max_y = int(by_ya["count"].max()) if not by_ya.empty else 0
+        
         apply_standard_line_layout(
             age_line_fig,
             xaxis=dict(dtick=1),
-            yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
-            legend=dict(title_text="Age Group"),
+            yaxis=dict(rangemode="tozero"),
+            title=None,
+            legend_title_text=None,
         )
+        
     else:
         age_line_fig = px.line()
 

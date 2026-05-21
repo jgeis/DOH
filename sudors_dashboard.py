@@ -317,19 +317,15 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             customdata=by_year_substance[["display_count"]],
             hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Deaths: %{customdata[0]}<extra></extra>"
         )
+
         apply_standard_line_layout(
             line_fig,
-            xaxis=dict(dtick=1, title_standoff=12),
+            xaxis=dict(dtick=1),
             yaxis=dict(rangemode="tozero"),
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="left",
-                x=0,
-                font=dict(size=10),
-            ),
+            title=None,
+            legend_title_text=None,
         )
+
     else:
         line_fig = px.line()
 

@@ -103,14 +103,16 @@ def _load_calls_line_chart():
             "Line": "Contact Type",
         },
     )
+
     apply_standard_line_layout(
         fig,
-        yaxis=dict(title="# of calls/chats/texts"),
+        #xaxis=dict(dtick=5),
+        yaxis=dict(rangemode="tozero", title="# of calls/chats/texts"),
         xaxis=dict(title="Month"),
-        height=420,
-        hovermode="x",
-        legend_title_text="",
+        title=None,
+        legend_title_text=None,
     )
+
     max_calls = int(pd.to_numeric(df["num_calls"], errors="coerce").fillna(0).max()) if not df.empty else 0
     if max_calls > 0:
         if max_calls <= 10_000:

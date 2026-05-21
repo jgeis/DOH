@@ -810,20 +810,15 @@ def update(substance, age, sex, county, year):
         fig_year_substance.update_traces(
             hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Discharges: %{customdata[0]}<br>Only records containing all selected substances are included.<extra></extra>"
         )
+
         apply_standard_line_layout(
             fig_year_substance,
             xaxis=dict(dtick=1),
             yaxis=dict(rangemode="tozero"),
             title=None,
-            legend=dict(
-                title_text="Substance",
-                orientation="h",
-                yanchor="top",
-                y=-0.2,
-                xanchor="left",
-                x=0,
-            ),
+            legend_title_text=None,
         )
+
     else:
         fig_year_substance = px.line()
 
@@ -873,6 +868,7 @@ def update(substance, age, sex, county, year):
             xaxis=dict(dtick=1),
             yaxis=dict(rangemode="tozero"),
             title=None,
+            legend_title_text=None,
         )
     else:
         fig_year_county = px.line()

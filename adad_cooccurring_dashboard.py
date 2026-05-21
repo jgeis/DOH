@@ -400,22 +400,14 @@ def update_adad_cooccurring(view, sel_years, sel_months, sel_modalities, sel_cou
             "modality": "Modality",
         },
     )
+
     apply_standard_line_layout(
         modality_line_fig,
-        xaxis=dict(title="Year"),
-        yaxis=dict(title="Number of Clients"),
-        legend_title_text="Modality",
-        legend=dict(
-            orientation="h",
-            x=0,
-            y=-0.22,
-            xanchor="left",
-            yanchor="top",
-            bgcolor="rgba(255,255,255,0.9)",
-        ),
-        hovermode="closest",
-        height=520,
+        xaxis=dict(dtick=2),
+        yaxis=dict(rangemode="tozero"),
+        legend_title_text=None,
     )
+
     modality_line_fig.update_traces(
         hovertemplate="%{fullData.name}<br>Year: %{x}<br>Clients: %{y:,}<extra></extra>"
     )
@@ -442,22 +434,14 @@ def update_adad_cooccurring(view, sel_years, sel_months, sel_modalities, sel_cou
             "county": "County",
         },
     )
+
     apply_standard_line_layout(
         county_line_fig,
-        xaxis=dict(title="Year"),
-        yaxis=dict(title="Number of Clients"),
-        legend_title_text="County",
-        legend=dict(
-            orientation="h",
-            x=0,
-            y=-0.22,
-            xanchor="left",
-            yanchor="top",
-            bgcolor="rgba(255,255,255,0.9)",
-        ),
-        hovermode="closest",
-        height=520,
+        xaxis=dict(dtick=2),
+        yaxis=dict(rangemode="tozero"),
+        legend_title_text=None,
     )
+
     county_line_fig.update_traces(
         hovertemplate="%{fullData.name}<br>Year: %{x}<br>Clients: %{y:,}<extra></extra>"
     )
