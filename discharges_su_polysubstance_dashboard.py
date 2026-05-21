@@ -33,6 +33,9 @@ from dashboard_utils import (
     apply_standard_bar_layout,
     apply_standard_line_layout,
     apply_standard_non_axis_layout,
+    apply_standard_heatmap_layout,
+    apply_standard_network_layout,
+    apply_standard_sankey_layout,
 )
 
 # This applies our custom Plotly look (colors, fonts, etc.) everywhere in this app.
@@ -571,7 +574,7 @@ def layout_for(is_mobile: bool = False):
                             dcc.Graph(
                                 id="polysubstance-cooccurrence-network",
                                 config={"displayModeBar": True, "displaylogo": False},
-                                style={"height": "600px"}
+                                style={"minHeight": "650px"}
                             )
                         ),
                         html.P(
@@ -600,7 +603,7 @@ def layout_for(is_mobile: bool = False):
                             dcc.Graph(
                                 id="polysubstance-cooccurrence-sankey",
                                 config={"displayModeBar": True, "displaylogo": False},
-                                style={"height": "700px"}
+                                style={"minHeight": "760px"}
                             )
                         ),
                         html.P(
@@ -1044,7 +1047,7 @@ def update_heatmap(selected_substances, is_mobile):
         autosize=False if is_mobile else True
     )
 
-    apply_standard_line_layout(fig)
+    apply_standard_heatmap_layout(fig)
 
     return fig
 
@@ -1516,15 +1519,15 @@ def update_network(_):
     
     # Combine traces: edges, edge labels, then nodes (so nodes appear on top)
     fig = go.Figure(data=edge_traces + edge_label_traces + [node_trace])
-    
-    fig.update_layout(
+    apply_standard_network_layout(
+        fig,
+        node_count=len(substances),
         title=f"Substance Co-occurrence Network (threshold: {threshold}+ cases)",
         showlegend=False,
         hovermode='closest',
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        height=600,
-        plot_bgcolor='white'
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[-1.2, 1.2], fixedrange=True),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[-1.2, 1.2], fixedrange=True),
+        plot_bgcolor='white',
     )
     
     return fig
@@ -1578,6 +1581,9 @@ def update_sankey(_):
     # Create node list and mappings
     all_nodes = list(set(edge_df['source'].tolist() + edge_df['target'].tolist()))
     node_dict = {node: idx for idx, node in enumerate(all_nodes)}
+
+    # Scale figure height with node count so lower nodes/links are not clipped.
+    node_count = len(all_nodes)
     
     # Map to indices
     source_indices = [node_dict[s] for s in edge_df['source']]
@@ -1600,10 +1606,11 @@ def update_sankey(_):
         )
     )])
     
-    fig.update_layout(
+    apply_standard_sankey_layout(
+        fig,
+        node_count=node_count,
         title="Substance Co-occurrence Flow (Top 8 Substances)",
         font=dict(size=12),
-        height=700
     )
     
     return fig

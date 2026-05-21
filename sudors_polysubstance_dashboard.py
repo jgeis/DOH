@@ -22,6 +22,7 @@ from dashboard_utils import (
    dropdown_filter,
    format_count_display,
     apply_standard_bar_layout,
+    apply_standard_non_axis_layout,
 )
 
 register_template()
@@ -591,6 +592,7 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                         'Count: %{customdata[0]}<br>' +
                         'Total: %{customdata[1]}<extra></extra>',
         )
+        apply_standard_bar_layout(bar_fig)
         
     sunburst_data = build_sunburst_cooccurrence_data(dff)
 
@@ -605,5 +607,6 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
             path=["Primary", "Also Found"],
             values="Count",
         )
+        apply_standard_non_axis_layout(sun_fig)
 
     return bar_fig, sun_fig

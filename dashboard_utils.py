@@ -373,11 +373,14 @@ def graph_block(base_id: str, title_text: str, height_px: str):
 
 
 # Shared chart spacing defaults to keep all bar/line/map charts consistent site-wide.
-STANDARD_CHART_MARGIN = {"l": 0, "r": 12, "t": 30, "b": 50}
+STANDARD_CHART_MARGIN = {"l": 12, "r": 12, "t": 30, "b": 50}
 STANDARD_BAR_MARGIN = STANDARD_CHART_MARGIN.copy()
 STANDARD_LINE_MARGIN = STANDARD_CHART_MARGIN.copy()
 STANDARD_MAP_MARGIN = STANDARD_CHART_MARGIN.copy()
-STANDARD_NON_AXIS_MARGIN = {"l": STANDARD_CHART_MARGIN["l"], "r": STANDARD_CHART_MARGIN["r"], "t": 30, "b": 0}
+STANDARD_NON_AXIS_MARGIN = {
+    **STANDARD_CHART_MARGIN,
+    "t": STANDARD_CHART_MARGIN["t"] + 20,
+}
 
 
 def apply_standard_bar_layout(
@@ -464,6 +467,49 @@ def apply_standard_non_axis_layout(
         **layout_kwargs,
     )
     return fig
+
+
+def apply_standard_heatmap_layout(
+    fig,
+    **layout_kwargs,
+):
+    """Apply standardized layout defaults for heatmaps."""
+    return apply_standard_non_axis_layout(fig, **layout_kwargs)
+
+
+def apply_standard_network_layout(
+    fig,
+    node_count: int | None = None,
+    **layout_kwargs,
+):
+    """Apply standardized layout defaults for network charts with adaptive height/margins."""
+    # Keep backward compatibility with older callsites that don't pass node_count.
+    safe_node_count = int(node_count) if node_count is not None else 6
+    # Keep enough room for labels while avoiding excessive empty space below the plot.
+    network_height = min(820, max(620, 520 + safe_node_count * 16))
+    return apply_standard_non_axis_layout(
+        fig,
+        margin={"b": 20},
+        height=network_height,
+        **layout_kwargs,
+    )
+
+
+def apply_standard_sankey_layout(
+    fig,
+    node_count: int,
+    **layout_kwargs,
+):
+    """Apply standardized layout defaults for Sankey charts with adaptive height/margins."""
+    sankey_height = max(860, 680 + int(node_count) * 40)
+    # Sankey labels and lower links need extra room beyond standard chart spacing.
+    sankey_bottom_margin = max(110, int(sankey_height * 0.12))
+    return apply_standard_non_axis_layout(
+        fig,
+        margin={"b": sankey_bottom_margin},
+        height=sankey_height,
+        **layout_kwargs,
+    )
 
 
 def make_kpi_card(label: str, count_id: str | None = None, count: int | None = None) -> dbc.Card:
