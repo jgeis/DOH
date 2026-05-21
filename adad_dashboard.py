@@ -16,6 +16,8 @@ from dashboard_utils import (
     format_count_display,
     opts_list,
     sort_opts,
+    apply_standard_bar_layout,
+    apply_standard_line_layout,
 )
 
 register_template()
@@ -360,11 +362,12 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
         text="label",
         labels={"client_count": "Number of Clients", "period": y_title},
     )
-    bar_fig.update_layout(
-        margin=dict(l=10, r=10, t=30, b=10),
-        xaxis_title="Number of Clients",
-        yaxis_title=y_title,
+    apply_standard_bar_layout(
+        bar_fig,
+        margin=dict(l=10, r=10, b=10),
+        xaxis=dict(title="Number of Clients"),
         yaxis=dict(
+            title=y_title,
             type="category",
             categoryorder="array",
             categoryarray=y_order,
@@ -455,10 +458,11 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
             "county": "County",
         },
     )
-    county_line_fig.update_layout(
-        margin=dict(l=10, r=10, t=30, b=120),
-        xaxis_title="Year",
-        yaxis_title="Number of Clients",
+    apply_standard_line_layout(
+        county_line_fig,
+        margin=dict(l=10, r=10, b=120),
+        xaxis=dict(title="Year"),
+        yaxis=dict(title="Number of Clients"),
         legend_title_text="County",
         legend=dict(
             orientation="h",

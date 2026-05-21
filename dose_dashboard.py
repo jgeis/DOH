@@ -23,6 +23,9 @@ from dashboard_utils import (
     make_filters_card,
     dropdown_filter,
     format_count_display,
+    apply_standard_bar_layout,
+    apply_standard_line_layout,
+    apply_standard_map_layout,
 )
 
 register_template()
@@ -285,7 +288,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             hovertemplate="Substance: %{customdata}<br>Count: %{text}<extra></extra>"
         )
 
-        dose_bar.update_layout(margin=dict(l=0, r=40, t=10, b=10))
+        apply_standard_bar_layout(dose_bar, margin=dict(r=40, b=10))
     else:
         dose_bar = px.bar()
 
@@ -311,9 +314,10 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         dose_line.update_traces(
             hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>%{y:,} discharges<extra></extra>"
         )
-        dose_line.update_layout(
-            margin=dict(l=0, r=20, t=10, b=0),
-            xaxis=dict(dtick=1)
+        apply_standard_line_layout(
+            dose_line,
+            margin=dict(b=0),
+            xaxis=dict(dtick=1),
         )
     else:
         dose_line = px.line()
@@ -398,9 +402,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
                 hovertemplate="<b>ZIP Code: %{location}</b><br>Discharges: %{customdata[0]}<extra></extra>"
             )
             
-            map_fig.update_layout(
-                margin=dict(l=0, r=0, t=10, b=0)
-            )
+            apply_standard_map_layout(map_fig)
         else:
             print("[MAP] by_zip is empty!")
             map_fig = px.choropleth_mapbox()

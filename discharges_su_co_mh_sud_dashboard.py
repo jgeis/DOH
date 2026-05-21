@@ -20,6 +20,8 @@ from dashboard_utils import (
     make_filters_card,
     dropdown_filter,
     format_count_display,
+    apply_standard_bar_layout,
+    apply_standard_line_layout,
 )
 
 register_template()
@@ -313,10 +315,7 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
             hovertemplate="Mental Health Diagnosis: %{customdata}<br>Number of discharges: %{text}<extra></extra>",
         )
 
-        mh_bar.update_layout(
-            margin=dict(l=0, r=0, t=10, b=80),
-            xaxis=dict(automargin=True),
-        )
+        apply_standard_bar_layout(mh_bar)
     else:
         mh_bar = px.bar()
 
@@ -355,9 +354,9 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
 
         max_y = int(by_mh["count"].max()) if not by_mh.empty else 0
 
-        mh_line.update_layout(
-            margin=dict(l=0, r=20, t=20, b=80),
-            xaxis=dict(dtick=1, automargin=True),
+        apply_standard_line_layout(
+            mh_line,
+            xaxis=dict(dtick=1),
             yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
             legend=dict(
                 title_text="Mental Health Diagnosis",
@@ -367,7 +366,7 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
                 xanchor="left",
                 x=0,
             ),
-            legend_title_text=None
+            legend_title_text=None,
         )
     else:
         mh_line = px.line()

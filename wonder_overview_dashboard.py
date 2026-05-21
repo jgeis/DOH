@@ -12,6 +12,8 @@ from dashboard_utils import (
     checklist_filter,
     statewide_first,
     format_count_display,
+    apply_standard_bar_layout,
+    apply_standard_line_layout,
 )
 import json
 
@@ -358,10 +360,7 @@ def update_dashboard(county, year):
             hovertemplate="Year %{x}<br>County: %{fullData.name}<br>Deaths: %{text}<extra></extra>",
         )
 
-        year_line.update_layout(
-            margin=dict(l=0, r=0, t=10, b=80),
-            xaxis=dict(automargin=True, dtick=1),
-        )
+        apply_standard_line_layout(year_line, xaxis=dict(dtick=1))
 
     else:
         year_line = px.line()
@@ -394,11 +393,7 @@ def update_dashboard(county, year):
             textposition="outside",
         )
 
-        county_bar.update_layout(
-            margin=dict(l=0, r=0, t=10, b=80),
-            xaxis=dict(automargin=True),
-            yaxis=dict(autorange="reversed"),
-        )
+        apply_standard_bar_layout(county_bar, yaxis=dict(autorange="reversed"))
 
     else:
         county_bar = px.bar()

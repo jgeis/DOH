@@ -22,6 +22,8 @@ from dashboard_utils import (
     make_filters_card,
     dropdown_filter,
     format_count_display,
+    apply_standard_bar_layout,
+    apply_standard_line_layout,
 )
 
 register_template()
@@ -315,10 +317,7 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
             hovertemplate="Substance Type: %{customdata}<br>Number of discharges: %{text}<extra></extra>",
         )
 
-        sub_bar.update_layout(
-            margin=dict(l=0, r=0, t=10, b=80),
-            xaxis=dict(automargin=True),
-        )
+        apply_standard_bar_layout(sub_bar)
     else:
         sub_bar = px.bar()
 
@@ -357,9 +356,9 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
 
         max_y = int(by_ysub["count"].max()) if not by_ysub.empty else 0
 
-        sub_line.update_layout(
-            margin=dict(l=0, r=20, t=20, b=80),
-            xaxis=dict(dtick=1, automargin=True),
+        apply_standard_line_layout(
+            sub_line,
+            xaxis=dict(dtick=1),
             yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
             legend=dict(
                 title_text="Substance",

@@ -21,6 +21,7 @@ from dashboard_utils import (
    make_filters_card,
    dropdown_filter,
    format_count_display,
+    apply_standard_bar_layout,
 )
 
 register_template()
@@ -444,10 +445,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
            customdata=by_sub["substance"],
        )
 
-       sud_bar.update_layout(
-           margin=dict(l=0, r=0, t=10, b=80),
-           xaxis=dict(automargin=True, rangemode="tozero"),
-       )
+       apply_standard_bar_layout(sud_bar, xaxis=dict(rangemode="tozero"))
    else:
        sud_bar = px.bar()
 

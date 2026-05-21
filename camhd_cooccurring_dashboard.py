@@ -15,6 +15,7 @@ from dashboard_utils import (
     dropdown_filter,
     format_count_display,
     opts_list,
+    apply_standard_bar_layout,
 )
 
 register_template()
@@ -212,11 +213,12 @@ def update_camhd_cooccurring(view, sel_years, start_date, end_date):
         text="label",
         labels={"client_count": "Number of Clients", "period": y_title},
     )
-    bar_fig.update_layout(
-        margin=dict(l=10, r=10, t=30, b=10),
-        xaxis_title="Number of Clients",
-        yaxis_title=y_title,
+    apply_standard_bar_layout(
+        bar_fig,
+        margin=dict(l=10, r=10, b=10),
+        xaxis=dict(title="Number of Clients"),
         yaxis=dict(
+            title=y_title,
             type="category",
             categoryorder="array",
             categoryarray=y_order,

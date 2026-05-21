@@ -12,6 +12,7 @@ from dashboard_utils import (
     radio_filter,
     STATEWIDE_COUNTY,
     format_count_display,
+    apply_standard_bar_layout,
 )
 import re
 
@@ -398,9 +399,10 @@ def update_dashboard(county, year):
         max_deaths = by_sub["deaths"].max() if not by_sub.empty else 0
         x_max = max(10, int(max_deaths * 1.15))
 
-        sub_bar.update_layout(
-            margin=dict(l=140, r=50, t=10, b=80),
-            xaxis=dict(automargin=True, range=[0, x_max]),
+        apply_standard_bar_layout(
+            sub_bar,
+            margin=dict(l=140, r=50),
+            xaxis=dict(range=[0, x_max]),
             yaxis=dict(autorange="reversed"),
         )
 
@@ -432,11 +434,7 @@ def update_dashboard(county, year):
             hovertemplate="%{y}: %{text}<extra></extra>",
         )
 
-        race_bar.update_layout(
-            margin=dict(l=0, r=0, t=10, b=80),
-            xaxis=dict(automargin=True),
-            yaxis=dict(autorange="reversed"),
-        )
+        apply_standard_bar_layout(race_bar, yaxis=dict(autorange="reversed"))
 
     else:
         race_bar = px.bar()
@@ -483,11 +481,7 @@ def update_dashboard(county, year):
             hovertemplate="%{y}: %{text}<extra></extra>",
         )
 
-        age_group_bar.update_layout(
-            margin=dict(l=0, r=0, t=10, b=80),
-            xaxis=dict(automargin=True),
-            yaxis=dict(autorange="reversed"),
-        )
+        apply_standard_bar_layout(age_group_bar, yaxis=dict(autorange="reversed"))
 
     else:
         age_group_bar = px.bar()

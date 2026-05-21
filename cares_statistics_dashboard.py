@@ -7,7 +7,12 @@ import plotly.express as px
 
 from config import USE_MSSQL
 from db_utils import execute_query
-from dashboard_utils import load_sql_query, make_last_updated_block
+from dashboard_utils import (
+    load_sql_query,
+    make_last_updated_block,
+    apply_standard_bar_layout,
+    apply_standard_line_layout,
+)
 from theme import register_template
 
 register_template()
@@ -98,10 +103,11 @@ def _load_calls_line_chart():
             "Line": "Contact Type",
         },
     )
-    fig.update_layout(
-        margin=dict(l=10, r=10, t=10, b=10),
-        yaxis_title="# of calls/chats/texts",
-        xaxis_title="Month",
+    apply_standard_line_layout(
+        fig,
+        margin=dict(l=10, r=10, b=10),
+        yaxis=dict(title="# of calls/chats/texts"),
+        xaxis=dict(title="Month"),
         height=420,
         hovermode="x",
         legend_title_text="",
@@ -144,10 +150,11 @@ def _load_cmo_bar_chart():
         },
         text="num_calls",
     )
-    fig.update_layout(
-        margin=dict(l=10, r=10, t=10, b=10),
-        yaxis_title="# of CMOs",
-        xaxis_title="Month",
+    apply_standard_bar_layout(
+        fig,
+        margin=dict(l=10, r=10, b=10),
+        yaxis=dict(title="# of CMOs"),
+        xaxis=dict(title="Month"),
         height=420,
     )
     fig.update_traces(

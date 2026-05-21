@@ -18,6 +18,7 @@ from dashboard_utils import (
     dropdown_filter,
     format_count_display,
     opts_list,
+    apply_standard_bar_layout,
 )
 
 register_template()
@@ -377,11 +378,12 @@ def _build_amhd_figures(view, query_context):
         text="label",
         labels={"consumer_count": "Number of AMHD Consumers", "period": period_title},
     )
-    bar_fig.update_layout(
-        margin=dict(l=10, r=10, t=30, b=10),
-        xaxis_title="Number of AMHD Consumers",
-        yaxis_title=period_title,
+    apply_standard_bar_layout(
+        bar_fig,
+        margin=dict(l=10, r=10, b=10),
+        xaxis=dict(title="Number of AMHD Consumers"),
         yaxis=dict(
+            title=period_title,
             type="category",
             categoryorder="array",
             categoryarray=y_order,

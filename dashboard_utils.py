@@ -372,6 +372,87 @@ def graph_block(base_id: str, title_text: str, height_px: str):
     )
 
 
+# Shared chart spacing defaults to keep line/bar modebar overlap consistent site-wide.
+STANDARD_BAR_MARGIN = {"l": 0, "r": 12, "t": 30, "b": 80}
+STANDARD_LINE_MARGIN = {"l": 0, "r": 12, "t": 30, "b": 80}
+STANDARD_MAP_MARGIN = {"l": 0, "r": 0, "t": 30, "b": 0}
+
+
+def apply_standard_bar_layout(
+    fig,
+    margin: dict | None = None,
+    xaxis: dict | None = None,
+    yaxis: dict | None = None,
+    **layout_kwargs,
+):
+    """Apply standardized layout defaults for bar charts, with optional overrides."""
+    merged_margin = STANDARD_BAR_MARGIN.copy()
+    if margin:
+        merged_margin.update(margin)
+
+    merged_xaxis = {"automargin": True}
+    if xaxis:
+        merged_xaxis.update(xaxis)
+
+    merged_yaxis = {"automargin": True}
+    if yaxis:
+        merged_yaxis.update(yaxis)
+
+    fig.update_layout(
+        margin=merged_margin,
+        xaxis=merged_xaxis,
+        yaxis=merged_yaxis,
+        **layout_kwargs,
+    )
+    return fig
+
+
+def apply_standard_line_layout(
+    fig,
+    margin: dict | None = None,
+    xaxis: dict | None = None,
+    yaxis: dict | None = None,
+    **layout_kwargs,
+):
+    """Apply standardized layout defaults for line charts, with optional overrides."""
+    merged_margin = STANDARD_LINE_MARGIN.copy()
+    if margin:
+        merged_margin.update(margin)
+
+    merged_xaxis = {"automargin": True}
+    if xaxis:
+        merged_xaxis.update(xaxis)
+
+    merged_yaxis = {"automargin": True}
+    if yaxis:
+        merged_yaxis.update(yaxis)
+
+    fig.update_layout(
+        margin=merged_margin,
+        xaxis=merged_xaxis,
+        yaxis=merged_yaxis,
+        **layout_kwargs,
+    )
+    return fig
+
+
+def apply_standard_map_layout(
+    fig,
+    margin: dict | None = None,
+    **layout_kwargs,
+):
+    """Apply standardized layout defaults for map charts, with optional overrides."""
+    merged_margin = STANDARD_MAP_MARGIN.copy()
+    if margin:
+        merged_margin.update(margin)
+
+    fig.update_layout(
+        margin=merged_margin,
+        **layout_kwargs,
+    )
+    return fig
+
+
 def make_kpi_card(label: str, count_id: str | None = None, count: int | None = None) -> dbc.Card:
     """
     Build the standard big green KPI card shown at the top-left of every page.

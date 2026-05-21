@@ -30,6 +30,8 @@ from dashboard_utils import (
     append_statewide_aggregate_rows,
     format_count_display,
     format_display_list,
+    apply_standard_bar_layout,
+    apply_standard_line_layout,
 )
 
 # This applies our custom Plotly look (colors, fonts, etc.) everywhere in this app.
@@ -715,7 +717,7 @@ def update(substance, age, sex, county, year):
         if sub_counts.empty:
             fig_sub = px.bar()
             fig_sub.add_annotation(text="No co-substances found for selected filter.", showarrow=False)
-            fig_sub.update_layout(margin=dict(l=0, r=12, t=50, b=0))
+            apply_standard_bar_layout(fig_sub, margin=dict(b=0))
         else:
             sub_counts["substance_wrapped"] = sub_counts["substance"].apply(_wrap_label)
 
@@ -738,13 +740,10 @@ def update(substance, age, sex, county, year):
                 cliponaxis=False
             )
             max_x = int(sub_counts["discharges"].max()) if not sub_counts.empty else 0
-            fig_sub.update_layout(
-                margin=dict(l=0, r=12, t=50, b=0),   # <-- extra top space for tools
-                xaxis=dict(
-                    range=[0, max_x * 1.15 if max_x else 1],
-                    automargin=True
-                ),
-                yaxis=dict(automargin=True),
+            apply_standard_bar_layout(
+                fig_sub,
+                margin=dict(b=0),
+                xaxis=dict(range=[0, max_x * 1.15 if max_x else 1]),
             )
     else:
         fig_sub = px.bar()
@@ -797,11 +796,12 @@ def update(substance, age, sex, county, year):
         fig_year_substance.update_traces(
             hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Discharges: %{customdata[0]}<br>Only records containing all selected substances are included.<extra></extra>"
         )
-        fig_year_substance.update_layout(
-            title=None,
-            margin=dict(l=0, r=12, t=50, b=60),
-            xaxis=dict(dtick=1, automargin=True),
+        apply_standard_line_layout(
+            fig_year_substance,
+            margin=dict(b=60),
+            xaxis=dict(dtick=1),
             yaxis=dict(rangemode="tozero"),
+            title=None,
             legend=dict(
                 title_text="Substance",
                 orientation="h",
@@ -855,11 +855,12 @@ def update(substance, age, sex, county, year):
             hovertemplate="Year %{x}<br>County: %{fullData.name}<br>Discharges: %{customdata[0]}<br>Only records containing all selected substances are included.<extra></extra>"
         )
 
-        fig_year_county.update_layout(
-            title=None,
-            margin=dict(l=0, r=12, t=50, b=0),   # <-- extra top space
-            xaxis=dict(dtick=1, automargin=True),
+        apply_standard_line_layout(
+            fig_year_county,
+            margin=dict(b=0),
+            xaxis=dict(dtick=1),
             yaxis=dict(rangemode="tozero"),
+            title=None,
         )
     else:
         fig_year_county = px.line()

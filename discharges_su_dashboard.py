@@ -22,6 +22,8 @@ from dashboard_utils import (
     make_filters_card,
     dropdown_filter,
     format_count_display,
+    apply_standard_bar_layout,
+    apply_standard_line_layout,
 )
 
 register_template()
@@ -324,13 +326,10 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
 
         max_sub_count = int(by_sub["count"].max()) if not by_sub.empty else 0
 
-        sub_bar.update_layout(
-            margin=dict(l=220, r=32, t=48, b=80),
-            xaxis=dict(
-                automargin=True,
-                range=[0, max_sub_count * 1.15 if max_sub_count else 1],
-            ),
-            yaxis=dict(automargin=True),
+        apply_standard_bar_layout(
+            sub_bar,
+            margin=dict(l=220, r=32),
+            xaxis=dict(range=[0, max_sub_count * 1.15 if max_sub_count else 1]),
         )
     else:
         sub_bar = px.bar()
@@ -366,9 +365,9 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
         )
         max_y = int(by_ysub["count"].max()) if not by_ysub.empty else 0
-        substance_line_fig.update_layout(
-            margin=dict(l=0, r=20, t=20, b=80),
-            xaxis=dict(dtick=1, automargin=True),
+        apply_standard_line_layout(
+            substance_line_fig,
+            xaxis=dict(dtick=1),
             yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
             legend=dict(
                 title_text="Substance",
@@ -410,8 +409,9 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             hovertemplate="Year %{x}<br>%{customdata[0]} discharges<extra></extra>"
         )
         max_y = int(by_cy["count"].max()) if not by_cy.empty else 0
-        line_fig.update_layout(
-            margin=dict(l=0, r=20, t=10, b=0),
+        apply_standard_line_layout(
+            line_fig,
+            margin=dict(b=0),
             xaxis=dict(dtick=1),
             yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
         )
@@ -444,8 +444,9 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             hovertemplate="Year %{x}<br>Age Group: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
         )
         max_y = int(by_ya["count"].max()) if not by_ya.empty else 0
-        age_line_fig.update_layout(
-            margin=dict(l=0, r=20, t=10, b=0),
+        apply_standard_line_layout(
+            age_line_fig,
+            margin=dict(b=0),
             xaxis=dict(dtick=1),
             yaxis=dict(range=[0, max_y * 1.05 if max_y else 1], autorange=False),
             legend=dict(title_text="Age Group"),
@@ -487,10 +488,10 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             )
 
         max_y = int(totals["count"].max()) if not totals.empty else 0
-        sex_bar.update_layout(
-            margin=dict(l=0, r=0, t=10, b=0),
-            xaxis=dict(automargin=True),
-            yaxis=dict(range=[0, max_y * 1.15 if max_y else 1])
+        apply_standard_bar_layout(
+            sex_bar,
+            margin=dict(b=0),
+            yaxis=dict(range=[0, max_y * 1.15 if max_y else 1]),
         )
     else:
         sex_bar = px.bar()

@@ -15,6 +15,7 @@ from dashboard_utils import (
     dropdown_filter,
     format_count_display,
     opts_list,
+    apply_standard_bar_layout,
 )
 
 register_template()
@@ -251,11 +252,11 @@ def update_cares(view, sel_years, sel_months, sel_crisis):
         text="count_of_users",
         labels={"count_of_users": "Number of Calls", y_col: y_title},
     )
-    fig.update_layout(
-        margin=dict(l=10, r=10, t=30, b=10),
-        xaxis_title="Number of Calls",
-        yaxis_title=y_title,
-        yaxis=dict(categoryorder="array", categoryarray=y_order),
+    apply_standard_bar_layout(
+        fig,
+        margin=dict(l=10, r=10, b=10),
+        xaxis=dict(title="Number of Calls"),
+        yaxis=dict(title=y_title, categoryorder="array", categoryarray=y_order),
         height=chart_height,
     )
     fig.update_traces(
