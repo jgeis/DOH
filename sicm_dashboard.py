@@ -258,8 +258,8 @@ def build_layout():
         [
             html.Div(
                 [
-                    html.H5("Stabilization Bed Facility Occupancy Rates", id="sicm-facility-chart-title", className="plot-card-header mb-2"),
-                    html.H6("Average of Daily Occupancy Rates.  These facilities only host adults", id="sicm-facility-chart-subtitle", className="plot-card-header mb-2"),
+                    html.H5("Stabilization Bed Facility Occupancy Rates", id="sicm-facility-chart-title", className="plot-card-header mb-2 text-center"),
+                    html.H6("Average of Daily Occupancy Rates.  These facilities only host adults", id="sicm-facility-chart-subtitle", className="plot-card-header mb-2 text-center"),
                     dcc.Graph(
                         id="sicm-facility-line-chart",
                         style={"width": "100%"},
@@ -551,8 +551,14 @@ def _line_chart(grouped, period_title, color_col=None, chart_title="Occupancy Ra
 
     if period_title == "Date of Service":
         fig.update_layout(
-            margin=dict(b=100),
-            legend=dict(y=-0.22),
+            margin=dict(b=100, r=36),
+            legend=dict(
+                x=0.5,
+                xanchor="center",
+                y=-0.22,
+                entrywidth=110,
+                entrywidthmode="pixels",
+            ),
         )
 
     return fig
