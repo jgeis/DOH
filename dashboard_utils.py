@@ -459,9 +459,9 @@ def apply_standard_bar_layout(
         **layout_kwargs,
     )
 
-    # Default bar label placement to inside for consistency across dashboards.
+    # Use "auto" so labels move outside when bars are too short to show text inside.
     fig.update_traces(
-        textposition="inside",
+        textposition="auto",
         cliponaxis=False,
         selector={"type": "bar"},
     )
@@ -472,7 +472,7 @@ def apply_standard_single_series_bar_trace(
     hovertemplate: str = "%{y}: %{x:,}<extra></extra>",
     marker_color: str = "#22767C",
     texttemplate: str = "%{text}",
-    textposition: str = "inside",
+    textposition: str = "auto",
     textangle: int = 0,
     cliponaxis: bool = False,
     **trace_kwargs,
