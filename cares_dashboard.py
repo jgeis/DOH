@@ -84,7 +84,7 @@ view_toggle_card = dbc.Card(
                     {"label": "Month", "value": "month"},
                 ],
                 value="month",
-                class_name="btn-group d-flex justify-content-center",
+                class_name="spaced-radio-buttons d-flex justify-content-center gap-3",
                 input_class_name="btn-check",
                 label_class_name="btn btn-outline-success",
                 label_checked_class_name="btn-success text-white active",

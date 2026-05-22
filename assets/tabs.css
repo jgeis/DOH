@@ -91,3 +91,33 @@
     0 0 20px var(--brand-glow),
     0 6px 12px rgba(0,0,0,0.22);
 }
+
+/* Shared styling for left-sidebar View By button groups. */
+.view-toggle-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.view-toggle-wrap .btn-group {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  max-width: 100%;
+}
+
+.view-toggle-wrap .btn-group .btn {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* Strip default Dash Bootstrap padding to fix RadioItems button group alignment */
+.btn-group > .form-check {
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+/* Strip default padding for custom radio buttons */
+.spaced-radio-buttons .form-check {
+    padding-left: 0;
+    margin-bottom: 0;
+}
