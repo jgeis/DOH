@@ -127,7 +127,7 @@ def layout():
 
     center_col = dbc.Col(
         [
-            graph_block("cmo-referral-bar", "Referral Destinations (Past 6 Months)"),
+            graph_block("cmo-referral-bar", "Referral Destinations for Crisis Mobile Outreach Clients (past 6 months)"),
             html.P(
                 "Bar chart showing referral destinations for Crisis Mobile Outreach clients over the past 6 months.",
                 className="visually-hidden",
@@ -206,18 +206,18 @@ def update_cmo_dashboard(selected_destinations):
 
     fig = px.bar(
         dff,
-        x="ct",
+        x="percentage",
         y="referral_destination",
         orientation="h",
-        text="ct_display",
+        text="percentage_display",
         labels={
-            "ct": "Number of Clients",
+            "percentage": "Percent of Total",
             "referral_destination": "Referral Destination",
         },
     )
     apply_standard_bar_layout(
         fig,
-        xaxis=dict(title="Number of Clients"),
+        xaxis=dict(title="Percent of Total", ticksuffix="%", rangemode="tozero"),
         yaxis=dict(title="Referral Destination", categoryorder="array", categoryarray=y_order),
         height=compute_adaptive_horizontal_bar_height(
             len(dff),
@@ -225,8 +225,8 @@ def update_cmo_dashboard(selected_destinations):
     )
     apply_standard_single_series_bar_trace(
         fig,
-        customdata=dff[["ct_display", "percentage_hover_suffix"]],
-        hovertemplate="%{y}: %{customdata[0]} clients%{customdata[1]}<extra></extra>",
+        customdata=dff[["ct_display"]],
+        hovertemplate="%{y}: %{x:.2f}% (%{customdata[0]} clients)<extra></extra>",
     )
 
     table_df = dff[["referral_destination", "ct", "percentage"]].rename(
