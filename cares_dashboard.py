@@ -10,6 +10,7 @@ from dashboard_utils import (
     load_sql_query,
     make_kpi_card,
     make_left_sidebar,
+    make_right_summary_tables_col,
     compute_last_updated_value,
     compute_adaptive_horizontal_bar_height,
     make_filters_card,
@@ -165,15 +166,12 @@ def layout():
         xs=12, md=6,
     )
 
-    right_col = dbc.Col(
+    right_col = make_right_summary_tables_col(
         [
-            html.H5("Calls by Crisis Line", className="mb-2"),
-            html.Div(
-                id="cares-crisis-table",
-                style={"overflowX": "auto"},
-            ),
+            ("Crisis Line", "cares-crisis-table"),
         ],
-        xs=12, md=3,
+        xs=12,
+        md=3,
     )
 
     return dbc.Container(

@@ -13,6 +13,7 @@ from dashboard_utils import (
     load_sql_query,
     make_kpi_card,
     make_left_sidebar,
+    make_right_summary_tables_col,
     compute_last_updated_value,
     compute_adaptive_horizontal_bar_height,
     make_filters_card,
@@ -287,19 +288,9 @@ def layout():
         md=6,
     )
 
-    right_col = dbc.Col(
+    right_col = make_right_summary_tables_col(
         [
-            dbc.Row(
-                [
-                    dbc.Col(
-                        html.Div(id="amhd-cooccurring-service-category-table", style={"overflowX": "auto"}),
-                        xs=12,
-                        md=12,
-                        className="mb-3",
-                    ),
-                ],
-                className="g-2",
-            )
+            ("Service Category", "amhd-cooccurring-service-category-table"),
         ],
         xs=12,
         md=3,
@@ -371,7 +362,7 @@ def _build_amhd_figures(view, query_context):
         bar_grouped["period"] = bar_grouped["service_date"].dt.strftime("%Y-%m-%d")
         period_title = "Date of Service"
 
-    bar_grouped["label"] = bar_grouped["consumer_count"].apply(lambda v: f"{int(v):,}")
+    bar_grouped["label"] = bar_grouped["consumer_count"].apply(format_count_display)
     bar_height = compute_adaptive_horizontal_bar_height(
         len(bar_grouped),
     )
@@ -398,6 +389,7 @@ def _build_amhd_figures(view, query_context):
         height=bar_height,
     )
     apply_standard_single_series_bar_trace(bar_fig)
+    bar_fig.update_traces(hovertemplate="%{y}: %{text}<extra></extra>")
 
     return bar_fig
 

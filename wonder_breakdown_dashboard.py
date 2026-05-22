@@ -7,6 +7,7 @@ from theme import register_template
 from dashboard_utils import (
     make_kpi_card,
     make_left_sidebar,
+    make_right_summary_tables_col,
     compute_last_updated_value,
     compute_adaptive_horizontal_bar_height,
     make_filters_card,
@@ -15,7 +16,6 @@ from dashboard_utils import (
     format_count_display,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
-    apply_standard_non_axis_layout,
 )
 import re
 
@@ -235,8 +235,6 @@ def layout_for(
     substance_bar_h = adaptive_bar_height(substance_category_count)
     race_bar_h = adaptive_bar_height(race_category_count)
     age_bar_h = adaptive_bar_height(age_category_count)
-    pie_h  = "46vh" if is_mobile else "260px"
-
     # Left column: KPI, reset button, and filters.
     left_col = make_left_sidebar(
         kpi_card,
@@ -267,12 +265,12 @@ def layout_for(
         xs=12, md=6
     )
 
-    right_col = dbc.Col(
+    right_col = make_right_summary_tables_col(
         [
-            graph_block("wonder-gender-deaths", "Deaths by Gender", pie_h),
-            html.P("Pie chart showing deaths by gender.", className="visually-hidden"),
+            ("Gender", "wonder-gender-table"),
         ],
-        xs=12, md=3
+        xs=12,
+        md=3,
     )
 
     # Wrap everything in a fluid container so it stretches with the screen.
@@ -315,7 +313,7 @@ def reset_all_filters(_n_clicks):
     Output("wonder-substance-deaths", "figure"),
     Output("wonder-race-deaths", "figure"),
     Output("wonder-age-group-deaths", "figure"),
-    Output("wonder-gender-deaths", "figure"),
+    Output("wonder-gender-table", "children"),
     Input("wonder-breakdown-county-filter", "value"),
     Input("wonder-breakdown-year-filter", "value"),
 )
@@ -494,29 +492,32 @@ def update_dashboard(county, year):
     else:
         age_group_bar = px.bar()
 
-    # ---------- Pie chart: Deaths by Gender ----------
+    # ---------- Table: Deaths by Gender ----------
     if "gender" in dff_gender.columns:
         by_gender = (
             dff_gender.groupby("gender", as_index=False)["deaths"]
             .sum()
-            .sort_values("gender")
+            .sort_values("deaths", ascending=False)
         )
-        by_gender["display_count"] = by_gender["deaths"].apply(format_count_display)
-        gender_pie = px.pie(
-            by_gender,
-            names="gender",
-            values="deaths",
-            hole=0.35,
-            custom_data=["display_count"],
+        by_gender_table = by_gender.rename(
+            columns={
+                "gender": "Gender",
+                "deaths": "Number of Deaths",
+            }
         )
-        gender_pie.update_traces(
-            textposition="inside",
-            texttemplate="%{label}<br>%{percent:.1%} (%{customdata[0]})",
-            hovertemplate="%{label}: %{customdata[0]} (%{percent:.1%})<extra></extra>"
+        by_gender_table["Number of Deaths"] = by_gender_table["Number of Deaths"].apply(
+            format_count_display
         )
-        apply_standard_non_axis_layout(gender_pie)
+        gender_table = dbc.Table.from_dataframe(
+            by_gender_table,
+            striped=True,
+            bordered=True,
+            hover=True,
+            responsive=True,
+            size="sm",
+        )
     else:
-        gender_pie = px.pie()
+        gender_table = html.Div("No gender data available.", className="text-muted small")
 
     # Return all the updated visuals and tables to Dash
     return (
@@ -524,5 +525,5 @@ def update_dashboard(county, year):
         sub_bar,
         race_bar,
         age_group_bar,
-        gender_pie,
+        gender_table,
     )

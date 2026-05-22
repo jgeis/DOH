@@ -10,6 +10,7 @@ from dashboard_utils import (
     load_sql_query,
     make_kpi_card,
     make_left_sidebar,
+    make_right_summary_tables_col,
     compute_last_updated_value,
     compute_adaptive_horizontal_bar_height,
     make_filters_card,
@@ -231,31 +232,11 @@ def layout():
         md=6,
     )
 
-    right_col = dbc.Col(
+    right_col = make_right_summary_tables_col(
         [
-            dbc.Row(
-                [
-                    dbc.Col(
-                        html.Div(id="adad-modality-table", style={"overflowX": "auto"}),
-                        xs=12,
-                        md=12,
-                        className="mb-3",
-                    ),
-                    dbc.Col(
-                        html.Div(id="adad-year-table", style={"overflowX": "auto"}),
-                        xs=12,
-                        md=12,
-                        className="mb-3",
-                    ),
-                    dbc.Col(
-                        html.Div(id="adad-county-table", style={"overflowX": "auto"}),
-                        xs=12,
-                        md=12,
-                        className="mb-3",
-                    ),
-                ],
-                className="g-2",
-            )
+            ("Modality", "adad-modality-table"),
+            ("Year", "adad-year-table"),
+            ("County", "adad-county-table"),
         ],
         xs=12,
         md=3,
@@ -352,7 +333,7 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
         grouped["period"] = grouped["service_date"].dt.strftime("%Y-%m-%d")
         y_title = "Date of Service"
 
-    grouped["label"] = grouped["client_count"].apply(lambda v: f"{int(v):,}")
+    grouped["label"] = grouped["client_count"].apply(format_count_display)
     chart_height = compute_adaptive_horizontal_bar_height(
         len(grouped),
     )
@@ -379,6 +360,10 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
         height=chart_height,
     )
     apply_standard_single_series_bar_trace(bar_fig)
+    bar_fig.update_traces(
+        customdata=grouped[["label"]],
+        hovertemplate="%{y}: %{customdata[0]}<extra></extra>",
+    )
 
     # top_modalities = (
     #     dff.dropna(subset=["modality"])

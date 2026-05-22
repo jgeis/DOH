@@ -14,6 +14,7 @@ from dashboard_utils import (
     load_sql_query,
     make_kpi_card,
     make_filters_card,
+    make_right_summary_tables_col,
     make_last_updated_block,
     compute_last_updated_value,
     dropdown_filter,
@@ -248,16 +249,9 @@ def build_layout():
         md=6,
     )
 
-    right_col = dbc.Col(
+    right_col = make_right_summary_tables_col(
         [
-            html.Div(
-                [
-                    html.H5("Aggregate Occupancy Rates", className="plot-card-header mb-2"),
-                    html.Div(id="sicm-aggregate-table"),
-                ],
-                className="mb-4",
-                style={"overflow": "visible"},
-            ),
+            ("Aggregate Occupancy Rates", "sicm-aggregate-table"),
         ],
         xs=12,
         md=3,

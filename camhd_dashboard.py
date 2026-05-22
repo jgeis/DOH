@@ -200,7 +200,7 @@ def update_camhd(view, sel_years, start_date, end_date):
         grouped["period"] = grouped["service_date"].dt.strftime("%Y-%m-%d")
         y_title = "Date of Service"
 
-    grouped["label"] = grouped["client_count"].apply(lambda value: f"{int(value):,}")
+    grouped["label"] = grouped["client_count"].apply(format_count_display)
     chart_height = compute_adaptive_horizontal_bar_height(
         len(grouped),
     )
@@ -227,5 +227,6 @@ def update_camhd(view, sel_years, start_date, end_date):
         height=chart_height,
     )
     apply_standard_single_series_bar_trace(bar_fig)
+    bar_fig.update_traces(hovertemplate="%{y}: %{text}<extra></extra>")
 
     return bar_fig, format_count_display(total_clients)

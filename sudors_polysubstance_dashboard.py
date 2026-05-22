@@ -471,9 +471,6 @@ def update_dashboard(substance, homeless, sex, age, race, year):
                tbl("age_cat", age_table_order),
            )
 
-       # Show all rows, but suppress low-count bars by plotting zero width.
-       by_sub["plot_count"] = by_sub["count"].apply(lambda x: 0 if x < 10 else x)
-
        def ellipsize(text, max_len=25):
            if text is None:
                return text
@@ -485,14 +482,15 @@ def update_dashboard(substance, homeless, sex, age, race, year):
 
        sud_bar = px.bar(
            by_sub,
-           x="plot_count",
+          x="count",
            y="substance_label",
            barmode="stack",
            text="display_count",
-           labels={"plot_count": "Number of Deaths", "substance_label": "Cause of Death<br>(Not Mutually Exclusive)"},
+          labels={"count": "Number of Deaths", "substance_label": "Cause of Death<br>(Not Mutually Exclusive)"},
        )
 
        apply_standard_single_series_bar_trace(sud_bar)
+       sud_bar.update_traces(hovertemplate="%{y}: %{text}<extra></extra>")
 
        apply_standard_bar_layout(sud_bar, xaxis=dict(rangemode="tozero"))
    else:
