@@ -21,7 +21,9 @@ from dashboard_utils import (
    make_filters_card,
    dropdown_filter,
    format_count_display,
+    format_display_list,
     apply_standard_bar_layout,
+    apply_standard_single_series_bar_trace,
     apply_standard_non_axis_layout,
 )
 
@@ -168,6 +170,29 @@ def build_sunburst_cooccurrence_data(df):
                    })
 
    return pd.DataFrame(results)
+
+
+def _records_matching_all_selected_substances(frame: pd.DataFrame, selected_values) -> pd.DataFrame:
+   """Return rows from incidents that contain ALL selected substances."""
+   if not selected_values:
+       return frame.copy()
+
+   if not {"incident_id", "substance"}.issubset(frame.columns):
+       return frame.iloc[0:0].copy()
+
+   selected = [str(v).strip() for v in selected_values if str(v).strip()]
+   if not selected:
+       return frame.copy()
+
+   selected_set = set(selected)
+   hits = (
+       frame[frame["substance"].astype(str).isin(selected_set)][["incident_id", "substance"]]
+       .drop_duplicates()
+   )
+   required_count = len(selected_set)
+   incident_match_counts = hits.groupby("incident_id")["substance"].nunique()
+   matched_ids = incident_match_counts[incident_match_counts == required_count].index
+   return frame[frame["incident_id"].isin(matched_ids)].copy()
 
 
 # ----------------------------
@@ -393,16 +418,25 @@ def update_dashboard(substance, homeless, sex, age, race, year):
            return frame[frame[col].isin(val)]
        return frame[frame[col] == val]
 
-   # Start from the full dataset each time.
-   dff = df_raw.copy()
+   selected_values = (
+       [v for v in substance if v]
+       if isinstance(substance, (list, tuple, set))
+       else ([substance] if substance else [])
+   )
 
-   # Only apply filters for columns that actually exist.
-   if "substance" in dff.columns:      dff = apply_filter(dff, "substance", substance)
-   if "homeless" in dff.columns:       dff = apply_filter(dff, "homeless", homeless)
-   if "sex" in dff.columns:            dff = apply_filter(dff, "sex", sex)
-   if "age_cat" in dff.columns:        dff = apply_filter(dff, "age_cat", age)
-   if "race_ethnicity" in dff.columns: dff = apply_filter(dff, "race_ethnicity", race)
-   if "year" in dff.columns:           dff = apply_filter(dff, "year", year)
+   # Start from the full dataset each time.
+   dff_base = df_raw.copy()
+
+   # Apply non-substance filters first.
+   if "homeless" in dff_base.columns:       dff_base = apply_filter(dff_base, "homeless", homeless)
+   if "sex" in dff_base.columns:            dff_base = apply_filter(dff_base, "sex", sex)
+   if "age_cat" in dff_base.columns:        dff_base = apply_filter(dff_base, "age_cat", age)
+   if "race_ethnicity" in dff_base.columns: dff_base = apply_filter(dff_base, "race_ethnicity", race)
+   if "year" in dff_base.columns:           dff_base = apply_filter(dff_base, "year", year)
+
+   dff = dff_base.copy()
+   if selected_values and {"incident_id", "substance"}.issubset(dff_base.columns):
+       dff = _records_matching_all_selected_substances(dff_base, selected_values)
 
    # Count unique discharges (each record_id represents one discharge).
    # Used to update the total on the KPI card when user selects the filter
@@ -411,11 +445,29 @@ def update_dashboard(substance, homeless, sex, age, race, year):
 
    # ---------- Bar chart: Deaths by Substance ----------
    if {"substance"}.issubset(dff.columns):
+       bar_source = dff.copy()
+       if selected_values:
+           selected_set = {str(v) for v in selected_values}
+           bar_source = bar_source[~bar_source["substance"].astype(str).isin(selected_set)]
+
        by_sub = (
-           dff.groupby("substance")["incident_id"].nunique()
+           bar_source.groupby("substance")["incident_id"].nunique()
            .reset_index(name="count")
            .sort_values("count", ascending=True)
        )
+
+       if by_sub.empty:
+           sud_bar = go.Figure().add_annotation(
+               text="No additional co-substances found with selected substance(s)",
+               showarrow=False,
+           )
+           return (
+               format_count_display(filter_total),
+               sud_bar,
+               tbl("race_ethnicity"),
+               tbl("year"),
+               tbl("age_cat", age_table_order),
+           )
 
        # Show all rows, but suppress low-count bars by plotting zero width.
        by_sub["plot_count"] = by_sub["count"].apply(lambda x: 0 if x < 10 else x)
@@ -438,13 +490,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
            labels={"plot_count": "Number of Deaths", "substance_label": "Cause of Death<br>(Not Mutually Exclusive)"},
        )
 
-       sud_bar.update_traces(
-           marker_color="#22767C",
-           textposition="auto",
-           cliponaxis=True,
-           hovertemplate="Cause of Death: %{customdata}<br>Number of Deaths: %{text}<extra></extra>",
-           customdata=by_sub["substance"],
-       )
+       apply_standard_single_series_bar_trace(sud_bar)
 
        apply_standard_bar_layout(sud_bar, xaxis=dict(rangemode="tozero"))
    else:
@@ -548,65 +594,174 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
             return frame[frame[col].isin(val)]
         return frame[frame[col] == val]
 
+    selected_values = (
+        [v for v in substance if v]
+        if isinstance(substance, (list, tuple, set))
+        else ([substance] if substance else [])
+    )
+
     # Start from the full dataset each time.
     dff = df_raw.copy()
 
-    # Only apply filters for columns that actually exist.
-    if "substance" in dff.columns:      dff = apply_filter(dff, "substance", substance)
+    # Apply non-substance filters first.
     if "homeless" in dff.columns:       dff = apply_filter(dff, "homeless", homeless)
     if "sex" in dff.columns:            dff = apply_filter(dff, "sex", sex)
     if "age_cat" in dff.columns:        dff = apply_filter(dff, "age_cat", age)
     if "race_ethnicity" in dff.columns: dff = apply_filter(dff, "race_ethnicity", race)
     if "year" in dff.columns:           dff = apply_filter(dff, "year", year)
 
+    if selected_values and {"incident_id", "substance"}.issubset(dff.columns):
+        dff = _records_matching_all_selected_substances(dff, selected_values)
+
     if dff.empty:
         empty_fig = go.Figure().add_annotation(text="No data matching filters", showarrow=False)
         # return both the bar and sunburst figures
         return empty_fig, empty_fig
     
-    co_data = build_cooccurrence_data(dff)
-
     # --- Bar Chart ---
-    if co_data.empty:
-        bar_fig = go.Figure().add_annotation(text="No co-occurrence data", showarrow=False)
-    else:
-        co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
-        co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
+    if selected_values:
+        selected_set = {str(v) for v in selected_values}
+        total_records = dff["incident_id"].nunique()
+        co_data = (
+            dff.groupby("substance")["incident_id"]
+            .nunique()
+            .reset_index(name="Count")
+        )
+        co_data = co_data[~co_data["substance"].astype(str).isin(selected_set)]
 
-        bar_fig = px.bar(
-            co_data,
-            x='Primary',
-            y='Percentage',
-            color='Also Found',
-            barmode='group',
-            title='Co-occurrence patterns: When [Primary] is present, % with other substances',
-            labels={'Percentage': 'Co-occurrence', 'Primary': 'Primary Substance'},
-            text=co_data['Percentage'].apply(lambda x: f'{x:.1f}%'),
-            custom_data=['Count_formatted', 'Total_formatted', 'Also Found']
-        )
-        bar_fig.update_traces(
-            textposition='outside',
-            hovertemplate='<b>%{customdata[2]}</b><br>' +
-                        'Primary: %{x}<br>' +
-                        'Co-occurrence: %{y:.1f}%<br>' +
-                        'Count: %{customdata[0]}<br>' +
-                        'Total: %{customdata[1]}<extra></extra>',
-        )
-        apply_standard_bar_layout(bar_fig)
+        if co_data.empty:
+            bar_fig = go.Figure().add_annotation(
+                text="No additional co-substances found with selected substance(s)",
+                showarrow=False,
+            )
+        else:
+            co_data = co_data.rename(columns={"substance": "Also Found"})
+            co_data["Total"] = total_records
+            co_data["Percentage"] = (co_data["Count"] / total_records) * 100
+            co_data = co_data.sort_values("Percentage", ascending=False)
+            co_data["label"] = co_data.apply(
+                lambda row: f"{row['Percentage']:.1f}% (n={int(row['Count']):,})",
+                axis=1,
+            )
+            co_data["Count_formatted"] = co_data["Count"].apply(format_count_display)
+            co_data["Total_formatted"] = co_data["Total"].apply(format_count_display)
+
+            if len(selected_values) == 1:
+                title_text = f"When {selected_values[0]} is present, % with other substances"
+            else:
+                title_text = f"When all of: {format_display_list(selected_values)} are present, % with other substances"
+
+            bar_fig = px.bar(
+                co_data,
+                x="Percentage",
+                y="Also Found",
+                orientation="h",
+                labels={"Percentage": "Co-occurrence", "Also Found": "Other Substance"},
+                text="label",
+                custom_data=["Count_formatted", "Total_formatted"],
+                title=title_text,
+            )
+            apply_standard_single_series_bar_trace(
+                bar_fig,
+                cliponaxis=True,
+                hovertemplate="<b>%{y}</b><br>"
+                             "Co-occurrence: %{x:.1f}%<br>"
+                             "Count: %{customdata[0]}<br>"
+                             "Total: %{customdata[1]}<extra></extra>",
+            )
+            max_pct = float(co_data["Percentage"].max()) if not co_data.empty else 0.0
+            bar_fig.update_xaxes(range=[0, max_pct * 1.15 if max_pct else 1])
+            bar_fig.update_yaxes(
+                categoryorder="array",
+                categoryarray=co_data["Also Found"].tolist()[::-1],
+            )
+            apply_standard_bar_layout(bar_fig)
+
+    else:
+        co_data = build_cooccurrence_data(dff)
+        if co_data.empty:
+            bar_fig = go.Figure().add_annotation(text="No co-occurrence data", showarrow=False)
+        else:
+            co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
+            co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
+
+            bar_fig = px.bar(
+                co_data,
+                x='Primary',
+                y='Percentage',
+                color='Also Found',
+                barmode='group',
+                title='Co-occurrence patterns: When [Primary] is present, % with other substances',
+                labels={'Percentage': 'Co-occurrence', 'Primary': 'Primary Substance'},
+                text=co_data['Percentage'].apply(lambda x: f'{x:.1f}%'),
+                custom_data=['Count_formatted', 'Total_formatted', 'Also Found']
+            )
+            bar_fig.update_traces(
+                textposition='inside',
+                hovertemplate='<b>%{customdata[2]}</b><br>' +
+                            'Primary: %{x}<br>' +
+                            'Co-occurrence: %{y:.1f}%<br>' +
+                            'Count: %{customdata[0]}<br>' +
+                            'Total: %{customdata[1]}<extra></extra>',
+            )
+            apply_standard_bar_layout(bar_fig)
         
-    sunburst_data = build_sunburst_cooccurrence_data(dff)
-
     # --- Sunburst Chart ---
-    if sunburst_data.empty:
-        sun_fig = go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
-    else:
-        sunburst_counts = sunburst_data.value_counts().reset_index(name='Count')
+    if selected_values:
+        selected_label = selected_values[0] if len(selected_values) == 1 else format_display_list(selected_values)
+        selected_set = {str(v) for v in selected_values}
 
-        sun_fig = px.sunburst(
-            sunburst_counts,
-            path=["Primary", "Also Found"],
-            values="Count",
+        cohort_records = dff.drop_duplicates(subset=["incident_id", "substance"])
+        outer_counts = (
+            cohort_records.groupby("substance")["incident_id"]
+            .nunique()
+            .sort_values(ascending=False)
         )
-        apply_standard_non_axis_layout(sun_fig)
+        outer_counts = outer_counts[~outer_counts.index.astype(str).isin(selected_set)]
+
+        if outer_counts.empty:
+            sun_fig = go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
+        else:
+            root_value = float(outer_counts.sum())
+            ids = ["root"]
+            labels = [selected_label]
+            parents = [""]
+            values = [root_value]
+            customdata = [[int(dff["incident_id"].nunique()), selected_label]]
+
+            for sub_name, raw_count in outer_counts.items():
+                ids.append(f"sub::{sub_name}")
+                labels.append(sub_name)
+                parents.append("root")
+                values.append(float(raw_count))
+                customdata.append([int(raw_count), selected_label])
+
+            sun_fig = go.Figure(go.Sunburst(
+                ids=ids,
+                labels=labels,
+                parents=parents,
+                values=values,
+                customdata=customdata,
+                branchvalues="total",
+                hovertemplate=(
+                    "<b>%{label}</b><br>"
+                    "Raw Count: %{customdata[0]:,}<br>"
+                    "Cohort: %{customdata[1]}<extra></extra>"
+                ),
+            ))
+            apply_standard_non_axis_layout(sun_fig)
+    else:
+        sunburst_data = build_sunburst_cooccurrence_data(dff)
+        if sunburst_data.empty:
+            sun_fig = go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
+        else:
+            sunburst_counts = sunburst_data.value_counts().reset_index(name='Count')
+
+            sun_fig = px.sunburst(
+                sunburst_counts,
+                path=["Primary", "Also Found"],
+                values="Count",
+            )
+            apply_standard_non_axis_layout(sun_fig)
 
     return bar_fig, sun_fig
