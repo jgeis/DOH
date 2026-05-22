@@ -29,15 +29,12 @@ register_template()
 
 def load_cmo_referrals_dataframe():
     """Load referral destinations for Crisis Mobile Outreach over the past 6 months."""
-    sql = load_sql_query("load_crisis_mobile_outreach")
-
-    # The named query is authored in T-SQL. For local SQLite runs, adjust only the date expression.
-    if not USE_MSSQL:
-        sql = sql.replace(
-            "DATEADD(month, -6, CAST(GETDATE() AS DATE))",
-            "date('now', '-6 months')",
-        )
-
+    query_name = (
+        "load_crisis_mobile_outreach"
+        if USE_MSSQL
+        else "load_crisis_mobile_outreach_sqlite"
+    )
+    sql = load_sql_query(query_name)
     df = execute_query(sql)
     print(f"load_crisis_mobile_outreach returned {len(df):,} rows")
 
@@ -45,9 +42,18 @@ def load_cmo_referrals_dataframe():
         raise RuntimeError("load_crisis_mobile_outreach returned 0 rows.")
 
     df["referral_destination"] = df["referral_destination"].fillna("Unknown")
-    df["ct"] = pd.to_numeric(df["ct"], errors="coerce").fillna(0).astype(int)
-    df["percentage"] = pd.to_numeric(df["percentage"], errors="coerce").fillna(0.0)
-    return df.sort_values("ct", ascending=False).reset_index(drop=True)
+
+    # Aggregate raw rows: distinct patients per referral destination
+    agg = (
+        df.groupby("referral_destination", as_index=False)["patid"]
+        .nunique()
+        .rename(columns={"patid": "ct"})
+    )
+
+    total = agg["ct"].sum()
+    agg["percentage"] = (agg["ct"] / total * 100) if total > 0 else 0.0
+
+    return agg.sort_values("ct", ascending=False).reset_index(drop=True)
 
 
 def load_cmo_last_updated_value():
