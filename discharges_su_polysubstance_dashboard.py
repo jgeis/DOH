@@ -1261,7 +1261,12 @@ def update_bar_chart(selected_substances, is_mobile):
             )
         )
 
-    apply_standard_bar_layout(fig)
+    chart_height = compute_adaptive_horizontal_bar_height(
+        len(co_data),
+        min_height=260,
+        max_height=500,
+    )
+    apply_standard_bar_layout(fig, height=chart_height)
     
     return fig, bar_caption
 
