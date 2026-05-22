@@ -258,7 +258,9 @@ def build_layout():
         [
             html.Div(
                 [
-                    html.H5("Facility Occupancy Rates", id="lcrf-facility-chart-title", className="plot-card-header mb-2"),
+                    html.H5("Licensed Crisis Residential Facility Occupancy Rates", id="lcrf-facility-chart-title", className="plot-card-header mb-2"),
+                    html.H6("Average of Daily Occupancy Rates.  These facilities only host adults", id="lcrf-facility-chart-subtitle", className="plot-card-header mb-2"),
+
                     dcc.Graph(
                         id="lcrf-facility-line-chart",
                         style={"width": "100%"},
@@ -381,7 +383,7 @@ def _build_period_frame(dff, view):
         grouped["period"] = grouped["year"].astype(int).astype(str) + ", " + grouped["month"]
         grouped = grouped.sort_values(["year", "month_num", "facility"])
     else:
-        grouped["period"] = pd.to_datetime(grouped["date"]).dt.strftime("%Y-%m-%d")
+        grouped["period"] = pd.to_datetime(grouped["date"])
         grouped = grouped.sort_values(["date", "facility"])
 
     return grouped, period_title
@@ -484,6 +486,10 @@ def _build_aggregate_table(dff, view):
 
 
 def _line_chart(grouped, period_title, color_col=None, chart_title="Occupancy Rate"):
+    occupancy_values = pd.to_numeric(grouped["occupancy_rate"], errors="coerce").dropna()
+    y_min = float(occupancy_values.min()) if not occupancy_values.empty else 0.0
+    y_min = max(0.0, y_min - 0.02)
+
     if color_col:
         fig = px.line(
             grouped,
@@ -505,9 +511,28 @@ def _line_chart(grouped, period_title, color_col=None, chart_title="Occupancy Ra
         )
         fig.update_traces(hovertemplate="%{x}<br>Occupancy Rate: %{y:.1%}<extra></extra>")
 
+    xaxis_overrides = {}
+    if period_title == "Date of Service":
+        xaxis_overrides = {
+            "type": "date",
+            "tickmode": "linear",
+            "dtick": 5 * 24 * 60 * 60 * 1000,
+            "tickformat": "%Y-%m-%d",
+            "tickangle": -45,
+            "tickfont": {"size": 10},
+        }
+
     apply_standard_line_layout(
         fig,
+        xaxis=xaxis_overrides,
+        yaxis=dict(title="Occupancy Rate", tickformat=".0%", range=[y_min, 1.05]),
     )
+
+    if period_title == "Date of Service":
+        fig.update_layout(
+            margin=dict(b=100),
+            legend=dict(y=-0.22),
+        )
 
     return fig
 
@@ -543,7 +568,5 @@ def update_lcrf_figures(view, sel_years, sel_months, sel_counties, start_date, e
     agg_table, _agg_period_title = _build_aggregate_table(dff, view)
 
     facility_fig = _line_chart(facility_grouped, period_title, color_col="facility")
-
-    apply_standard_line_layout(facility_fig)
 
     return facility_fig, html.Div(_render_table(agg_table), className="table-responsive")
