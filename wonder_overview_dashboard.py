@@ -13,6 +13,7 @@ from dashboard_utils import (
     statewide_first,
     format_count_display,
     apply_standard_bar_layout,
+    apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
 )
 import json
@@ -388,10 +389,7 @@ def update_dashboard(county, year):
             labels={"deaths": "Number of Deaths", "county": "County of Death"},
         )
 
-        county_bar.update_traces(
-            marker_color="#22767C",
-            textposition="outside",
-        )
+        apply_standard_single_series_bar_trace(county_bar)
 
         apply_standard_bar_layout(county_bar, yaxis=dict(autorange="reversed"))
 

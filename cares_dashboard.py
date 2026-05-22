@@ -16,6 +16,7 @@ from dashboard_utils import (
     format_count_display,
     opts_list,
     apply_standard_bar_layout,
+    apply_standard_single_series_bar_trace,
 )
 
 register_template()
@@ -258,13 +259,7 @@ def update_cares(view, sel_years, sel_months, sel_crisis):
         yaxis=dict(title=y_title, categoryorder="array", categoryarray=y_order),
         height=chart_height,
     )
-    fig.update_traces(
-        marker_color="#22767C",
-        texttemplate="%{text:,}",
-        textposition="outside",
-        cliponaxis=False,
-        hovertemplate="%{y}: %{x:,}<extra></extra>",
-    )
+    apply_standard_single_series_bar_trace(fig)
 
     # --- Crisis line table ---
     crisis_totals = (

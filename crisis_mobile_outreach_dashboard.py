@@ -17,6 +17,7 @@ from dashboard_utils import (
     format_count_display,
     opts_list,
     apply_standard_bar_layout,
+    apply_standard_single_series_bar_trace,
 )
 from theme import register_template
 
@@ -196,11 +197,8 @@ def update_cmo_dashboard(selected_destinations):
         yaxis=dict(title="Referral Destination", categoryorder="array", categoryarray=y_order),
         height=max(360, len(dff) * 30),
     )
-    fig.update_traces(
-        marker_color="#22767C",
-        texttemplate="%{text:,}",
-        textposition="outside",
-        cliponaxis=False,
+    apply_standard_single_series_bar_trace(
+        fig,
         customdata=dff[["percentage"]],
         hovertemplate="%{y}: %{x:,} clients (%{customdata[0]:.2f}%)<extra></extra>",
     )

@@ -17,6 +17,7 @@ from dashboard_utils import (
     opts_list,
     sort_opts,
     apply_standard_bar_layout,
+    apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
 )
 
@@ -359,13 +360,7 @@ def update_adad_cooccurring(view, sel_years, sel_months, sel_modalities, sel_cou
         ),
         height=chart_height,
     )
-    bar_fig.update_traces(
-        marker_color="#22767C",
-        texttemplate="%{text}",
-        textposition="auto",
-        cliponaxis=True,
-        hovertemplate="%{y}: %{x:,}<extra></extra>",
-    )
+    apply_standard_single_series_bar_trace(bar_fig)
 
     top_modalities = (
         dff.dropna(subset=["modality"])

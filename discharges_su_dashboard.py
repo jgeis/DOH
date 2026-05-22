@@ -23,6 +23,7 @@ from dashboard_utils import (
     dropdown_filter,
     format_count_display,
     apply_standard_bar_layout,
+    apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
 )
 
@@ -316,12 +317,10 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             labels={"count": "Number of Discharges", "substance_label": "Substance Type"},
         )
 
-        sub_bar.update_traces(
-            marker_color="#22767C",
-            textposition="outside",
-            cliponaxis=False,
-            hovertemplate="Substance Type: %{customdata}<br>Number of discharges: %{text}<extra></extra>",
-            customdata=by_sub["substance"]
+        apply_standard_single_series_bar_trace(
+            sub_bar,
+            customdata=by_sub["substance"],
+            hovertemplate="%{customdata}:<br>%{text}<extra></extra>",
         )
 
         apply_standard_bar_layout(sub_bar)

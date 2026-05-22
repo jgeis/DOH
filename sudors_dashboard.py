@@ -18,6 +18,7 @@ from dashboard_utils import (
     dropdown_filter,
     format_count_display,
     apply_standard_bar_layout,
+    apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
 )
 
@@ -284,13 +285,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             labels={"plot_count": "Number of Deaths", "substance_label": "Cause of Death<br>(Not Mutually Exclusive)"},
         )
 
-        sud_bar.update_traces(
-            marker_color="#22767C",
-            textposition="outside",
-            cliponaxis=False,
-            hovertemplate="Cause of Death: %{customdata}<br>Number of Deaths: %{text}<extra></extra>",
-            customdata=by_sub["substance"],
-        )
+        apply_standard_single_series_bar_trace(sud_bar)
 
         apply_standard_bar_layout(sud_bar, xaxis=dict(rangemode="tozero"))
     else:

@@ -21,6 +21,7 @@ from dashboard_utils import (
     dropdown_filter,
     format_count_display,
     apply_standard_bar_layout,
+    apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
 )
 
@@ -308,11 +309,10 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
             labels={"count": "Number of Discharges", "diagnosis_label": "Mental Health Diagnosis"},
         )
 
-        mh_bar.update_traces(
-            marker_color="#22767C",
-            textposition="outside",
+        apply_standard_single_series_bar_trace(
+            mh_bar,
             customdata=by_mh["diagnosis"],
-            hovertemplate="Mental Health Diagnosis: %{customdata}<br>Number of discharges: %{text}<extra></extra>",
+            hovertemplate="%{customdata}:<br>%{text}<extra></extra>",
         )
 
         apply_standard_bar_layout(mh_bar)

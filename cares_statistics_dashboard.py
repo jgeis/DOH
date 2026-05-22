@@ -11,6 +11,7 @@ from dashboard_utils import (
     load_sql_query,
     make_last_updated_block,
     apply_standard_bar_layout,
+    apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
 )
 from theme import register_template
@@ -157,13 +158,9 @@ def _load_cmo_bar_chart():
         xaxis=dict(title="Month"),
         height=420,
     )
-    fig.update_traces(
-        marker_color="#22767C",
-        texttemplate="%{text:,}",
-        textposition="outside",
-        cliponaxis=False,
-        hovertemplate="%{x}: %{y:,}<extra></extra>",
-    )
+    apply_standard_single_series_bar_trace(
+        fig, 
+        hovertemplate="%{x}: %{y:,}<extra></extra>")
     return fig
 
 

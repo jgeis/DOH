@@ -19,6 +19,7 @@ from dashboard_utils import (
     format_count_display,
     opts_list,
     apply_standard_bar_layout,
+    apply_standard_single_series_bar_trace,
 )
 
 register_template()
@@ -390,13 +391,7 @@ def _build_amhd_figures(view, query_context):
         ),
         height=bar_height,
     )
-    bar_fig.update_traces(
-        marker_color="#22767C",
-        texttemplate="%{text}",
-        textposition="auto",
-        cliponaxis=False,
-        hovertemplate="%{y}: %{x:,}<extra></extra>",
-    )
+    apply_standard_single_series_bar_trace(bar_fig)
 
     return bar_fig
 

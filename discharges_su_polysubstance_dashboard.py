@@ -30,6 +30,7 @@ from dashboard_utils import (
     append_statewide_aggregate_rows,
     format_count_display,
     format_display_list,
+    apply_standard_single_series_bar_trace,
     apply_standard_bar_layout,
     apply_standard_line_layout,
     apply_standard_non_axis_layout,
@@ -750,11 +751,7 @@ def update(substance, age, sex, county, year):
                 },
                 text="display_count",
             )
-            fig_sub.update_traces(
-                marker_color="#22767C",
-                textposition="auto",
-                cliponaxis=True
-            )
+            apply_standard_single_series_bar_trace(fig_sub)
             apply_standard_bar_layout(
                 fig_sub,
                 xaxis=dict(rangemode="tozero"),
@@ -1165,16 +1162,13 @@ def update_bar_chart(selected_substances, is_mobile):
                 custom_data=['Count_formatted', 'Total_formatted']
             )
             
-            fig.update_traces(
-                marker_color="#22767C",
-                textposition='outside',
+            apply_standard_single_series_bar_trace(
+                fig,
                 textangle=0,
                 hovertemplate='<b>%{x}</b><br>' +
                              'Co-occurrence: %{y:.1f}%<br>' +
                              'Count: %{customdata[0]}<br>' +
                              'Total: %{customdata[1]}<extra></extra>',
-                textfont=dict(size=text_size),
-                cliponaxis=False
             )
             max_pct = float(co_data['Percentage'].max()) if not co_data.empty else 0.0
             fig.update_yaxes(range=[0, max_pct * 1.15 if max_pct else 1])
@@ -1201,15 +1195,12 @@ def update_bar_chart(selected_substances, is_mobile):
                 custom_data=['Count_formatted', 'Total_formatted', 'Also Found']
             )
             
-            fig.update_traces(
-                marker_color="#22767C",
-                textposition='outside',
+            apply_standard_single_series_bar_trace(
+                fig,
                 hovertemplate='<b>%{y}</b><br>' +
                              'Co-occurrence: %{x:.1f}%<br>' +
                              'Count: %{customdata[0]}<br>' +
                              'Total: %{customdata[1]}<extra></extra>',
-                textfont=dict(size=text_size),
-                cliponaxis=False
             )
             max_pct = float(co_data['Percentage'].max()) if not co_data.empty else 0.0
             fig.update_xaxes(range=[0, max_pct * 1.15 if max_pct else 1])

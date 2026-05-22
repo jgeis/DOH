@@ -413,8 +413,29 @@ def apply_standard_bar_layout(
     # Default bar label placement to inside for consistency across dashboards.
     fig.update_traces(
         textposition="inside",
-        cliponaxis=True,
+        cliponaxis=False,
         selector={"type": "bar"},
+    )
+    return fig
+
+def apply_standard_single_series_bar_trace(
+    fig,
+    hovertemplate: str = "%{y}: %{x:,}<extra></extra>",
+    marker_color: str = "#22767C",
+    texttemplate: str = "%{text}",
+    textposition: str = "inside",
+    cliponaxis: bool = False,
+    **trace_kwargs,
+):
+    """Apply standard trace styling for single-series bar charts."""
+    fig.update_traces(
+        marker_color=marker_color,
+        texttemplate=texttemplate,
+        textposition=textposition,
+        cliponaxis=cliponaxis,
+        hovertemplate=hovertemplate,
+        selector={"type": "bar"},
+        **trace_kwargs,
     )
     return fig
 

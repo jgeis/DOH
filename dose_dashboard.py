@@ -26,6 +26,7 @@ from dashboard_utils import (
     apply_standard_bar_layout,
     apply_standard_line_layout,
     apply_standard_map_layout,
+    apply_standard_single_series_bar_trace,
 )
 
 register_template()
@@ -280,13 +281,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             labels={"count": "Number of Discharges (Not mutually exclusive)", "substance_label": "Substance Type"},
         )
         
-        dose_bar.update_traces(
-            marker_color="#22767C",
-            textposition="outside",
-            cliponaxis=False,
-            customdata=by_dose["substance"],
-            hovertemplate="Substance: %{customdata}<br>Count: %{text}<extra></extra>"
-        )
+        apply_standard_single_series_bar_trace(dose_bar)
 
         apply_standard_bar_layout(dose_bar)
     else:

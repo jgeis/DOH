@@ -13,6 +13,7 @@ from dashboard_utils import (
     STATEWIDE_COUNTY,
     format_count_display,
     apply_standard_bar_layout,
+    apply_standard_single_series_bar_trace,
     apply_standard_non_axis_layout,
 )
 import re
@@ -390,12 +391,7 @@ def update_dashboard(county, year):
             labels={"deaths": "Number of Deaths", "substance": "Substance"},
         )
 
-        sub_bar.update_traces(
-            marker_color="#22767C",
-            textposition="outside",
-            cliponaxis=False,
-            hovertemplate="%{y}: %{text}<extra></extra>",
-        )
+        apply_standard_single_series_bar_trace(sub_bar)
 
         apply_standard_bar_layout(
             sub_bar,
@@ -425,11 +421,7 @@ def update_dashboard(county, year):
             labels={"deaths": "Number of Deaths", "race": "Race"},
         )
 
-        race_bar.update_traces(
-            marker_color="#22767C",
-            textposition="outside",
-            hovertemplate="%{y}: %{text}<extra></extra>",
-        )
+        apply_standard_single_series_bar_trace(race_bar, textangle=0)
 
         apply_standard_bar_layout(race_bar, yaxis=dict(autorange="reversed"))
 
@@ -472,13 +464,9 @@ def update_dashboard(county, year):
             labels={"deaths": "Number of Deaths", "age_group": "Age Group"},
         )
 
-        age_group_bar.update_traces(
-            marker_color="#22767C",
-            textposition="outside",
-            hovertemplate="%{y}: %{text}<extra></extra>",
-        )
+        apply_standard_single_series_bar_trace(age_group_bar, textangle=0)
 
-        apply_standard_bar_layout(age_group_bar, yaxis=dict(autorange="reversed"))
+        apply_standard_bar_layout(age_group_bar)
 
     else:
         age_group_bar = px.bar()
