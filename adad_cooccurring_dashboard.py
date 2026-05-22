@@ -146,14 +146,40 @@ filters_card = make_filters_card(
         ),
         (
             "Custom Date Range",
-            dcc.DatePickerRange(
-                id="adad-cooccurring-date-range",
-                min_date_allowed=min_date,
-                max_date_allowed=max_date,
-                start_date=min_date,
-                end_date=max_date,
-                display_format="YYYY-MM-DD",
-                className="mb-0",
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Label("Start Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="adad-cooccurring-start-date",
+                                type="date",
+                                value=min_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                    dbc.Col(
+                        [
+                            html.Label("End Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="adad-cooccurring-end-date",
+                                type="date",
+                                value=max_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                ],
+                className="g-2",
             ),
         ),
     ],
@@ -246,8 +272,8 @@ layout = layout()
     Output("adad-cooccurring-month-filter", "value"),
     Output("adad-cooccurring-modality-filter", "value"),
     Output("adad-cooccurring-county-filter", "value"),
-    Output("adad-cooccurring-date-range", "start_date"),
-    Output("adad-cooccurring-date-range", "end_date"),
+    Output("adad-cooccurring-start-date", "value"),
+    Output("adad-cooccurring-end-date", "value"),
     Input("adad-cooccurring-reset-btn", "n_clicks"),
     prevent_initial_call=True,
 )
@@ -268,8 +294,8 @@ def reset_adad_cooccurring_filters(_n_clicks):
     Input("adad-cooccurring-month-filter", "value"),
     Input("adad-cooccurring-modality-filter", "value"),
     Input("adad-cooccurring-county-filter", "value"),
-    Input("adad-cooccurring-date-range", "start_date"),
-    Input("adad-cooccurring-date-range", "end_date"),
+    Input("adad-cooccurring-start-date", "value"),
+    Input("adad-cooccurring-end-date", "value"),
 )
 def update_adad_cooccurring(view, sel_years, sel_months, sel_modalities, sel_counties, start_date, end_date):
     dff = df_raw.copy()

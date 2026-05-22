@@ -193,16 +193,40 @@ filters_card = make_filters_card(
         ),
         (
             "Custom Date Range",
-            dcc.DatePickerRange(
-                id="lcrf-date-range",
-                min_date_allowed=min_date,
-                max_date_allowed=max_date,
-                start_date=min_date,
-                end_date=max_date,
-                display_format="YYYY-MM-DD",
-                persistence=True,
-                persistence_type="session",
-                className="mb-0",
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Label("Start Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="lcrf-start-date",
+                                type="date",
+                                value=min_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                    dbc.Col(
+                        [
+                            html.Label("End Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="lcrf-end-date",
+                                type="date",
+                                value=max_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                ],
+                className="g-2",
             ),
         ),
     ],
@@ -270,8 +294,8 @@ layout = build_layout()
     Output("lcrf-year-filter", "value"),
     Output("lcrf-month-filter", "value"),
     Output("lcrf-county-filter", "value"),
-    Output("lcrf-date-range", "start_date"),
-    Output("lcrf-date-range", "end_date"),
+    Output("lcrf-start-date", "value"),
+    Output("lcrf-end-date", "value"),
     Input("lcrf-reset-btn", "n_clicks"),
     prevent_initial_call=True,
 )
@@ -284,8 +308,8 @@ def reset_lcrf_filters(_n_clicks):
     Input("lcrf-year-filter", "value"),
     Input("lcrf-month-filter", "value"),
     Input("lcrf-county-filter", "value"),
-    Input("lcrf-date-range", "start_date"),
-    Input("lcrf-date-range", "end_date"),
+    Input("lcrf-start-date", "value"),
+    Input("lcrf-end-date", "value"),
 )
 def update_lcrf_kpi(sel_years, sel_months, sel_counties, start_date, end_date):
     dff = df_raw.copy()
@@ -509,8 +533,8 @@ def _render_table(df):
     Input("lcrf-year-filter", "value"),
     Input("lcrf-month-filter", "value"),
     Input("lcrf-county-filter", "value"),
-    Input("lcrf-date-range", "start_date"),
-    Input("lcrf-date-range", "end_date"),
+    Input("lcrf-start-date", "value"),
+    Input("lcrf-end-date", "value"),
 )
 def update_lcrf_figures(view, sel_years, sel_months, sel_counties, start_date, end_date):
     dff = _filter_lcrf_frame(sel_years, sel_months, sel_counties, start_date, end_date)

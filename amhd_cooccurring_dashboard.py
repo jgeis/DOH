@@ -239,14 +239,40 @@ filters_card = make_filters_card(
         ),
         (
             "Custom Date Range",
-            dcc.DatePickerRange(
-                id="amhd-cooccurring-date-range",
-                min_date_allowed=min_date,
-                max_date_allowed=max_date,
-                start_date=min_date,
-                end_date=max_date,
-                display_format="YYYY-MM-DD",
-                className="mb-0",
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Label("Start Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="amhd-cooccurring-start-date",
+                                type="date",
+                                value=min_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                    dbc.Col(
+                        [
+                            html.Label("End Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="amhd-cooccurring-end-date",
+                                type="date",
+                                value=max_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                ],
+                className="g-2",
             ),
         ),
     ],
@@ -308,8 +334,8 @@ layout = layout()
 @callback(
     Output("amhd-cooccurring-year-filter", "value"),
     Output("amhd-cooccurring-service-category-filter", "value"),
-    Output("amhd-cooccurring-date-range", "start_date"),
-    Output("amhd-cooccurring-date-range", "end_date"),
+    Output("amhd-cooccurring-start-date", "value"),
+    Output("amhd-cooccurring-end-date", "value"),
     Input("amhd-cooccurring-reset-btn", "n_clicks"),
     prevent_initial_call=True,
 )
@@ -321,8 +347,8 @@ def reset_amhd_filters(_n_clicks):
     Output("amhd-cooccurring-kpi-total", "children"),
     Input("amhd-cooccurring-year-filter", "value"),
     Input("amhd-cooccurring-service-category-filter", "value"),
-    Input("amhd-cooccurring-date-range", "start_date"),
-    Input("amhd-cooccurring-date-range", "end_date"),
+    Input("amhd-cooccurring-start-date", "value"),
+    Input("amhd-cooccurring-end-date", "value"),
 )
 def update_amhd_kpi(sel_years, sel_service_categories, start_date, end_date):
     total_consumers = get_true_consumer_count(
@@ -410,8 +436,8 @@ def _build_amhd_tables(query_context):
     Input("amhd-cooccurring-view-toggle", "value"),
     Input("amhd-cooccurring-year-filter", "value"),
     Input("amhd-cooccurring-service-category-filter", "value"),
-    Input("amhd-cooccurring-date-range", "start_date"),
-    Input("amhd-cooccurring-date-range", "end_date"),
+    Input("amhd-cooccurring-start-date", "value"),
+    Input("amhd-cooccurring-end-date", "value"),
 )
 def update_amhd_figures(view, sel_years, sel_service_categories, start_date, end_date):
     query_context = _build_amhd_query_context(
@@ -427,8 +453,8 @@ def update_amhd_figures(view, sel_years, sel_service_categories, start_date, end
     Output("amhd-cooccurring-service-category-table", "children"),
     Input("amhd-cooccurring-year-filter", "value"),
     Input("amhd-cooccurring-service-category-filter", "value"),
-    Input("amhd-cooccurring-date-range", "start_date"),
-    Input("amhd-cooccurring-date-range", "end_date"),
+    Input("amhd-cooccurring-start-date", "value"),
+    Input("amhd-cooccurring-end-date", "value"),
 )
 def update_amhd_tables(sel_years, sel_service_categories, start_date, end_date):
     query_context = _build_amhd_query_context(

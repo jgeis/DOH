@@ -193,17 +193,41 @@ filters_card = make_filters_card(
         ),
         (
             "Custom Date Range",
-            dcc.DatePickerRange(
-                id="sicm-date-range",
-                min_date_allowed=min_date,
-                max_date_allowed=max_date,
-                start_date=min_date,
-                end_date=max_date,
-                display_format="YYYY-MM-DD",
-                persistence=True,
-                persistence_type="session",
-                className="mb-0",
-            ),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Label("Start Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="sicm-start-date",
+                                type="date",
+                                value=min_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                    dbc.Col(
+                        [
+                            html.Label("End Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="sicm-end-date",
+                                type="date",
+                                value=max_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                ],
+                className="g-2", # Adds a small gap between the two columns
+            )
         ),
     ],
 )
@@ -270,22 +294,21 @@ layout = build_layout()
     Output("sicm-year-filter", "value"),
     Output("sicm-month-filter", "value"),
     Output("sicm-county-filter", "value"),
-    Output("sicm-date-range", "start_date"),
-    Output("sicm-date-range", "end_date"),
+    Output("sicm-start-date", "value"), # Updated
+    Output("sicm-end-date", "value"),   # Updated
     Input("sicm-reset-btn", "n_clicks"),
     prevent_initial_call=True,
 )
 def reset_sicm_filters(_n_clicks):
     return None, None, None, str(min_date), str(max_date)
 
-
 @callback(
     Output("sicm-kpi-total", "children"),
     Input("sicm-year-filter", "value"),
     Input("sicm-month-filter", "value"),
     Input("sicm-county-filter", "value"),
-    Input("sicm-date-range", "start_date"),
-    Input("sicm-date-range", "end_date"),
+    Input("sicm-start-date", "value"), # Updated
+    Input("sicm-end-date", "value"),   # Updated
 )
 def update_sicm_kpi(sel_years, sel_months, sel_counties, start_date, end_date):
     dff = df_raw.copy()
@@ -306,19 +329,42 @@ def update_sicm_kpi(sel_years, sel_months, sel_counties, start_date, end_date):
     return _format_rate(rate)
 
 
+# def _filter_sicm_frame(sel_years, sel_months, sel_counties, start_date, end_date):
+#     dff = df_raw.copy()
+
+#     if sel_years:
+#         dff = dff[dff["year"].isin(sel_years)]
+#     if sel_months:
+#         dff = dff[dff["month"].isin(sel_months)]
+#     if sel_counties:
+#         dff = dff[dff["county"].isin(sel_counties)]
+#     if start_date:
+#         dff = dff[dff["date"] >= pd.to_datetime(start_date)]
+#     if end_date:
+#         dff = dff[dff["date"] <= pd.to_datetime(end_date)]
+
+#     return dff
+
+
 def _filter_sicm_frame(sel_years, sel_months, sel_counties, start_date, end_date):
+    # Grab a fresh copy of your raw data
     dff = df_raw.copy()
 
-    if sel_years:
-        dff = dff[dff["year"].isin(sel_years)]
-    if sel_months:
-        dff = dff[dff["month"].isin(sel_months)]
-    if sel_counties:
-        dff = dff[dff["county"].isin(sel_counties)]
+    # 1. THE BOUNDING BOX: Apply the absolute Date Range boundaries first
     if start_date:
         dff = dff[dff["date"] >= pd.to_datetime(start_date)]
     if end_date:
         dff = dff[dff["date"] <= pd.to_datetime(end_date)]
+
+    # 2. THE EXTRACTORS: Pluck specific Years or Months out of that box
+    if sel_years:
+        dff = dff[dff["year"].isin(sel_years)]
+    if sel_months:
+        dff = dff[dff["month"].isin(sel_months)]
+
+    # 3. CATEGORICALS: Apply standard filters
+    if sel_counties:
+        dff = dff[dff["county"].isin(sel_counties)]
 
     return dff
 
@@ -510,8 +556,8 @@ def _render_table(df):
     Input("sicm-year-filter", "value"),
     Input("sicm-month-filter", "value"),
     Input("sicm-county-filter", "value"),
-    Input("sicm-date-range", "start_date"),
-    Input("sicm-date-range", "end_date"),
+    Input("sicm-start-date", "value"), # Updated
+    Input("sicm-end-date", "value"),   # Updated
 )
 def update_sicm_figures(view, sel_years, sel_months, sel_counties, start_date, end_date):
     dff = _filter_sicm_frame(sel_years, sel_months, sel_counties, start_date, end_date)
@@ -524,3 +570,4 @@ def update_sicm_figures(view, sel_years, sel_months, sel_counties, start_date, e
     apply_standard_line_layout(facility_fig)
 
     return facility_fig, html.Div(_render_table(agg_table), className="table-responsive")
+

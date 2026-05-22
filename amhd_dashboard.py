@@ -235,14 +235,40 @@ filters_card = make_filters_card(
         ),
         (
             "Custom Date Range",
-            dcc.DatePickerRange(
-                id="amhd-date-range",
-                min_date_allowed=min_date,
-                max_date_allowed=max_date,
-                start_date=min_date,
-                end_date=max_date,
-                display_format="YYYY-MM-DD",
-                className="mb-0",
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Label("Start Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="amhd-start-date",
+                                type="date",
+                                value=min_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                    dbc.Col(
+                        [
+                            html.Label("End Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="amhd-end-date",
+                                type="date",
+                                value=max_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                ],
+                className="g-2",
             ),
         ),
     ],
@@ -304,8 +330,8 @@ layout = layout()
 @callback(
     Output("amhd-year-filter", "value"),
     Output("amhd-service-category-filter", "value"),
-    Output("amhd-date-range", "start_date"),
-    Output("amhd-date-range", "end_date"),
+    Output("amhd-start-date", "value"),
+    Output("amhd-end-date", "value"),
     Input("amhd-reset-btn", "n_clicks"),
     prevent_initial_call=True,
 )
@@ -317,8 +343,8 @@ def reset_amhd_filters(_n_clicks):
     Output("amhd-kpi-total", "children"),
     Input("amhd-year-filter", "value"),
     Input("amhd-service-category-filter", "value"),
-    Input("amhd-date-range", "start_date"),
-    Input("amhd-date-range", "end_date"),
+    Input("amhd-start-date", "value"),
+    Input("amhd-end-date", "value"),
 )
 def update_amhd_kpi(sel_years, sel_service_categories, start_date, end_date):
     total_consumers = get_true_consumer_count(
@@ -407,8 +433,8 @@ def _build_amhd_tables(query_context):
     Input("amhd-view-toggle", "value"),
     Input("amhd-year-filter", "value"),
     Input("amhd-service-category-filter", "value"),
-    Input("amhd-date-range", "start_date"),
-    Input("amhd-date-range", "end_date"),
+    Input("amhd-start-date", "value"),
+    Input("amhd-end-date", "value"),
 )
 def update_amhd_figures(view, sel_years, sel_service_categories, start_date, end_date):
     query_context = _build_amhd_query_context(
@@ -424,8 +450,8 @@ def update_amhd_figures(view, sel_years, sel_service_categories, start_date, end
     Output("amhd-service-category-table", "children"),
     Input("amhd-year-filter", "value"),
     Input("amhd-service-category-filter", "value"),
-    Input("amhd-date-range", "start_date"),
-    Input("amhd-date-range", "end_date"),
+    Input("amhd-start-date", "value"),
+    Input("amhd-end-date", "value"),
 )
 def update_amhd_tables(sel_years, sel_service_categories, start_date, end_date):
     query_context = _build_amhd_query_context(

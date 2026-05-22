@@ -150,14 +150,40 @@ filters_card = make_filters_card(
         ),
         (
             "Custom Date Range",
-            dcc.DatePickerRange(
-                id="adad-date-range",
-                min_date_allowed=min_date,
-                max_date_allowed=max_date,
-                start_date=min_date,
-                end_date=max_date,
-                display_format="YYYY-MM-DD",
-                className="mb-0",
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Label("Start Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="adad-start-date",
+                                type="date",
+                                value=min_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                    dbc.Col(
+                        [
+                            html.Label("End Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="adad-end-date",
+                                type="date",
+                                value=max_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                ],
+                className="g-2",
             ),
         ),
     ],
@@ -260,8 +286,8 @@ layout = layout()
     Output("adad-month-filter", "value"),
     Output("adad-modality-filter", "value"),
     Output("adad-county-filter", "value"),
-    Output("adad-date-range", "start_date"),
-    Output("adad-date-range", "end_date"),
+    Output("adad-start-date", "value"),
+    Output("adad-end-date", "value"),
     Input("adad-reset-btn", "n_clicks"),
     prevent_initial_call=True,
 )
@@ -282,8 +308,8 @@ def reset_adad_filters(_n_clicks):
     Input("adad-month-filter", "value"),
     Input("adad-modality-filter", "value"),
     Input("adad-county-filter", "value"),
-    Input("adad-date-range", "start_date"),
-    Input("adad-date-range", "end_date"),
+    Input("adad-start-date", "value"),
+    Input("adad-end-date", "value"),
 )
 def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start_date, end_date):
     dff = df_raw.copy()

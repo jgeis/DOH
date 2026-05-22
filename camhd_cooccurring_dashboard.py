@@ -99,14 +99,40 @@ filters_card = make_filters_card(
         ),
         (
             "Custom Date Range",
-            dcc.DatePickerRange(
-                id="camhd-cooccurring-date-range",
-                min_date_allowed=min_date,
-                max_date_allowed=max_date,
-                start_date=min_date,
-                end_date=max_date,
-                display_format="YYYY-MM-DD",
-                className="mb-0",
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Label("Start Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="camhd-cooccurring-start-date",
+                                type="date",
+                                value=min_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                    dbc.Col(
+                        [
+                            html.Label("End Date", className="form-label mb-1 text-muted small"),
+                            dbc.Input(
+                                id="camhd-cooccurring-end-date",
+                                type="date",
+                                value=max_date,
+                                min=min_date,
+                                max=max_date,
+                                persistence=True,
+                                persistence_type="session",
+                            ),
+                        ],
+                        width=6,
+                    ),
+                ],
+                className="g-2",
             ),
         ),
     ],
@@ -159,8 +185,8 @@ layout = layout()
     Output("camhd-cooccurring-kpi-total", "children"),
     Input("camhd-cooccurring-view-toggle", "value"),
     Input("camhd-cooccurring-year-filter", "value"),
-    Input("camhd-cooccurring-date-range", "start_date"),
-    Input("camhd-cooccurring-date-range", "end_date"),
+    Input("camhd-cooccurring-start-date", "value"),
+    Input("camhd-cooccurring-end-date", "value"),
 )
 def update_camhd_cooccurring(view, sel_years, start_date, end_date):
     dff = df_raw.copy()
