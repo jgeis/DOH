@@ -177,6 +177,7 @@ def update_cmo_dashboard(selected_destinations):
 
     total_clients = int(dff["ct"].sum())
     dff = dff.sort_values("ct", ascending=False).copy()
+    dff["ct_display"] = dff["ct"].apply(format_count_display)
 
     # For horizontal bar charts, categoryarray[0] is rendered at the bottom.
     # Reverse here so the highest-count destination appears at the top.
@@ -187,7 +188,7 @@ def update_cmo_dashboard(selected_destinations):
         x="ct",
         y="referral_destination",
         orientation="h",
-        text="ct",
+        text="ct_display",
         labels={
             "ct": "Number of Clients",
             "referral_destination": "Referral Destination",
@@ -203,8 +204,8 @@ def update_cmo_dashboard(selected_destinations):
     )
     apply_standard_single_series_bar_trace(
         fig,
-        customdata=dff[["percentage"]],
-        hovertemplate="%{y}: %{x:,} clients (%{customdata[0]:.2f}%)<extra></extra>",
+        customdata=dff[["percentage", "ct_display"]],
+        hovertemplate="%{y}: %{customdata[1]} clients (%{customdata[0]:.2f}%)<extra></extra>",
     )
 
     table_df = dff[["referral_destination", "ct", "percentage"]].rename(
