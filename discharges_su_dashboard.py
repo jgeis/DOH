@@ -477,6 +477,12 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             sex_bar,
             yaxis=dict(range=[0, max_y * 1.15 if max_y else 1]),
         )
+        # Keep segment labels inside stacked bars so top total annotations stay readable.
+        sex_bar.update_traces(
+            textposition="inside",
+            insidetextanchor="middle",
+            selector={"type": "bar"},
+        )
     else:
         sex_bar = px.bar()
 
