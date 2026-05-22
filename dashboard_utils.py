@@ -207,6 +207,81 @@ def format_count_display(value, threshold: int = COUNT_SUPPRESSION_THRESHOLD, su
     return f"{numeric:,}"
 
 
+def build_suppressed_bar_count_columns(
+    values,
+    threshold: int = COUNT_SUPPRESSION_THRESHOLD,
+    suppressed_label: str = SUPPRESSED_COUNT_LABEL,
+    suppress_zero: bool = False,
+):
+    """
+    Return plot/display values for bar charts that use count suppression.
+
+    `plot_values` are zeroed when suppressed so short bars do not leak counts.
+    `display_values` show the suppression label for suppressed counts.
+    """
+    numeric = pd.to_numeric(pd.Series(values), errors="coerce").fillna(0)
+
+    if suppress_zero:
+        suppressed_mask = (numeric >= 0) & (numeric < threshold)
+    else:
+        suppressed_mask = (numeric > 0) & (numeric < threshold)
+
+    plot_values = numeric.where(~suppressed_mask, 0)
+    display_values = [
+        suppressed_label if is_suppressed else format_count_display(v, threshold, suppressed_label)
+        for v, is_suppressed in zip(numeric, suppressed_mask)
+    ]
+    return plot_values, pd.Series(display_values), suppressed_mask
+
+
+def apply_suppressed_horizontal_bar_display(
+    fig,
+    suppress_zero: bool = False,
+    threshold: int = COUNT_SUPPRESSION_THRESHOLD,
+    suppressed_label: str = SUPPRESSED_COUNT_LABEL,
+    require_integer_like: bool = True,
+    override_hovertemplate: bool = True,
+):
+    """
+    Apply suppression-safe display for horizontal bar traces in a figure.
+
+    This zeroes suppressed bar lengths (to avoid revealing small counts),
+    displays suppression labels as bar text, and uses text-only hover.
+    """
+    for trace in fig.select_traces(selector={"type": "bar"}):
+        if getattr(trace, "orientation", None) != "h":
+            continue
+
+        x_values = getattr(trace, "x", None)
+        if x_values is None:
+            continue
+
+        plot_values, display_values, suppressed_mask = build_suppressed_bar_count_columns(
+            x_values,
+            threshold=threshold,
+            suppressed_label=suppressed_label,
+            suppress_zero=suppress_zero,
+        )
+
+        if require_integer_like:
+            non_na = pd.to_numeric(pd.Series(x_values), errors="coerce").dropna()
+            if non_na.empty:
+                continue
+            if ((non_na - non_na.round()).abs() > 1e-9).any():
+                # Skip percentage-like or non-count traces.
+                continue
+
+        trace.x = plot_values.tolist()
+        trace.text = display_values.tolist()
+        if suppressed_mask.any():
+            trace.textposition = "outside"
+            if override_hovertemplate:
+                trace.hovertemplate = "%{y}: %{text}<extra></extra>"
+        trace.cliponaxis = False
+
+    return fig
+
+
 def format_percentage_display(
     value,
     count_value=None,
@@ -495,6 +570,14 @@ def apply_standard_bar_layout(
         cliponaxis=False,
         selector={"type": "bar"},
     )
+
+    # Re-apply suppression display after layout-level textposition updates.
+    apply_suppressed_horizontal_bar_display(
+        fig,
+        suppress_zero=True,
+        require_integer_like=True,
+        override_hovertemplate=False,
+    )
     return fig
 
 def apply_standard_single_series_bar_trace(
@@ -505,6 +588,8 @@ def apply_standard_single_series_bar_trace(
     textposition: str = "auto",
     textangle: int = 0,
     cliponaxis: bool = False,
+    apply_count_suppression: bool = True,
+    suppress_zero_counts: bool = True,
     **trace_kwargs,
 ):
     """Apply standard trace styling for single-series bar charts."""
@@ -540,6 +625,15 @@ def apply_standard_single_series_bar_trace(
         selector={"type": "bar"},
         **trace_kwargs,
     )
+
+    if apply_count_suppression:
+        apply_suppressed_horizontal_bar_display(
+            fig,
+            suppress_zero=suppress_zero_counts,
+            require_integer_like=True,
+            # Keep custom hovers for charts that intentionally define richer tooltips.
+            override_hovertemplate=(hovertemplate == "%{y}: %{x:,}<extra></extra>"),
+        )
     return fig
 
 

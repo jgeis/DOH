@@ -272,20 +272,16 @@ def update_dashboard(substance, homeless, sex, age, race, year):
 
         # Cuts off label length after 25 characters
         by_sub["substance_label"] = by_sub["substance"].apply(ellipsize)
-        by_sub["display_count"] = by_sub["count"].apply(format_count_display)
 
         sud_bar = px.bar(
             by_sub,
             x="count",
             y="substance_label",
             barmode="stack",
-            text="display_count",
             labels={"count": "Number of Deaths", "substance_label": "Cause of Death<br>(Not Mutually Exclusive)"},
         )
 
         apply_standard_single_series_bar_trace(sud_bar)
-        sud_bar.update_traces(hovertemplate="%{y}: %{text}<extra></extra>")
-
         apply_standard_bar_layout(sud_bar, xaxis=dict(rangemode="tozero"))
     else:
         sud_bar = px.bar()

@@ -401,14 +401,12 @@ def update_dashboard(county, year):
             .sum()
             .sort_values("deaths", ascending=False)
         )
-        by_sub["display_count"] = by_sub["deaths"].apply(format_count_display)
 
         sub_bar = px.bar(
             by_sub,
             x="deaths",
             y="substance",
             barmode="stack",
-            text="display_count",
             labels={"deaths": "Number of Deaths", "substance": "Substance"},
         )
 
@@ -431,14 +429,12 @@ def update_dashboard(county, year):
             .sum()
             .sort_values("deaths", ascending=False)
         )
-        by_race["display_count"] = by_race["deaths"].apply(format_count_display)
 
         race_bar = px.bar(
             by_race,
             x="deaths",
             y="race",
             barmode="stack",
-            text="display_count",
             labels={"deaths": "Number of Deaths", "race": "Race"},
         )
 
@@ -474,14 +470,12 @@ def update_dashboard(county, year):
 
         by_age_group["_age_sort"] = by_age_group["age_group"].apply(age_group_sort_key)
         by_age_group = by_age_group.sort_values("_age_sort").drop(columns=["_age_sort"])
-        by_age_group["display_count"] = by_age_group["deaths"].apply(format_count_display)
 
         age_group_bar = px.bar(
             by_age_group,
             x="deaths",
             y="age_group",
             barmode="stack",
-            text="display_count",
             labels={"deaths": "Number of Deaths", "age_group": "Age Group"},
         )
 
