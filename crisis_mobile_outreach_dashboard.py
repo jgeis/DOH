@@ -12,6 +12,7 @@ from dashboard_utils import (
     graph_block,
     make_kpi_card,
     make_left_sidebar,
+    make_right_summary_tables_col,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -136,10 +137,9 @@ def layout():
         md=6,
     )
 
-    right_col = dbc.Col(
+    right_col = make_right_summary_tables_col(
         [
-            html.H5("Referral Destination Summary", className="mb-2"),
-            html.Div(id="cmo-summary-table", style={"overflowX": "auto"}),
+            ("Referral Destination", "cmo-summary-table"),
         ],
         xs=12,
         md=3,
@@ -190,6 +190,15 @@ def update_cmo_dashboard(selected_destinations):
     dff["percentage_hover_suffix"] = dff["percentage_display"].apply(
         lambda pct: f" ({pct})" if pct else ""
     )
+    dff["percentage_table_display"] = dff.apply(
+        lambda row: format_percentage_display(
+            row["percentage"],
+            count_display=row["ct_display"],
+            decimals=2,
+            suppressed_output="N/A",
+        ),
+        axis=1,
+    )
 
     # For horizontal bar charts, categoryarray[0] is rendered at the bottom.
     # Reverse here so the highest-count destination appears at the top.
@@ -228,7 +237,7 @@ def update_cmo_dashboard(selected_destinations):
         }
     )
     table_df["Distinct Clients"] = table_df["Distinct Clients"].apply(format_count_display)
-    table_df["Percent of Total"] = dff["percentage_display"].values
+    table_df["Percent of Total"] = dff["percentage_table_display"].values
 
     table = dbc.Table.from_dataframe(
         table_df,
