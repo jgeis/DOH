@@ -199,18 +199,18 @@ def layout():
                 className="mb-4",
                 style={"overflow": "visible"},
             ),
-            # html.Div(
-            #     [
-            #         html.H5("Clients Served by Modality and Year (Top 10 Modalities)", className="plot-card-header mb-2"),
-            #         dcc.Graph(
-            #             id="adad-modality-line-chart",
-            #             style={"width": "100%", "height": "520px"},
-            #             config={"displayModeBar": True, "displaylogo": False},
-            #         ),
-            #     ],
-            #     className="mb-4",
-            #     style={"overflow": "visible"},
-            # ),
+            html.Div(
+                [
+                    html.H5("Clients Served by Modality and Year (Top 10 Modalities)", className="plot-card-header mb-2"),
+                    dcc.Graph(
+                        id="adad-modality-line-chart",
+                        style={"width": "100%", "height": "520px"},
+                        config={"displayModeBar": True, "displaylogo": False},
+                    ),
+                ],
+                className="mb-4",
+                style={"overflow": "visible"},
+            ),
             html.Div(
                 [
                     html.H5("Clients Served by County and Year", className="plot-card-header mb-2"),
@@ -271,7 +271,7 @@ def reset_adad_filters(_n_clicks):
 
 @callback(
     Output("adad-bar-chart", "figure"),
-    # Output("adad-modality-line-chart", "figure"),
+    Output("adad-modality-line-chart", "figure"),
     Output("adad-county-line-chart", "figure"),
     Output("adad-kpi-total", "children"),
     Output("adad-modality-table", "children"),
@@ -365,43 +365,50 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
         hovertemplate="%{y}: %{customdata[0]}<extra></extra>",
     )
 
-    # top_modalities = (
-    #     dff.dropna(subset=["modality"])
-    #     .groupby("modality")["client_id"]
-    #     .nunique()
-    #     .sort_values(ascending=False)
-    #     .head(10)
-    #     .index.tolist()
-    # )
+    top_modalities = (
+        dff.dropna(subset=["modality"])
+        .groupby("modality")["client_id"]
+        .nunique()
+        .sort_values(ascending=False)
+        .head(10)
+        .index.tolist()
+    )
 
-    # line_grouped = (
-    #     dff[dff["modality"].isin(top_modalities)]
-    #     .groupby(["year", "modality"], as_index=False)["client_id"]
-    #     .nunique()
-    #     .rename(columns={"client_id": "client_count"})
-    #     .sort_values(["year", "modality"])
-    # )
-    # line_grouped = line_grouped.dropna(subset=["year", "modality"]).copy()
-    # if not line_grouped.empty:
-    #     line_grouped["year"] = line_grouped["year"].astype(int)
+    line_grouped = (
+        dff[dff["modality"].isin(top_modalities)]
+        .groupby(["year", "modality"], as_index=False)["client_id"]
+        .nunique()
+        .rename(columns={"client_id": "client_count"})
+        .sort_values(["year", "modality"])
+    )
+    line_grouped = line_grouped.dropna(subset=["year", "modality"]).copy()
+    if not line_grouped.empty:
+        line_grouped["year"] = line_grouped["year"].astype(int)
 
-    # modality_line_fig = px.line(
-    #     line_grouped,
-    #     x="year",
-    #     y="client_count",
-    #     color="modality",
-    #     markers=True,
-    #     category_orders={"modality": top_modalities},
-    #     labels={
-    #         "year": "Year",
-    #         "client_count": "Number of Clients",
-    #         "modality": "Modality",
-    #     },
-    # )
-    # )
-    # modality_line_fig.update_traces(
-    #     hovertemplate="%{fullData.name}<br>Year: %{x}<br>Clients: %{y:,}<extra></extra>"
-    # )
+    if line_grouped.empty:
+        modality_line_fig = px.line()
+    else:
+        modality_line_fig = px.line(
+            line_grouped,
+            x="year",
+            y="client_count",
+            color="modality",
+            markers=True,
+            category_orders={"modality": top_modalities},
+            labels={
+                "year": "Year",
+                "client_count": "Number of Clients",
+                "modality": "Modality",
+            },
+        )
+        modality_line_fig.update_traces(
+            hovertemplate="%{fullData.name}<br>Year: %{x}<br>Clients: %{y:,}<extra></extra>"
+        )
+
+    apply_standard_line_layout(
+        modality_line_fig,
+        xaxis=dict(dtick=5),
+    )
 
     county_line_grouped = (
         dff.groupby(["year", "county"], as_index=False)["client_id"]
@@ -468,4 +475,4 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
     year_table = dbc.Table.from_dataframe(year_tbl, striped=True, bordered=True, hover=True, responsive=True, size="sm")
     county_table = dbc.Table.from_dataframe(county_tbl, striped=True, bordered=True, hover=True, responsive=True, size="sm")
 
-    return bar_fig, county_line_fig, format_count_display(total_clients), modality_table, year_table, county_table
+    return bar_fig, modality_line_fig, county_line_fig, format_count_display(total_clients), modality_table, year_table, county_table
