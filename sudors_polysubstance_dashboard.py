@@ -24,6 +24,7 @@ from dashboard_utils import (
    format_count_display,
     build_suppressed_percentage_columns,
     format_display_list,
+    wrap_axis_label,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
     apply_standard_non_axis_layout,
@@ -730,6 +731,7 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
     # --- Sunburst Chart ---
     if selected_values:
         selected_label = selected_values[0] if len(selected_values) == 1 else format_display_list(selected_values)
+        selected_label_wrapped = wrap_axis_label(selected_label, max_len=28)
         selected_set = {str(v) for v in selected_values}
 
         cohort_records = dff.drop_duplicates(subset=["incident_id", "substance"])
@@ -745,17 +747,28 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
         else:
             root_value = float(outer_counts.sum())
             ids = ["root"]
-            labels = [selected_label]
+            labels = [selected_label_wrapped]
             parents = [""]
             values = [root_value]
-            customdata = [[int(dff["incident_id"].nunique()), selected_label]]
+            customdata = [[int(dff["incident_id"].nunique()), selected_label, selected_label]]
+
+            min_label_share = 0.04
+
+            def compact_label(value: str, max_chars: int = 12) -> str:
+                text = str(value).strip()
+                if len(text) <= max_chars:
+                    return text
+                return text[: max_chars - 3].rstrip() + "..."
 
             for sub_name, raw_count in outer_counts.items():
                 ids.append(f"sub::{sub_name}")
-                labels.append(sub_name)
+                scaled_value = float(raw_count)
+                show_label = (scaled_value / root_value) >= min_label_share if root_value else False
+                label_text = sub_name if show_label else compact_label(sub_name)
+                labels.append(wrap_axis_label(label_text, max_len=20))
                 parents.append("root")
-                values.append(float(raw_count))
-                customdata.append([int(raw_count), selected_label])
+                values.append(scaled_value)
+                customdata.append([int(raw_count), selected_label, str(sub_name)])
 
             sun_fig = go.Figure(go.Sunburst(
                 ids=ids,
@@ -764,13 +777,15 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                 values=values,
                 customdata=customdata,
                 branchvalues="total",
+                insidetextorientation="horizontal",
                 hovertemplate=(
-                    "<b>%{label}</b><br>"
+                    "<b>%{customdata[2]}</b><br>"
                     "Raw Count: %{customdata[0]:,}<br>"
                     "Cohort: %{customdata[1]}<extra></extra>"
                 ),
             ))
             apply_standard_non_axis_layout(sun_fig)
+            sun_fig.update_layout(uniformtext_minsize=8, uniformtext_mode="show")
     else:
         sunburst_data = build_sunburst_cooccurrence_data(dff)
         if sunburst_data.empty:
@@ -784,5 +799,6 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                 values="Count",
             )
             apply_standard_non_axis_layout(sun_fig)
+            sun_fig.update_layout(uniformtext_minsize=8, uniformtext_mode="show")
 
     return bar_fig, sun_fig

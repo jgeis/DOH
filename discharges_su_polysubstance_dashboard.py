@@ -32,6 +32,7 @@ from dashboard_utils import (
     format_count_display,
     build_suppressed_percentage_columns,
     format_display_list,
+    wrap_axis_label,
     apply_standard_single_series_bar_trace,
     apply_standard_bar_layout,
     apply_standard_line_layout,
@@ -1339,6 +1340,7 @@ def update_sunburst(selected_substances, age, sex, county, year):
 
     if selected_values:
         selected_label = selected_values[0] if len(selected_values) == 1 else format_display_list(selected_values)
+        selected_label_wrapped = wrap_axis_label(selected_label, max_len=28)
         selected_set = {str(v) for v in selected_values}
 
         cohort_records = dff.drop_duplicates(subset=["record_id", "substance"])
@@ -1363,18 +1365,28 @@ def update_sunburst(selected_substances, age, sex, county, year):
             )
 
         ids = ["root"]
-        labels = [selected_label]
+        labels = [selected_label_wrapped]
         parents = [""]
         values = [root_value]
-        customdata = [[int(dff["record_id"].nunique()), selected_label]]
+        customdata = [[int(dff["record_id"].nunique()), selected_label, selected_label]]
+
+        min_label_share = 0.04
+
+        def compact_label(value: str, max_chars: int = 12) -> str:
+            text = str(value).strip()
+            if len(text) <= max_chars:
+                return text
+            return text[: max_chars - 3].rstrip() + "..."
 
         for substance, raw_count in outer_counts.items():
             scaled_value = float(raw_count)
             ids.append(f"sub::{substance}")
-            labels.append(substance)
+            show_label = (scaled_value / root_value) >= min_label_share if root_value else False
+            label_text = substance if show_label else compact_label(substance)
+            labels.append(wrap_axis_label(label_text, max_len=20))
             parents.append("root")
             values.append(scaled_value)
-            customdata.append([int(raw_count), selected_label])
+            customdata.append([int(raw_count), selected_label, str(substance)])
 
         fig = go.Figure(go.Sunburst(
             ids=ids,
@@ -1383,14 +1395,16 @@ def update_sunburst(selected_substances, age, sex, county, year):
             values=values,
             customdata=customdata,
             branchvalues="total",
+            insidetextorientation="horizontal",
             hovertemplate=(
-                "<b>%{label}</b><br>"
+                "<b>%{customdata[2]}</b><br>"
                 "Raw Count: %{customdata[0]:,}<br>"
                 "Cohort: %{customdata[1]}<extra></extra>"
             ),
         ))
         #apply_standard_non_axis_layout(fig, title="Substance Co-occurrence Sunburst")
         apply_standard_non_axis_layout(fig)
+        fig.update_layout(uniformtext_minsize=8, uniformtext_mode="show")
         return fig
 
     sunburst_data = build_sunburst_cooccurrence_data(dff)
@@ -1459,6 +1473,7 @@ def update_sunburst(selected_substances, age, sex, county, year):
         ),
     ))
     apply_standard_non_axis_layout(fig, title="Substance Co-occurrence Sunburst")
+    fig.update_layout(uniformtext_minsize=8, uniformtext_mode="show")
     return fig
 
 
