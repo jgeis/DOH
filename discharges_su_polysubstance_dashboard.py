@@ -21,6 +21,7 @@ from dashboard_utils import (
     make_kpi_card,
     make_left_sidebar,
     compute_last_updated_value,
+    compute_adaptive_horizontal_bar_height,
     make_filters_card,
     dropdown_filter,
     sort_opts,
@@ -361,7 +362,7 @@ def _records_matching_all_selected_substances(frame: pd.DataFrame, selected_valu
     return frame[frame["record_id"].isin(matched_ids)].copy()
 
 
-def graph_block(base_id: str, title_text: str, height: str):
+def graph_block(base_id: str, title_text: str, height: str | None = None):
     """
     Build a reusable chart "card" with a title and graph.
 
@@ -375,7 +376,7 @@ def graph_block(base_id: str, title_text: str, height: str):
             # The graph itself; Plotly tools bar (modebar) is always ON.
             dcc.Graph(
                 id=base_id,
-                style={"height": height, "width": "100%"},
+                style=({"height": height, "width": "100%"} if height else {"width": "100%"}),
                 config={"displayModeBar": True, "displaylogo": False},
             ),
         ],
@@ -399,7 +400,11 @@ def layout_for(is_mobile: bool = False):
       RIGHT: treemap + small summary tables
     """
     # Make charts taller on phones so they are easier to read.
-    h_bar = "60vh" if is_mobile else "400px"
+    h_bar = (
+        "60vh"
+        if is_mobile
+        else f"{compute_adaptive_horizontal_bar_height(len(substance_opts))}px"
+    )
     h_stack = "55vh" if is_mobile else "360px"
     h_full_row = "55vh" if is_mobile else "420px"
     h_tree = "46vh" if is_mobile else "280px"
@@ -426,7 +431,7 @@ def layout_for(is_mobile: bool = False):
 
     # CENTER: main charts focused on substance over time
     center = dbc.Col([
-        graph_block("bar-top-substances", "Substance Type", h_bar),
+        graph_block("bar-top-substances", "Substance Type"),
         # Hidden description for screen readers.
         html.P("Horizontal bar chart showing the top substances among polysubstance records.", className="visually-hidden"),
 
@@ -554,7 +559,7 @@ def layout_for(is_mobile: bool = False):
                                     dcc.Graph(
                                         id="polysubstance-cooccurrence-bar-chart",
                                         config={"displayModeBar": True, "displaylogo": False},
-                                        style={"height": "650px" if is_mobile else "500px"}
+                                        style={"width": "100%"}
                                     ),
                                     className="graph-inner" if is_mobile else ""
                                 ),
@@ -1067,25 +1072,8 @@ def update_bar_chart(selected_substances, is_mobile):
     if co_data.empty:
         return go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
     
-    # Mobile-specific adjustments
-    if is_mobile:
-        text_size = 8
-        height = 650
-        width = 900  # Fixed width for scrolling
-        title_size = 13
-        margin_left = 140
-        margin_right = 40
-        margin_top = 70
-        margin_bottom = 100
-    else:
-        text_size = 10
-        height = 500
-        width = None  # Auto width
-        title_size = 16
-        margin_left = 150
-        margin_right = 50  # Can reduce now that legend is on top
-        margin_top = 120  # More room for horizontal legend
-        margin_bottom = 120  # More room for x-axis labels
+    # Keep a wider figure on mobile so users can horizontally scroll crowded categories.
+    plot_width = 900 if is_mobile else None
     
     selected_values = (
         [v for v in selected_substances if v]
@@ -1249,7 +1237,6 @@ def update_bar_chart(selected_substances, is_mobile):
                          'Co-occurrence: %{y:.1f}%<br>' +
                          'Count: %{customdata[0]}<br>' +
                          'Total: %{customdata[1]}<extra></extra>',
-            textfont=dict(size=text_size),
             cliponaxis=False
         )
     
@@ -1258,25 +1245,23 @@ def update_bar_chart(selected_substances, is_mobile):
     x_angle = 45 if not selected_values else (45 if is_mobile else 0)
 
     fig.update_layout(
-        height=height,
-        width=width,
-        xaxis=dict(
-            tickangle=x_angle,
-            tickfont=dict(size=text_size)
-        ),
-        yaxis=dict(tickfont=dict(size=text_size)),
-        legend=dict(
-            font=dict(size=text_size),
-            orientation="h",  # Horizontal legend
-            yanchor="bottom",
-            y=1.02,  # Position above plot area
-            xanchor="center",
-            x=0.5  # Center horizontally
-        ) if not selected_values else dict(font=dict(size=text_size)),
-        autosize=False if is_mobile else True
+        width=plot_width,
+        autosize=False if is_mobile else True,
     )
+    fig.update_xaxes(tickangle=x_angle)
 
-    apply_standard_bar_layout(fig, margin={"t": 30, "b": 50})
+    if not selected_values:
+        fig.update_layout(
+            legend=dict(
+                orientation="h",  # Horizontal legend
+                yanchor="bottom",
+                y=1.02,  # Position above plot area
+                xanchor="center",
+                x=0.5  # Center horizontally
+            )
+        )
+
+    apply_standard_bar_layout(fig)
     
     return fig, bar_caption
 

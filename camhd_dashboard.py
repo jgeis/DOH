@@ -12,6 +12,7 @@ from dashboard_utils import (
     make_filters_card,
     make_last_updated_block,
     compute_last_updated_value,
+    compute_adaptive_horizontal_bar_height,
     dropdown_filter,
     format_count_display,
     opts_list,
@@ -200,7 +201,9 @@ def update_camhd(view, sel_years, start_date, end_date):
         y_title = "Date of Service"
 
     grouped["label"] = grouped["client_count"].apply(lambda value: f"{int(value):,}")
-    chart_height = max(320, len(grouped) * 30)
+    chart_height = compute_adaptive_horizontal_bar_height(
+        len(grouped),
+    )
     y_order = grouped["period"].tolist()
 
     bar_fig = px.bar(

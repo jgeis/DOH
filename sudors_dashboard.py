@@ -14,6 +14,7 @@ from dashboard_utils import (
     make_left_sidebar,
     make_right_summary_tables_col,
     compute_last_updated_value,
+    compute_adaptive_horizontal_bar_height,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -128,7 +129,7 @@ def layout():
     Build the discharges dashboard layout.
     """
     # Adjust plot heights for desktop
-    bar_h  = "360px"
+    bar_h = f"{compute_adaptive_horizontal_bar_height(len(substance_opts))}px"
     line_h = "400px"
     pie_h  = "260px"
    
@@ -146,7 +147,7 @@ def layout():
     # Center column: the main line, bar, and pie charts.
     center_col = dbc.Col(
         [
-            graph_block("sudors-bar", "Deaths by Substance", bar_h),
+            graph_block("sudors-bar", "Deaths by Substance"),
             html.P("Bar chart showing deaths by substance.", className="visually-hidden"),
 
             graph_block("sudors-line", "Yearly Deaths by Substance", line_h),

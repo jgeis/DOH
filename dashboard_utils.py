@@ -206,6 +206,29 @@ def format_count_display(value, threshold: int = COUNT_SUPPRESSION_THRESHOLD, su
     return f"{numeric:,}"
 
 
+def compute_adaptive_horizontal_bar_height(
+    category_count: int,
+    min_height: int | None = None,
+    max_height: int | None = None,
+    pixels_per_bar: int = 30,
+    base_padding: int = 80,
+) -> int:
+    """
+    Compute a chart height that keeps horizontal bar thickness readable.
+
+    The height scales with category count. Optional min/max bounds can be applied
+    by passing min_height/max_height.
+    """
+    safe_count = max(0, int(category_count or 0))
+    estimated = base_padding + (safe_count * pixels_per_bar)
+
+    if min_height is not None:
+        estimated = max(int(min_height), estimated)
+    if max_height is not None:
+        estimated = min(int(max_height), estimated)
+    return estimated
+
+
 def opts_list(values):
     """
     Turn a simple list of values into the format Dash expects for
@@ -343,7 +366,7 @@ def append_statewide_aggregate_rows(
     return pd.concat([base, statewide], ignore_index=True)
 
 
-def graph_block(base_id: str, title_text: str, height_px: str):
+def graph_block(base_id: str, title_text: str, height_px: str | None = None):
     """
     Make a standard "card" that holds:
       - a hidden store that remembers if the tools are on/off
@@ -362,7 +385,7 @@ def graph_block(base_id: str, title_text: str, height_px: str):
             # The actual graph. Modebar (tools) is always on now.
             dcc.Graph(
                 id=base_id,
-                style={"height": height_px, "width": "100%"},
+                style=({"height": height_px, "width": "100%"} if height_px else {"width": "100%"}),
                 config={"displayModeBar": True, "displaylogo": False},
             ),
         ],
@@ -391,6 +414,23 @@ def apply_standard_bar_layout(
     **layout_kwargs,
 ):
     """Apply standardized layout defaults for bar charts, with optional overrides."""
+    explicit_height = layout_kwargs.get("height")
+    if explicit_height is None:
+        horizontal_bar_units = 0
+        for trace in getattr(fig, "data", []):
+            if getattr(trace, "type", None) != "bar" or getattr(trace, "orientation", None) != "h":
+                continue
+            trace_y = getattr(trace, "y", None)
+            if trace_y is None:
+                continue
+            label_units = sum(str(label).count("<br>") + 1 for label in trace_y)
+            horizontal_bar_units = max(horizontal_bar_units, label_units)
+
+        if horizontal_bar_units:
+            layout_kwargs["height"] = compute_adaptive_horizontal_bar_height(
+                horizontal_bar_units,
+            )
+
     merged_margin = STANDARD_BAR_MARGIN.copy()
     if margin:
         merged_margin.update(margin)
@@ -424,14 +464,38 @@ def apply_standard_single_series_bar_trace(
     marker_color: str = "#22767C",
     texttemplate: str = "%{text}",
     textposition: str = "inside",
+    textangle: int = 0,
     cliponaxis: bool = False,
     **trace_kwargs,
 ):
     """Apply standard trace styling for single-series bar charts."""
+    if texttemplate == "%{text}":
+        # Centralize numeric label formatting so dashboards don't need per-chart comma logic.
+        for trace in fig.select_traces(selector={"type": "bar"}):
+            text_values = getattr(trace, "text", None)
+            if text_values is None or isinstance(text_values, str):
+                continue
+
+            text_series = pd.Series(list(text_values))
+            if text_series.empty:
+                continue
+
+            numeric_series = pd.to_numeric(text_series, errors="coerce")
+            if numeric_series.isna().any():
+                # Keep preformatted or categorical labels (e.g., '<10*') unchanged.
+                continue
+
+            formatted_text = [
+                (f"{int(v):,}" if float(v).is_integer() else f"{float(v):,.2f}".rstrip("0").rstrip("."))
+                for v in numeric_series
+            ]
+            trace.text = formatted_text
+
     fig.update_traces(
         marker_color=marker_color,
         texttemplate=texttemplate,
         textposition=textposition,
+        textangle=textangle,
         cliponaxis=cliponaxis,
         hovertemplate=hovertemplate,
         selector={"type": "bar"},

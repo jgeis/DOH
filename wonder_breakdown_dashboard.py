@@ -8,6 +8,7 @@ from dashboard_utils import (
     make_kpi_card,
     make_left_sidebar,
     compute_last_updated_value,
+    compute_adaptive_horizontal_bar_height,
     make_filters_card,
     radio_filter,
     STATEWIDE_COUNTY,
@@ -110,7 +111,7 @@ def opts_list(values):
 # Reusable graph block (Tools toggle + title + graph)
 # ----------------------------
 
-def graph_block(base_id: str, title_text: str, height_px: str):
+def graph_block(base_id: str, title_text: str, height_px: str | None = None):
     """
     Make a standard "card" that holds:
       - a hidden store that remembers if the tools are on/off
@@ -129,7 +130,7 @@ def graph_block(base_id: str, title_text: str, height_px: str):
             # The actual graph. Modebar (tools) is always on now.
             dcc.Graph(
                 id=base_id,
-                style={"height": height_px, "width": "100%"},
+                style=({"height": height_px, "width": "100%"} if height_px else {"width": "100%"}),
                 config={"displayModeBar": True, "displaylogo": False},
             ),
         ],
@@ -211,7 +212,29 @@ def layout_for(
     but on desktops shorter plots look better side-by-side.
     """
     # Adjust plot heights depending on screen size.
-    bar_h  = "55vh" if is_mobile else "360px"
+    substance_category_count = (
+        df_raw_substance["substance"].dropna().astype(str).nunique()
+        if "substance" in df_raw_substance.columns
+        else 0
+    )
+    race_category_count = (
+        df_raw_race["race"].dropna().astype(str).nunique()
+        if "race" in df_raw_race.columns
+        else 0
+    )
+    age_category_count = (
+        df_raw_age_group["age_group"].dropna().astype(str).nunique()
+        if "age_group" in df_raw_age_group.columns
+        else 0
+    )
+
+    def adaptive_bar_height(category_count: int) -> str:
+        # Use one shared formula so bar thickness is consistent across charts.
+        return f"{compute_adaptive_horizontal_bar_height(category_count)}px"
+
+    substance_bar_h = adaptive_bar_height(substance_category_count)
+    race_bar_h = adaptive_bar_height(race_category_count)
+    age_bar_h = adaptive_bar_height(age_category_count)
     pie_h  = "46vh" if is_mobile else "260px"
 
     # Left column: KPI, reset button, and filters.
@@ -229,15 +252,15 @@ def layout_for(
     center_col = dbc.Col(
         [
             dbc.Row([
-                graph_block("wonder-substance-deaths", "Deaths by Substance", bar_h),
+                graph_block("wonder-substance-deaths", "Deaths by Substance"),
                 html.P("Bar chart showing deaths by substance.", className="visually-hidden"),
             ]),
             dbc.Row([
-                graph_block("wonder-race-deaths", "Deaths by Race", bar_h),
+                graph_block("wonder-race-deaths", "Deaths by Race"),
                 html.P("Bar chart showing deaths by race.", className="visually-hidden"),
             ]),
             dbc.Row([
-                graph_block("wonder-age-group-deaths", "Deaths by Age Group", bar_h),
+                graph_block("wonder-age-group-deaths", "Deaths by Age Group"),
                 html.P("Bar chart showing deaths by age group.", className="visually-hidden"),
             ]),
         ],
@@ -421,7 +444,7 @@ def update_dashboard(county, year):
             labels={"deaths": "Number of Deaths", "race": "Race"},
         )
 
-        apply_standard_single_series_bar_trace(race_bar, textangle=0)
+        apply_standard_single_series_bar_trace(race_bar)
 
         apply_standard_bar_layout(race_bar, yaxis=dict(autorange="reversed"))
 
@@ -464,7 +487,7 @@ def update_dashboard(county, year):
             labels={"deaths": "Number of Deaths", "age_group": "Age Group"},
         )
 
-        apply_standard_single_series_bar_trace(age_group_bar, textangle=0)
+        apply_standard_single_series_bar_trace(age_group_bar)
 
         apply_standard_bar_layout(age_group_bar)
 

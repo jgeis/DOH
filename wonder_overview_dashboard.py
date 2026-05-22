@@ -8,6 +8,7 @@ from dashboard_utils import (
     make_kpi_card,
     make_left_sidebar,
     compute_last_updated_value,
+    compute_adaptive_horizontal_bar_height,
     make_filters_card,
     checklist_filter,
     statewide_first,
@@ -119,7 +120,7 @@ def opts_list(values):
 # Reusable graph block (Tools toggle + title + graph)
 # ----------------------------
 
-def graph_block(base_id: str, title_text: str, height_px: str):
+def graph_block(base_id: str, title_text: str, height_px: str | None = None):
     """
     Make a standard "card" that holds:
       - a hidden store that remembers if the tools are on/off
@@ -138,7 +139,7 @@ def graph_block(base_id: str, title_text: str, height_px: str):
             # The actual graph. Modebar (tools) is always on now.
             dcc.Graph(
                 id=base_id,
-                style={"height": height_px, "width": "100%"},
+                style=({"height": height_px, "width": "100%"} if height_px else {"width": "100%"}),
                 config={"displayModeBar": True, "displaylogo": False},
             ),
         ],
@@ -221,7 +222,11 @@ def layout_for(
     """
     # Adjust plot heights depending on screen size.
     line_h  = "55vh" if is_mobile else "360px"
-    bar_h  = "55vh" if is_mobile else "360px"
+    bar_h = (
+        "55vh"
+        if is_mobile
+        else f"{compute_adaptive_horizontal_bar_height(len(wonder_county_opts))}px"
+    )
 
     # Left column: KPI, reset button, and filters.
     left_col = make_left_sidebar(
@@ -242,7 +247,7 @@ def layout_for(
                 html.P("Line chart showing deaths by calendar year.", className="visually-hidden"),
             ]),
             dbc.Row([
-                graph_block("wonder-bar-deaths", "Deaths by County", bar_h),
+                graph_block("wonder-bar-deaths", "Deaths by County"),
                 html.P("Bar chart showing deaths by county.", className="visually-hidden"),
             ]),
         ],

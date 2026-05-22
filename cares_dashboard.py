@@ -11,6 +11,7 @@ from dashboard_utils import (
     make_kpi_card,
     make_left_sidebar,
     compute_last_updated_value,
+    compute_adaptive_horizontal_bar_height,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -238,8 +239,9 @@ def update_cares(view, sel_years, sel_months, sel_crisis):
         y_title = "Year, Month"
 
     n_bars = len(grouped)
-    # Give each bar ~32px of height, with a minimum floor.
-    chart_height = max(320, n_bars * 32)
+    chart_height = compute_adaptive_horizontal_bar_height(
+        n_bars,
+    )
 
     # Build the display order: categoryarray[0] = bottom, last = top.
     # Ascending order means oldest at bottom, newest at top.
@@ -256,7 +258,14 @@ def update_cares(view, sel_years, sel_months, sel_crisis):
     apply_standard_bar_layout(
         fig,
         xaxis=dict(title="Number of Calls"),
-        yaxis=dict(title=y_title, categoryorder="array", categoryarray=y_order),
+        yaxis=dict(
+            title=y_title,
+            categoryorder="array",
+            categoryarray=y_order,
+            tickmode="array",
+            tickvals=y_order,
+            ticktext=y_order,
+        ),
         height=chart_height,
     )
     apply_standard_single_series_bar_trace(fig)

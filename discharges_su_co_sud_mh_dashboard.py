@@ -19,6 +19,7 @@ from dashboard_utils import (
     make_left_sidebar,
     make_right_summary_tables_col,
     compute_last_updated_value,
+    compute_adaptive_horizontal_bar_height,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -150,7 +151,7 @@ def layout():
     Build the discharges dashboard layout.
     """
     # Adjust plot heights for desktop
-    bar_h  = "360px"
+    bar_h = f"{compute_adaptive_horizontal_bar_height(len(su_opts))}px"
     line_h = "400px"
    
     # Left column: KPI, reset button, and filters.
@@ -166,7 +167,7 @@ def layout():
 
     # Center column: the main line and bar charts.
     center_col = dbc.Col([
-        graph_block("su-primary-bar", "Discharges by Substance", bar_h),
+        graph_block("su-primary-bar", "Discharges by Substance"),
         html.P("Bar chart showing discharges by substance.", className="visually-hidden"),
         graph_block("su-primary-line", "Yearly Discharges by Substance", line_h),
         html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),

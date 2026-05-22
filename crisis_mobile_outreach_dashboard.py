@@ -16,6 +16,7 @@ from dashboard_utils import (
     dropdown_filter,
     format_count_display,
     opts_list,
+    compute_adaptive_horizontal_bar_height,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
 )
@@ -67,6 +68,7 @@ def load_cmo_last_updated_value():
 
 df_raw = load_cmo_referrals_dataframe()
 referral_opts = sorted(df_raw["referral_destination"].dropna().unique().tolist())
+cmo_bar_h = f"{compute_adaptive_horizontal_bar_height(len(referral_opts))}px"
 last_updated_value = load_cmo_last_updated_value()
 
 # ----------------------------
@@ -123,7 +125,7 @@ def layout():
 
     center_col = dbc.Col(
         [
-            graph_block("cmo-referral-bar", "Referral Destinations (Past 6 Months)", "520px"),
+            graph_block("cmo-referral-bar", "Referral Destinations (Past 6 Months)"),
             html.P(
                 "Bar chart showing referral destinations for Crisis Mobile Outreach clients over the past 6 months.",
                 className="visually-hidden",
@@ -195,7 +197,9 @@ def update_cmo_dashboard(selected_destinations):
         fig,
         xaxis=dict(title="Number of Clients"),
         yaxis=dict(title="Referral Destination", categoryorder="array", categoryarray=y_order),
-        height=max(360, len(dff) * 30),
+        height=compute_adaptive_horizontal_bar_height(
+            len(dff),
+        ),
     )
     apply_standard_single_series_bar_trace(
         fig,

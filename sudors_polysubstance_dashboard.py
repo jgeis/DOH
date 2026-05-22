@@ -18,6 +18,7 @@ from dashboard_utils import (
    make_left_sidebar,
     compute_last_updated_value,
     make_right_summary_tables_col,
+    compute_adaptive_horizontal_bar_height,
    make_filters_card,
    dropdown_filter,
    format_count_display,
@@ -241,121 +242,121 @@ from section_texts import SECTION_TEXTS
 sudors_cooccurrence_sidebar_text = SECTION_TEXTS.get("sudors_polysubstance", [])
 
 def layout():
-   """
-   Build the discharges dashboard layout.
-   """
-   # Adjust plot heights for desktop
-   bar_h  = "360px"
+    """
+    Build the discharges dashboard layout.
+    """
+    # Adjust plot heights for desktop
+    bar_h = f"{compute_adaptive_horizontal_bar_height(len(substance_opts))}px"
 
-   # Left column: KPI, reset button, and filters.
-   left_col = make_left_sidebar(
-       kpi_card,
-       reset_filters_button,
-       filters_card,
-       helper_text=sudors_cooccurrence_sidebar_text,
-       last_updated_value=last_updated_value,
-       xs=12,
-       md=3,
-   )
+    # Left column: KPI, reset button, and filters.
+    left_col = make_left_sidebar(
+        kpi_card,
+        reset_filters_button,
+        filters_card,
+        helper_text=sudors_cooccurrence_sidebar_text,
+        last_updated_value=last_updated_value,
+        xs=12,
+        md=3,
+    )
 
-   # Center column: the main line, bar, and pie charts.
-   center_col = dbc.Col(
-       [
-           graph_block("sudors-cooccurrence-bar", "Deaths by Co-occurring Substances", bar_h),
-           html.P("Bar chart showing deaths by cooccurring substances.", className="visually-hidden"),
+    # Center column: the main line, bar, and pie charts.
+    center_col = dbc.Col(
+        [
+            graph_block("sudors-cooccurrence-bar", "Deaths by Co-occurring Substances"),
+            html.P("Bar chart showing deaths by cooccurring substances.", className="visually-hidden"),
 
-           # Sunburst Chart
-           dbc.Row([
-               dbc.Col([
-                   dbc.Card([
-                       dbc.CardHeader([
-                           html.H5("Co-occurrence Sunburst", className="mb-0")
-                       ]),
-                       dbc.CardBody([
-                           html.P([
-                               "Sunburst chart showing how selected substances branch into co-occurring substance combinations.",
-                               "Use the filter in the left panel to focus on one substance.",
-                           ], className="text-muted mb-3"),
-                           dcc.Loading(
-                               html.Div(
-                                   html.Div(
-                                       dcc.Graph(
-                                           id="sudors-alt-cooccurrence-sunburst",
-                                           config={"displayModeBar": True, "displaylogo": False},
-                                           style={"height": "500px"}
-                                       ),
-                                   ),
-                               )
-                           ),
-                           html.P(
-                               "Sunburst chart showing how selected substances branch into co-occurring substance combinations.",
-                               className="visually-hidden",
-                           ),
-                       ])
-                   ])
-               ], md=12, className="mb-4")
-           ])
-       ],
-       xs=12, md=6
-   )
+            # Sunburst Chart
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader([
+                            html.H5("Co-occurrence Sunburst", className="mb-0")
+                        ]),
+                        dbc.CardBody([
+                            html.P([
+                                "Sunburst chart showing how selected substances branch into co-occurring substance combinations.",
+                                "Use the filter in the left panel to focus on one substance.",
+                            ], className="text-muted mb-3"),
+                            dcc.Loading(
+                                html.Div(
+                                    html.Div(
+                                        dcc.Graph(
+                                            id="sudors-alt-cooccurrence-sunburst",
+                                            config={"displayModeBar": True, "displaylogo": False},
+                                            style={"height": "500px"}
+                                        ),
+                                    ),
+                                )
+                            ),
+                            html.P(
+                                "Sunburst chart showing how selected substances branch into co-occurring substance combinations.",
+                                className="visually-hidden",
+                            ),
+                        ])
+                    ])
+                ], md=12, className="mb-4")
+            ])
+        ],
+        xs=12, md=6
+    )
 
-   # Center alt column: the main line and bar charts.
-   center_alt_col = dbc.Col([
-       # Cooccurrence Chart
-       dbc.Row([
-           dbc.Col([
-               dbc.Card([
-                   dbc.CardHeader([
-                       html.H5("Co-occurrence with selected substance", className="mb-0")
-                   ]),
-                   dbc.CardBody([
-                       html.P([
-                           "Grouped bar chart showing what percentage of cases with a given substance also contain each other substance. ",
-                           "Use the filter in the left panel to focus on one substance.",
-                       ], className="text-muted mb-3"),
-                       dcc.Loading(
-                           html.Div(
-                               html.Div(
-                                   dcc.Graph(
-                                       id="sudors-alt-cooccurrence-bar-chart",
-                                       config={"displayModeBar": True, "displaylogo": False},
-                                       style={"height": "500px"}
-                                   ),
-                               ),
-                           )
-                       ),
-                       html.P(
-                           "Grouped bar chart showing the percentage of cases where the selected substance co-occurs with other substances.",
-                           className="visually-hidden",
-                       ),
-                   ])
-               ])
-           ])
-       ]),
-   ], xs=12, md=12, className="mb-4")
+    # Center alt column: the main line and bar charts.
+    center_alt_col = dbc.Col([
+        # Cooccurrence Chart
+        dbc.Row([
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader([
+                        html.H5("Co-occurrence with selected substance", className="mb-0")
+                    ]),
+                    dbc.CardBody([
+                        html.P([
+                            "Grouped bar chart showing what percentage of cases with a given substance also contain each other substance. ",
+                            "Use the filter in the left panel to focus on one substance.",
+                        ], className="text-muted mb-3"),
+                        dcc.Loading(
+                            html.Div(
+                                html.Div(
+                                    dcc.Graph(
+                                        id="sudors-alt-cooccurrence-bar-chart",
+                                        config={"displayModeBar": True, "displaylogo": False},
+                                        style={"height": bar_h}
+                                    ),
+                                ),
+                            )
+                        ),
+                        html.P(
+                            "Grouped bar chart showing the percentage of cases where the selected substance co-occurs with other substances.",
+                            className="visually-hidden",
+                        ),
+                    ])
+                ])
+            ])
+        ]),
+    ], xs=12, md=12, className="mb-4")
 
-   # Right column: summary tables (ordered by shared site-wide utility)
-   right_col = make_right_summary_tables_col(
-       [
-           ("Race/Ethnicity", "sudors-cooccurrence-table-race"),
-           ("Calendar Year", "sudors-cooccurrence-table-year"),
-           ("Age Group", "sudors-cooccurrence-table-age"),
-       ],
-       xs=12,
-       md=3,
-   )
+    # Right column: summary tables (ordered by shared site-wide utility)
+    right_col = make_right_summary_tables_col(
+        [
+            ("Race/Ethnicity", "sudors-cooccurrence-table-race"),
+            ("Calendar Year", "sudors-cooccurrence-table-year"),
+            ("Age Group", "sudors-cooccurrence-table-age"),
+        ],
+        xs=12,
+        md=3,
+    )
 
-   return dbc.Container([
-       skip_link,
-       html.Div(
-           dbc.Row([left_col, center_col, right_col], className="g-3"),
-           id="sudors-cooccurrence-section",
-       ),
-       html.Div(
-           dbc.Row([center_alt_col], className="g-3"),
-           id="sudors-alt-cooccurrence-section",
-       ),
-   ], fluid=True, className="p-2")
+    return dbc.Container([
+        skip_link,
+        html.Div(
+            dbc.Row([left_col, center_col, right_col], className="g-3"),
+            id="sudors-cooccurrence-section",
+        ),
+        html.Div(
+            dbc.Row([center_alt_col], className="g-3"),
+            id="sudors-alt-cooccurrence-section",
+        ),
+    ], fluid=True, className="p-2")
 
 # This is the default layout used when the app imports this file.
 layout = layout()
@@ -646,11 +647,6 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
             co_data["Count_formatted"] = co_data["Count"].apply(format_count_display)
             co_data["Total_formatted"] = co_data["Total"].apply(format_count_display)
 
-            if len(selected_values) == 1:
-                title_text = f"When {selected_values[0]} is present, % with other substances"
-            else:
-                title_text = f"When all of: {format_display_list(selected_values)} are present, % with other substances"
-
             bar_fig = px.bar(
                 co_data,
                 x="Percentage",
@@ -659,7 +655,6 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                 labels={"Percentage": "Co-occurrence", "Also Found": "Other Substance"},
                 text="label",
                 custom_data=["Count_formatted", "Total_formatted"],
-                title=title_text,
             )
             apply_standard_single_series_bar_trace(
                 bar_fig,
@@ -691,7 +686,6 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                 y='Percentage',
                 color='Also Found',
                 barmode='group',
-                title='Co-occurrence patterns: When [Primary] is present, % with other substances',
                 labels={'Percentage': 'Co-occurrence', 'Primary': 'Primary Substance'},
                 text=co_data['Percentage'].apply(lambda x: f'{x:.1f}%'),
                 custom_data=['Count_formatted', 'Total_formatted', 'Also Found']

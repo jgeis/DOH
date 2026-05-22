@@ -20,6 +20,7 @@ from dashboard_utils import (
     make_left_sidebar,
     make_right_summary_tables_col,
     compute_last_updated_value,
+    compute_adaptive_horizontal_bar_height,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -130,7 +131,7 @@ def layout():
     Build the DOSE dashboard layout.
     """
     line_h = "400px"
-    bar_h  = "360px"
+    bar_h = f"{compute_adaptive_horizontal_bar_height(len(dose_substance_opts))}px"
     map_h  = "500px"
 
     left_col = make_left_sidebar(
@@ -150,7 +151,7 @@ def layout():
                 left_col,
 
                 dbc.Col([
-                    graph_block("bar-dose", "Nonfatal Overdoses Related to Drug Poisonings", bar_h),
+                    graph_block("bar-dose", "Nonfatal Overdoses Related to Drug Poisonings"),
                     html.P("Bar chart showing nonfatal overdoses related to drug poisonings.", className="visually-hidden"),
                     graph_block("year-diagnosis-lines-dose", "DOSE Discharges by Year and Substance", line_h),
                     html.P("Line chart showing DOSE discharges by year and substance.", className="visually-hidden"),

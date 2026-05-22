@@ -17,6 +17,7 @@ from dashboard_utils import (
     make_left_sidebar,
     make_right_summary_tables_col,
     compute_last_updated_value,
+    compute_adaptive_horizontal_bar_height,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -147,7 +148,7 @@ def layout():
     """
     # Adjust plot heights for desktop
     line_h = "400px"
-    bar_h  = "360px"
+    bar_h = f"{compute_adaptive_horizontal_bar_height(len(mh_opts))}px"
    
     # Left column: KPI, reset button, and filters.
     left_col = make_left_sidebar(
@@ -162,7 +163,7 @@ def layout():
 
     # Center column: the main line and bar charts.
     center_col = dbc.Col([
-        graph_block("mh-primary-bar", "Discharges by Mental Health Diagnosis", bar_h),
+        graph_block("mh-primary-bar", "Discharges by Mental Health Diagnosis"),
         html.P("Bar chart showing discharges by mental health diagnosis.", className="visually-hidden"),
         graph_block("mh-primary-line", "Yearly Discharges by Mental Health Diagnosis", line_h),
         html.P("Line chart showing yearly discharges by mental health diagnosis.", className="visually-hidden"),

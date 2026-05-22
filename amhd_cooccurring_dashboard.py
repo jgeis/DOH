@@ -14,6 +14,7 @@ from dashboard_utils import (
     make_kpi_card,
     make_left_sidebar,
     compute_last_updated_value,
+    compute_adaptive_horizontal_bar_height,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -371,7 +372,9 @@ def _build_amhd_figures(view, query_context):
         period_title = "Date of Service"
 
     bar_grouped["label"] = bar_grouped["consumer_count"].apply(lambda v: f"{int(v):,}")
-    bar_height = max(320, len(bar_grouped) * 30)
+    bar_height = compute_adaptive_horizontal_bar_height(
+        len(bar_grouped),
+    )
     y_order = bar_grouped["period"].tolist()
 
     bar_fig = px.bar(

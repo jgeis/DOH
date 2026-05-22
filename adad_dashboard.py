@@ -11,6 +11,7 @@ from dashboard_utils import (
     make_kpi_card,
     make_left_sidebar,
     compute_last_updated_value,
+    compute_adaptive_horizontal_bar_height,
     make_filters_card,
     dropdown_filter,
     format_count_display,
@@ -352,7 +353,9 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
         y_title = "Date of Service"
 
     grouped["label"] = grouped["client_count"].apply(lambda v: f"{int(v):,}")
-    chart_height = max(320, len(grouped) * 30)
+    chart_height = compute_adaptive_horizontal_bar_height(
+        len(grouped),
+    )
     y_order = grouped["period"].tolist()
 
     bar_fig = px.bar(

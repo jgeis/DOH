@@ -10,6 +10,7 @@ from db_utils import execute_query
 from dashboard_utils import (
     load_sql_query,
     make_last_updated_block,
+    compute_adaptive_horizontal_bar_height,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
@@ -156,7 +157,9 @@ def _load_cmo_bar_chart():
         fig,
         yaxis=dict(title="# of CMOs"),
         xaxis=dict(title="Month"),
-        height=420,
+        height=compute_adaptive_horizontal_bar_height(
+            len(df),
+        ),
     )
     apply_standard_single_series_bar_trace(
         fig, 
