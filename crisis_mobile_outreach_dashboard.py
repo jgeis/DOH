@@ -15,6 +15,7 @@ from dashboard_utils import (
     make_filters_card,
     dropdown_filter,
     format_count_display,
+    format_percentage_display,
     opts_list,
     compute_adaptive_horizontal_bar_height,
     apply_standard_bar_layout,
@@ -178,6 +179,17 @@ def update_cmo_dashboard(selected_destinations):
     total_clients = int(dff["ct"].sum())
     dff = dff.sort_values("ct", ascending=False).copy()
     dff["ct_display"] = dff["ct"].apply(format_count_display)
+    dff["percentage_display"] = dff.apply(
+        lambda row: format_percentage_display(
+            row["percentage"],
+            count_display=row["ct_display"],
+            decimals=2,
+        ),
+        axis=1,
+    )
+    dff["percentage_hover_suffix"] = dff["percentage_display"].apply(
+        lambda pct: f" ({pct})" if pct else ""
+    )
 
     # For horizontal bar charts, categoryarray[0] is rendered at the bottom.
     # Reverse here so the highest-count destination appears at the top.
@@ -204,8 +216,8 @@ def update_cmo_dashboard(selected_destinations):
     )
     apply_standard_single_series_bar_trace(
         fig,
-        customdata=dff[["percentage", "ct_display"]],
-        hovertemplate="%{y}: %{customdata[1]} clients (%{customdata[0]:.2f}%)<extra></extra>",
+        customdata=dff[["ct_display", "percentage_hover_suffix"]],
+        hovertemplate="%{y}: %{customdata[0]} clients%{customdata[1]}<extra></extra>",
     )
 
     table_df = dff[["referral_destination", "ct", "percentage"]].rename(
@@ -216,7 +228,7 @@ def update_cmo_dashboard(selected_destinations):
         }
     )
     table_df["Distinct Clients"] = table_df["Distinct Clients"].apply(format_count_display)
-    table_df["Percent of Total"] = table_df["Percent of Total"].map(lambda v: f"{v:.2f}%")
+    table_df["Percent of Total"] = dff["percentage_display"].values
 
     table = dbc.Table.from_dataframe(
         table_df,

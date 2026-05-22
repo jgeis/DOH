@@ -22,6 +22,7 @@ from dashboard_utils import (
    make_filters_card,
    dropdown_filter,
    format_count_display,
+    format_percentage_display,
     format_display_list,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
@@ -642,8 +643,23 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
             co_data = co_data.sort_values("Percentage", ascending=False)
             co_data["Count_formatted"] = co_data["Count"].apply(format_count_display)
             co_data["Total_formatted"] = co_data["Total"].apply(format_count_display)
+            co_data["Percentage_display"] = co_data.apply(
+                lambda row: format_percentage_display(
+                    row["Percentage"],
+                    count_display=row["Count_formatted"],
+                    decimals=1,
+                ),
+                axis=1,
+            )
+            co_data["Cooccurrence_line"] = co_data["Percentage_display"].apply(
+                lambda pct: f"Co-occurrence: {pct}" if pct else "Co-occurrence: Suppressed"
+            )
             co_data["label"] = co_data.apply(
-                lambda row: f"{row['Percentage']:.1f}% (n={row['Count_formatted']})",
+                lambda row: (
+                    f"{row['Percentage_display']} (n={row['Count_formatted']})"
+                    if row["Percentage_display"]
+                    else f"n={row['Count_formatted']}"
+                ),
                 axis=1,
             )
 
@@ -654,13 +670,13 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                 orientation="h",
                 labels={"Percentage": "Co-occurrence", "Also Found": "Other Substance"},
                 text="label",
-                custom_data=["Count_formatted", "Total_formatted"],
+                custom_data=["Count_formatted", "Total_formatted", "Cooccurrence_line"],
             )
             apply_standard_single_series_bar_trace(
                 bar_fig,
                 cliponaxis=True,
                 hovertemplate="<b>%{y}</b><br>"
-                             "Co-occurrence: %{x:.1f}%<br>"
+                             "%{customdata[2]}<br>"
                              "Count: %{customdata[0]}<br>"
                              "Total: %{customdata[1]}<extra></extra>",
             )
@@ -679,6 +695,17 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
         else:
             co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
             co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
+            co_data['Percentage_display'] = co_data.apply(
+                lambda row: format_percentage_display(
+                    row['Percentage'],
+                    count_display=row['Count_formatted'],
+                    decimals=1,
+                ),
+                axis=1,
+            )
+            co_data['Cooccurrence_line'] = co_data['Percentage_display'].apply(
+                lambda pct: f"Co-occurrence: {pct}" if pct else "Co-occurrence: Suppressed"
+            )
 
             bar_fig = px.bar(
                 co_data,
@@ -687,14 +714,14 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                 color='Also Found',
                 barmode='group',
                 labels={'Percentage': 'Co-occurrence', 'Primary': 'Primary Substance'},
-                text=co_data['Percentage'].apply(lambda x: f'{x:.1f}%'),
-                custom_data=['Count_formatted', 'Total_formatted', 'Also Found']
+                text=co_data['Percentage_display'],
+                custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line', 'Also Found']
             )
             bar_fig.update_traces(
                 textposition='inside',
-                hovertemplate='<b>%{customdata[2]}</b><br>' +
+                hovertemplate='<b>%{customdata[3]}</b><br>' +
                             'Primary: %{x}<br>' +
-                            'Co-occurrence: %{y:.1f}%<br>' +
+                            '%{customdata[2]}<br>' +
                             'Count: %{customdata[0]}<br>' +
                             'Total: %{customdata[1]}<extra></extra>',
             )

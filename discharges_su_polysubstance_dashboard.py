@@ -30,6 +30,7 @@ from dashboard_utils import (
     county_output_should_include_statewide,
     append_statewide_aggregate_rows,
     format_count_display,
+    format_percentage_display,
     format_display_list,
     apply_standard_single_series_bar_trace,
     apply_standard_bar_layout,
@@ -1115,10 +1116,25 @@ def update_bar_chart(selected_substances, is_mobile):
         # Create formatted hover text (suppresses counts < 10)
         co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
         co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
+        co_data['Percentage_display'] = co_data.apply(
+            lambda row: format_percentage_display(
+                row['Percentage'],
+                count_display=row['Count_formatted'],
+                decimals=1,
+            ),
+            axis=1,
+        )
+        co_data['Cooccurrence_line'] = co_data['Percentage_display'].apply(
+            lambda pct: f"Co-occurrence: {pct}" if pct else "Co-occurrence: Suppressed"
+        )
 
         # Create custom text with percentage and suppressed count
         co_data['label'] = co_data.apply(
-            lambda row: f"{row['Percentage']:.1f}% (n={row['Count_formatted']})",
+            lambda row: (
+                f"{row['Percentage_display']} (n={row['Count_formatted']})"
+                if row['Percentage_display']
+                else f"n={row['Count_formatted']}"
+            ),
             axis=1
         )
         
@@ -1145,14 +1161,14 @@ def update_bar_chart(selected_substances, is_mobile):
                     'Total': False, 
                     'label': False,
                 },
-                custom_data=['Count_formatted', 'Total_formatted']
+                custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line']
             )
             
             apply_standard_single_series_bar_trace(
                 fig,
                 textangle=0,
                 hovertemplate='<b>%{x}</b><br>' +
-                             'Co-occurrence: %{y:.1f}%<br>' +
+                             '%{customdata[2]}<br>' +
                              'Count: %{customdata[0]}<br>' +
                              'Total: %{customdata[1]}<extra></extra>',
             )
@@ -1176,13 +1192,13 @@ def update_bar_chart(selected_substances, is_mobile):
                     'Total': False, 
                     'label': False,
                 },
-                custom_data=['Count_formatted', 'Total_formatted', 'Also Found']
+                custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line', 'Also Found']
             )
             
             apply_standard_single_series_bar_trace(
                 fig,
                 hovertemplate='<b>%{y}</b><br>' +
-                             'Co-occurrence: %{x:.1f}%<br>' +
+                             '%{customdata[2]}<br>' +
                              'Count: %{customdata[0]}<br>' +
                              'Total: %{customdata[1]}<extra></extra>',
             )
@@ -1200,9 +1216,24 @@ def update_bar_chart(selected_substances, is_mobile):
         # Create formatted hover text (suppresses counts < 10)
         co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
         co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
+        co_data['Percentage_display'] = co_data.apply(
+            lambda row: format_percentage_display(
+                row['Percentage'],
+                count_display=row['Count_formatted'],
+                decimals=1,
+            ),
+            axis=1,
+        )
+        co_data['Cooccurrence_line'] = co_data['Percentage_display'].apply(
+            lambda pct: f"Co-occurrence: {pct}" if pct else "Co-occurrence: Suppressed"
+        )
 
         co_data['label'] = co_data.apply(
-            lambda row: f"{row['Percentage']:.1f}% (n={row['Count_formatted']})" if not is_mobile else f"{row['Percentage']:.0f}%", 
+            lambda row: (
+                f"{row['Percentage_display']} (n={row['Count_formatted']})"
+                if row['Percentage_display']
+                else f"n={row['Count_formatted']}"
+            ) if not is_mobile else (row['Percentage_display'] if row['Percentage_display'] else ""),
             axis=1
         )
         
@@ -1218,7 +1249,7 @@ def update_bar_chart(selected_substances, is_mobile):
                 'Total': False, 
                 'label': False,
             },
-            custom_data=['Count_formatted', 'Total_formatted', 'Also Found']
+            custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line', 'Also Found']
         )
         
         fig.update_traces(
@@ -1226,9 +1257,9 @@ def update_bar_chart(selected_substances, is_mobile):
             textposition='none',
             text=None,
             textangle=0,
-            hovertemplate='<b>%{customdata[2]}</b><br>' +
+            hovertemplate='<b>%{customdata[3]}</b><br>' +
                          'Primary: %{x}<br>' +
-                         'Co-occurrence: %{y:.1f}%<br>' +
+                         '%{customdata[2]}<br>' +
                          'Count: %{customdata[0]}<br>' +
                          'Total: %{customdata[1]}<extra></extra>',
             cliponaxis=False

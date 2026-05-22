@@ -207,6 +207,36 @@ def format_count_display(value, threshold: int = COUNT_SUPPRESSION_THRESHOLD, su
     return f"{numeric:,}"
 
 
+def format_percentage_display(
+    value,
+    count_value=None,
+    count_display: str | None = None,
+    decimals: int = 1,
+    suppressed_output: str = "",
+) -> str:
+    """
+    Format a percentage value while hiding it when the related count is suppressed.
+
+    If `count_display` (or `count_value`) resolves to SUPPRESSED_COUNT_LABEL, return
+    `suppressed_output` instead of a numeric percentage.
+    """
+    resolved_count_display = (
+        count_display
+        if count_display is not None
+        else format_count_display(count_value)
+    )
+
+    if resolved_count_display == SUPPRESSED_COUNT_LABEL:
+        return suppressed_output
+
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return suppressed_output
+
+    return f"{numeric:.{decimals}f}%"
+
+
 def wrap_axis_label(label: str, max_len: int = 45) -> str:
     """Wrap long categorical axis labels using HTML line breaks for Plotly."""
     if label is None:
