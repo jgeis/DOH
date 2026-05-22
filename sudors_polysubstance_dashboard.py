@@ -640,12 +640,12 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
             co_data["Total"] = total_records
             co_data["Percentage"] = (co_data["Count"] / total_records) * 100
             co_data = co_data.sort_values("Percentage", ascending=False)
-            co_data["label"] = co_data.apply(
-                lambda row: f"{row['Percentage']:.1f}% (n={int(row['Count']):,})",
-                axis=1,
-            )
             co_data["Count_formatted"] = co_data["Count"].apply(format_count_display)
             co_data["Total_formatted"] = co_data["Total"].apply(format_count_display)
+            co_data["label"] = co_data.apply(
+                lambda row: f"{row['Percentage']:.1f}% (n={row['Count_formatted']})",
+                axis=1,
+            )
 
             bar_fig = px.bar(
                 co_data,

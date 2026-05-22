@@ -1112,15 +1112,15 @@ def update_bar_chart(selected_substances, is_mobile):
         # Sort by percentage descending (highest to lowest) for both mobile and desktop
         co_data = co_data.sort_values('Percentage', ascending=False)
         
-        # Create custom text with percentage and count
-        co_data['label'] = co_data.apply(
-            lambda row: f"{row['Percentage']:.1f}% (n={int(row['Count']):,})", 
-            axis=1
-        )
-        
-        # Create formatted hover text
+        # Create formatted hover text (suppresses counts < 10)
         co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
         co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
+
+        # Create custom text with percentage and suppressed count
+        co_data['label'] = co_data.apply(
+            lambda row: f"{row['Percentage']:.1f}% (n={row['Count_formatted']})",
+            axis=1
+        )
         
         # Mobile: vertical bars (x=substance, y=percentage), Desktop: horizontal bars (x=percentage, y=substance)
         if len(selected_values) == 1:
@@ -1144,8 +1144,6 @@ def update_bar_chart(selected_substances, is_mobile):
                     'Count': False, 
                     'Total': False, 
                     'label': False,
-                    'Count_formatted': ':.0f',
-                    'Total_formatted': ':.0f'
                 },
                 custom_data=['Count_formatted', 'Total_formatted']
             )
@@ -1177,8 +1175,6 @@ def update_bar_chart(selected_substances, is_mobile):
                     'Count': False, 
                     'Total': False, 
                     'label': False,
-                    'Count_formatted': ':.0f',
-                    'Total_formatted': ':.0f'
                 },
                 custom_data=['Count_formatted', 'Total_formatted', 'Also Found']
             )
@@ -1201,14 +1197,14 @@ def update_bar_chart(selected_substances, is_mobile):
     else:
         # Show all primary substances
         # Add custom text label with percentage and count
-        co_data['label'] = co_data.apply(
-            lambda row: f"{row['Percentage']:.1f}% (n={int(row['Count']):,})" if not is_mobile else f"{row['Percentage']:.0f}%", 
-            axis=1
-        )
-        
-        # Create formatted hover text
+        # Create formatted hover text (suppresses counts < 10)
         co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
         co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
+
+        co_data['label'] = co_data.apply(
+            lambda row: f"{row['Percentage']:.1f}% (n={row['Count_formatted']})" if not is_mobile else f"{row['Percentage']:.0f}%", 
+            axis=1
+        )
         
         fig = px.bar(
             co_data,
@@ -1221,8 +1217,6 @@ def update_bar_chart(selected_substances, is_mobile):
                 'Count': False, 
                 'Total': False, 
                 'label': False,
-                'Count_formatted': ':.0f',
-                'Total_formatted': ':.0f'
             },
             custom_data=['Count_formatted', 'Total_formatted', 'Also Found']
         )
