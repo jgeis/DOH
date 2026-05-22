@@ -5,6 +5,7 @@ import dash_bootstrap_components as dbc
 from dash import html, dcc
 from theme import register_template
 import re
+import textwrap
 
 
 STATEWIDE_COUNTY = "Statewide"
@@ -204,6 +205,14 @@ def format_count_display(value, threshold: int = COUNT_SUPPRESSION_THRESHOLD, su
     if 0 < numeric < threshold:
         return suppressed_label
     return f"{numeric:,}"
+
+
+def wrap_axis_label(label: str, max_len: int = 45) -> str:
+    """Wrap long categorical axis labels using HTML line breaks for Plotly."""
+    if label is None:
+        return ""
+    wrapped = textwrap.wrap(str(label), width=max_len)
+    return "<br>".join(wrapped) if wrapped else ""
 
 
 def compute_adaptive_horizontal_bar_height(

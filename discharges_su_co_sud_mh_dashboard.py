@@ -23,6 +23,7 @@ from dashboard_utils import (
     make_filters_card,
     dropdown_filter,
     format_count_display,
+    wrap_axis_label,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
@@ -294,13 +295,7 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
             .sort_values("count", ascending=True)
         )
 
-        def ellipsize(text, max_len=25):
-            if text is None:
-                return text
-            return text if len(text) <= max_len else text[:max_len] + "..."
-        
-        # Cuts off label length after 25 characters
-        by_sub["diagnosis_label"] = by_sub["diagnosis"].apply(ellipsize)
+        by_sub["diagnosis_label"] = by_sub["diagnosis"].apply(wrap_axis_label)
         by_sub["display_count"] = by_sub["count"].apply(format_count_display)
 
         sub_bar = px.bar(

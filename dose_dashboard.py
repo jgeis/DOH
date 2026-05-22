@@ -24,6 +24,7 @@ from dashboard_utils import (
     make_filters_card,
     dropdown_filter,
     format_count_display,
+    wrap_axis_label,
     apply_standard_bar_layout,
     apply_standard_line_layout,
     apply_standard_map_layout,
@@ -265,12 +266,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             .sort_values("count", ascending=True)
         )
 
-        def ellipsize(text, max_len=25):
-            if text is None:
-                return text
-            return text if len(text) <= max_len else text[:max_len] + "..."
-        
-        by_dose["substance_label"] = by_dose["substance"].apply(ellipsize)
+        by_dose["substance_label"] = by_dose["substance"].apply(wrap_axis_label)
 
         by_dose["display_count"] = by_dose["count"].apply(format_count_display)
 

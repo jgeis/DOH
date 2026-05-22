@@ -6,7 +6,6 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
-import textwrap
 from dashboard_utils import (
     load_sql_query,
     sort_opts,
@@ -24,6 +23,7 @@ from dashboard_utils import (
     make_filters_card,
     dropdown_filter,
     format_count_display,
+    wrap_axis_label,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
@@ -294,15 +294,7 @@ def update_dashboard(diagnosis, county, city, year, hawaii_residency, age, sex, 
             .tail(10)
         )
 
-        def wrap_diagnosis_label(label: str, max_len: int = 45):
-            """
-            Break long labels into multiple lines so they don't stretch the chart.
-            Using textwrap ensures even exceptionally long labels wrap completely.
-            """
-            # textwrap.wrap returns a list of strings chunked by max_len
-            return "<br>".join(textwrap.wrap(str(label), width=max_len))
-
-        by_dx["diagnosis_label"] = by_dx["diagnosis"].apply(wrap_diagnosis_label)
+        by_dx["diagnosis_label"] = by_dx["diagnosis"].apply(wrap_axis_label)
         by_dx["display_count"] = by_dx["count"].apply(format_count_display)
 
         dx_bar = px.bar(
