@@ -6,6 +6,7 @@ from dash import html, dcc
 from theme import register_template
 import re
 import textwrap
+import math
 
 
 STATEWIDE_COUNTY = "Statewide"
@@ -231,7 +232,7 @@ def build_suppressed_bar_count_columns(
         suppressed_label if is_suppressed else format_count_display(v, threshold, suppressed_label)
         for v, is_suppressed in zip(numeric, suppressed_mask)
     ]
-    return plot_values, pd.Series(display_values), suppressed_mask
+    return plot_values, pd.Series(display_values, index=numeric.index), suppressed_mask
 
 
 def apply_suppressed_horizontal_bar_display(
@@ -309,7 +310,49 @@ def format_percentage_display(
     except (TypeError, ValueError):
         return suppressed_output
 
+    if math.isnan(numeric) or math.isinf(numeric):
+        return suppressed_output
+
     return f"{numeric:.{decimals}f}%"
+
+
+def build_suppressed_percentage_columns(
+    percentage_values,
+    count_values=None,
+    count_display_values=None,
+    decimals: int = 1,
+    suppressed_output: str = "",
+    suppressed_plot_value: float = 0.0,
+):
+    """
+    Build plotted/display percentage series that hide percentages when counts are suppressed.
+
+    Returns:
+      - plot_percentage_values: numeric values with suppressed rows zeroed (or overridden)
+      - percentage_display_values: formatted percentage strings (or suppressed_output)
+      - suppressed_mask: True where count suppression is active
+    """
+    percentage_numeric = pd.to_numeric(pd.Series(percentage_values), errors="coerce").fillna(0.0)
+
+    if count_display_values is None:
+        count_display_series = pd.Series(count_values).apply(format_count_display)
+    else:
+        count_display_series = pd.Series(count_display_values).astype(str)
+
+    suppressed_mask = count_display_series == SUPPRESSED_COUNT_LABEL
+
+    percentage_display_values = [
+        format_percentage_display(
+            pct,
+            count_display=count_display,
+            decimals=decimals,
+            suppressed_output=suppressed_output,
+        )
+        for pct, count_display in zip(percentage_numeric, count_display_series)
+    ]
+
+    plot_percentage_values = percentage_numeric.where(~suppressed_mask, suppressed_plot_value)
+    return plot_percentage_values, pd.Series(percentage_display_values, index=percentage_numeric.index), suppressed_mask
 
 
 def wrap_axis_label(label: str, max_len: int = 45) -> str:
@@ -578,6 +621,24 @@ def apply_standard_bar_layout(
         require_integer_like=True,
         override_hovertemplate=False,
     )
+
+    # Keep suppression labels visible when a chart intentionally zeroes suppressed bars.
+    # We only force outside placement for labels that contain the suppression token.
+    for trace in fig.select_traces(selector={"type": "bar"}):
+        text_values = getattr(trace, "text", None)
+        if text_values is None or isinstance(text_values, str):
+            continue
+
+        text_list = ["" if v is None else str(v) for v in text_values]
+        if not any(SUPPRESSED_COUNT_LABEL in value for value in text_list):
+            continue
+
+        trace.textposition = [
+            "outside" if SUPPRESSED_COUNT_LABEL in value else "auto"
+            for value in text_list
+        ]
+        trace.cliponaxis = False
+
     return fig
 
 def apply_standard_single_series_bar_trace(

@@ -22,7 +22,7 @@ from dashboard_utils import (
    make_filters_card,
    dropdown_filter,
    format_count_display,
-    format_percentage_display,
+    build_suppressed_percentage_columns,
     format_display_list,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
@@ -641,29 +641,30 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
             co_data = co_data.sort_values("Percentage", ascending=False)
             co_data["Count_formatted"] = co_data["Count"].apply(format_count_display)
             co_data["Total_formatted"] = co_data["Total"].apply(format_count_display)
-            co_data["Percentage_display"] = co_data.apply(
-                lambda row: format_percentage_display(
-                    row["Percentage"],
-                    count_display=row["Count_formatted"],
-                    decimals=1,
-                ),
-                axis=1,
+            co_data["Plot_Percentage"], co_data["Percentage_display"], _ = build_suppressed_percentage_columns(
+                co_data["Percentage"],
+                count_display_values=co_data["Count_formatted"],
+                decimals=1,
             )
             co_data["Cooccurrence_line"] = co_data["Percentage_display"].apply(
-                lambda pct: f"Co-occurrence: {pct}" if pct else "Co-occurrence: Suppressed"
+                lambda pct: (
+                    f"Co-occurrence: {pct}"
+                    if pd.notna(pct) and str(pct).strip()
+                    else "Co-occurrence: Suppressed"
+                )
             )
             co_data["label"] = co_data.apply(
                 lambda row: (
                     f"{row['Percentage_display']} (n={row['Count_formatted']})"
-                    if row["Percentage_display"]
-                    else f"n={row['Count_formatted']}"
+                    if pd.notna(row["Percentage_display"]) and str(row["Percentage_display"]).strip()
+                    else row["Count_formatted"]
                 ),
                 axis=1,
             )
 
             bar_fig = px.bar(
                 co_data,
-                x="Percentage",
+                x="Plot_Percentage",
                 y="Also Found",
                 orientation="h",
                 labels={"Percentage": "Co-occurrence", "Also Found": "Other Substance"},
@@ -678,7 +679,7 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                              "Count: %{customdata[0]}<br>"
                              "Total: %{customdata[1]}<extra></extra>",
             )
-            max_pct = float(co_data["Percentage"].max()) if not co_data.empty else 0.0
+            max_pct = float(co_data["Plot_Percentage"].max()) if not co_data.empty else 0.0
             bar_fig.update_xaxes(range=[0, max_pct * 1.15 if max_pct else 1])
             bar_fig.update_yaxes(
                 categoryorder="array",
@@ -693,22 +694,23 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
         else:
             co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
             co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
-            co_data['Percentage_display'] = co_data.apply(
-                lambda row: format_percentage_display(
-                    row['Percentage'],
-                    count_display=row['Count_formatted'],
-                    decimals=1,
-                ),
-                axis=1,
+            co_data['Plot_Percentage'], co_data['Percentage_display'], _ = build_suppressed_percentage_columns(
+                co_data['Percentage'],
+                count_display_values=co_data['Count_formatted'],
+                decimals=1,
             )
             co_data['Cooccurrence_line'] = co_data['Percentage_display'].apply(
-                lambda pct: f"Co-occurrence: {pct}" if pct else "Co-occurrence: Suppressed"
+                lambda pct: (
+                    f"Co-occurrence: {pct}"
+                    if pd.notna(pct) and str(pct).strip()
+                    else "Co-occurrence: Suppressed"
+                )
             )
 
             bar_fig = px.bar(
                 co_data,
                 x='Primary',
-                y='Percentage',
+                y='Plot_Percentage',
                 color='Also Found',
                 barmode='group',
                 labels={'Percentage': 'Co-occurrence', 'Primary': 'Primary Substance'},

@@ -30,7 +30,7 @@ from dashboard_utils import (
     county_output_should_include_statewide,
     append_statewide_aggregate_rows,
     format_count_display,
-    format_percentage_display,
+    build_suppressed_percentage_columns,
     format_display_list,
     apply_standard_single_series_bar_trace,
     apply_standard_bar_layout,
@@ -1116,24 +1116,25 @@ def update_bar_chart(selected_substances, is_mobile):
         # Create formatted hover text (suppresses counts < 10)
         co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
         co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
-        co_data['Percentage_display'] = co_data.apply(
-            lambda row: format_percentage_display(
-                row['Percentage'],
-                count_display=row['Count_formatted'],
-                decimals=1,
-            ),
-            axis=1,
+        co_data['Plot_Percentage'], co_data['Percentage_display'], _ = build_suppressed_percentage_columns(
+            co_data['Percentage'],
+            count_display_values=co_data['Count_formatted'],
+            decimals=1,
         )
         co_data['Cooccurrence_line'] = co_data['Percentage_display'].apply(
-            lambda pct: f"Co-occurrence: {pct}" if pct else "Co-occurrence: Suppressed"
+            lambda pct: (
+                f"Co-occurrence: {pct}"
+                if pd.notna(pct) and str(pct).strip()
+                else "Co-occurrence: Suppressed"
+            )
         )
 
         # Create custom text with percentage and suppressed count
         co_data['label'] = co_data.apply(
             lambda row: (
                 f"{row['Percentage_display']} (n={row['Count_formatted']})"
-                if row['Percentage_display']
-                else f"n={row['Count_formatted']}"
+                if pd.notna(row['Percentage_display']) and str(row['Percentage_display']).strip()
+                else row['Count_formatted']
             ),
             axis=1
         )
@@ -1152,7 +1153,7 @@ def update_bar_chart(selected_substances, is_mobile):
             fig = px.bar(
                 co_data,
                 x='Also Found',
-                y='Percentage',
+                y='Plot_Percentage',
                 orientation='v',
                 labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
                 text='label',
@@ -1172,7 +1173,7 @@ def update_bar_chart(selected_substances, is_mobile):
                              'Count: %{customdata[0]}<br>' +
                              'Total: %{customdata[1]}<extra></extra>',
             )
-            max_pct = float(co_data['Percentage'].max()) if not co_data.empty else 0.0
+            max_pct = float(co_data['Plot_Percentage'].max()) if not co_data.empty else 0.0
             fig.update_yaxes(range=[0, max_pct * 1.15 if max_pct else 1])
             # Keep visual order explicitly descending left-to-right.
             fig.update_xaxes(
@@ -1182,7 +1183,7 @@ def update_bar_chart(selected_substances, is_mobile):
         else:
             fig = px.bar(
                 co_data,
-                x='Percentage',
+                x='Plot_Percentage',
                 y='Also Found',
                 orientation='h',
                 labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
@@ -1202,7 +1203,7 @@ def update_bar_chart(selected_substances, is_mobile):
                              'Count: %{customdata[0]}<br>' +
                              'Total: %{customdata[1]}<extra></extra>',
             )
-            max_pct = float(co_data['Percentage'].max()) if not co_data.empty else 0.0
+            max_pct = float(co_data['Plot_Percentage'].max()) if not co_data.empty else 0.0
             fig.update_xaxes(range=[0, max_pct * 1.15 if max_pct else 1])
             # Horizontal bars render categories bottom-to-top; reverse for descending top-to-bottom.
             fig.update_yaxes(
@@ -1216,31 +1217,36 @@ def update_bar_chart(selected_substances, is_mobile):
         # Create formatted hover text (suppresses counts < 10)
         co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
         co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
-        co_data['Percentage_display'] = co_data.apply(
-            lambda row: format_percentage_display(
-                row['Percentage'],
-                count_display=row['Count_formatted'],
-                decimals=1,
-            ),
-            axis=1,
+        co_data['Plot_Percentage'], co_data['Percentage_display'], _ = build_suppressed_percentage_columns(
+            co_data['Percentage'],
+            count_display_values=co_data['Count_formatted'],
+            decimals=1,
         )
         co_data['Cooccurrence_line'] = co_data['Percentage_display'].apply(
-            lambda pct: f"Co-occurrence: {pct}" if pct else "Co-occurrence: Suppressed"
+            lambda pct: (
+                f"Co-occurrence: {pct}"
+                if pd.notna(pct) and str(pct).strip()
+                else "Co-occurrence: Suppressed"
+            )
         )
 
         co_data['label'] = co_data.apply(
             lambda row: (
                 f"{row['Percentage_display']} (n={row['Count_formatted']})"
-                if row['Percentage_display']
-                else f"n={row['Count_formatted']}"
-            ) if not is_mobile else (row['Percentage_display'] if row['Percentage_display'] else ""),
+                if pd.notna(row['Percentage_display']) and str(row['Percentage_display']).strip()
+                else row['Count_formatted']
+            ) if not is_mobile else (
+                row['Percentage_display']
+                if pd.notna(row['Percentage_display']) and str(row['Percentage_display']).strip()
+                else ""
+            ),
             axis=1
         )
         
         fig = px.bar(
             co_data,
             x='Primary',
-            y='Percentage',
+            y='Plot_Percentage',
             color='Also Found',
             barmode='group',
             labels={'Percentage': 'Co-occurrence %', 'Primary': 'Primary Substance'},
