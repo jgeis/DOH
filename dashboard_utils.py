@@ -75,6 +75,8 @@ def _ordered_filters(filters):
     def _sort_key(item):
         original_idx, (label_text, _control) = item
         rank = _FILTER_LABEL_RANK.get(_normalize_filter_label(label_text), len(_FILTER_LABEL_RANK))
+        if _normalize_filter_label(label_text) == _normalize_filter_label("Custom Date Range"):
+            rank = len(_FILTER_LABEL_RANK) + 1
         return rank, original_idx
 
     return [flt for _idx, flt in sorted(indexed, key=_sort_key)]
