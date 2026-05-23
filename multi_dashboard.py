@@ -17,8 +17,8 @@ TAB_PATHS = {
     "/crisis-mobile-outreach": "Referral Destinations for Crisis Mobile Outreach Clients",
     "/adad": "ADAD Clients Served",
     "/adad-cooccurring": "ADAD Co-Occurring Clients Served",
-    "/camhd": "CAMHD Clients Served",
-    "/camhd-cooccurring": "CAMHD Co-Occurring Clients Served",
+    "/camhd": "CAMHD",
+    "/camhd-cooccurring": "CAMHD with Co-Occurring MH and SU",
     "/amhd": "AMHD Clients Served",
     "/amhd-cooccurring": "AMHD Co-Occurring Clients Served",
     "/lcrs": "Licensed Crisis Residential Facilities",
@@ -45,7 +45,7 @@ NAV_GROUPS = {
         ("/adad-cooccurring", "ADAD Co-Occurring Clients Served"),
     ],
     "camhd": [
-        ("/camhd", "CAMHD Clients Served"),
+        ("/camhd", "CAMHD"),
         ("/camhd-cooccurring", "CAMHD Co-Occurring Clients Served"),
     ],
     "amhd": [

@@ -57,8 +57,17 @@ max_date = df_raw["service_date"].max().date()
 
 
 kpi_card = make_kpi_card(
-    label="Number of Distinct Clients",
+    label="Number of CAMHD Consumers",
     count_id="camhd-kpi-total",
+)
+
+reset_button = dbc.Button(
+    "Reset All Filters",
+    id="camhd-reset-btn",
+    color="secondary",
+    outline=True,
+    className="w-100 mb-3",
+    n_clicks=0,
 )
 
 view_toggle_card = dbc.Card(
@@ -142,6 +151,7 @@ def layout():
     left_col = dbc.Col(
         [
             kpi_card,
+            reset_button,
             view_toggle_card,
             filters_card,
             last_updated_block,
@@ -176,6 +186,17 @@ def layout():
 
 
 layout = layout()
+
+
+@callback(
+    Output("camhd-year-filter", "value"),
+    Output("camhd-start-date", "value"),
+    Output("camhd-end-date", "value"),
+    Input("camhd-reset-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def reset_camhd_filters(_n_clicks):
+    return None, str(min_date), str(max_date)
 
 
 @callback(
