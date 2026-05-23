@@ -296,41 +296,11 @@ SELECT
     END AS age_group,
     patient_sex_value as sex,
     program_city,
-    program_county_value,
-    Homeless_Value as is_homeless
+    program_county_value as program_county,
+    Homeless_Value as is_homeless,
+    DispatchDate as date
 FROM AMHD_Crisis_Mobile_Outreach
--- DATEADD subtracts 6 months from the absolute newest date in the table
-WHERE DispatchDate >= DATEADD(month, -6, (SELECT MAX(DispatchDate) FROM AMHD_Crisis_Mobile_Outreach));
-
-
--- name: load_crisis_mobile_outreach_sqlite
-SELECT 
-    PATID,
-    CASE 
-        WHEN CMOReferralTo_Value IN ('Castle ER', 'Other ER', 'Queens ER') THEN 'Emergency Rooms'
-        WHEN CMOReferralTo_Value = 'BHCC' THEN 'Behavioral Health Crisis Center'
-        WHEN CMOReferralTo_Value = 'CSM' THEN 'Crisis Support Management'
-        WHEN CMOReferralTo_Value = 'Family / Friends' THEN 'Parents/Family/Friends'
-        WHEN CMOReferralTo_Value IN ('LCRS', 'Stabilization Bed') THEN 'Licensed Crisis Residential Services and Stabilization Beds'
-        ELSE CMOReferralTo_Value 
-    END AS referral_destination,
-    CASE 
-        WHEN Age < 15 THEN '<15'
-        WHEN Age >= 15 and Age <= 24 THEN '15-24'
-        WHEN Age >= 25 and Age <= 34 THEN '25-34'
-        WHEN Age >= 35 and Age <= 44 THEN '35-44'
-        WHEN Age >= 45 and Age <= 54 THEN '45-54'
-        WHEN Age >= 55 and Age <= 64 THEN '55-64'
-        WHEN Age >= 65 THEN '65+'
-    END AS age_group,
-    patient_sex_value as sex,
-    program_city,
-    program_county_value,
-    Homeless_Value as is_homeless
-FROM AMHD_Crisis_Mobile_Outreach
--- SQLite uses the date() function with string modifiers instead of DATEADD
-WHERE DispatchDate >= date((SELECT MAX(DispatchDate) FROM AMHD_Crisis_Mobile_Outreach), '-6 months');
-
+WHERE DispatchDate IS NOT NULL;
 
 -- name: load_crisis_mobile_outreach_last_updated
 SELECT CAST(MAX(DispatchDate) AS date) AS last_updated
