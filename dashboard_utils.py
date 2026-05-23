@@ -23,6 +23,7 @@ FILTER_LABEL_ORDER = [
     "Substance Use Diagnosis",
     "Mental Health Diagnosis",
     "Calendar Year",
+    "Calendar Years",
     "Year",
     "Month",
     "County of Death",
@@ -167,28 +168,57 @@ def sort_opts(series):
     We also make sure "Unknown" always shows up at the end of the list
     so the drop-down menus look cleaner.
     """
-    def _normalize_age_group_label(text: str) -> str:
-        """Normalize age labels like 'Under 15' to '<15' for consistent menu display."""
+    vals = [str(v).strip() for v in pd.Series(series).dropna().astype(str).unique().tolist()]
+    vals = [v for v in vals if v]
+
+    def _age_like_sort_key(text: str):
         s = str(text).strip()
-        m = re.fullmatch(r"under\s+(\d+)", s, flags=re.IGNORECASE)
-        if m:
-            return f"<{m.group(1)}"
-        return s
+        low = s.lower()
 
-    normalized = pd.Series(series).dropna().astype(str).map(_normalize_age_group_label)
-    vals = [str(v) for v in pd.Series(normalized.unique()).tolist()]
+        if low == "unknown":
+            return (4, float("inf"), float("inf"), s)
 
-    def _lt_sort_key(text: str):
-        """Sort '<' bucket values by numeric component when available."""
-        m = re.search(r"\d+", text)
-        return (int(m.group()) if m else float("inf"), text)
+        under_match = re.fullmatch(r"under\s+(\d+)", s, flags=re.IGNORECASE)
+        if under_match:
+            n = int(under_match.group(1))
+            return (0, n, n, s)
 
-    less_than = sorted([v for v in vals if "<" in v], key=_lt_sort_key)
-    has_unknown = "Unknown" in vals
+        lt_match = re.fullmatch(r"<\s*(\d+)", s)
+        if lt_match:
+            n = int(lt_match.group(1))
+            return (0, n, n, s)
 
-    middle = sorted([v for v in vals if "<" not in v and v != "Unknown"])
-    ordered = less_than + middle + (["Unknown"] if has_unknown else [])
-    return ordered
+        range_match = re.fullmatch(r"(\d+)\s*-\s*(\d+)", s)
+        if range_match:
+            start = int(range_match.group(1))
+            end = int(range_match.group(2))
+            return (1, start, end, s)
+
+        plus_match = re.fullmatch(r"(\d+)\s*\+", s)
+        if plus_match:
+            n = int(plus_match.group(1))
+            return (2, n, n, s)
+
+        return (3, float("inf"), float("inf"), low)
+
+    has_age_like = any(
+        re.fullmatch(r"under\s+\d+|<\s*\d+|\d+\s*-\s*\d+|\d+\s*\+", str(v).strip(), flags=re.IGNORECASE)
+        for v in vals
+    )
+
+    if has_age_like:
+        return sorted(vals, key=_age_like_sort_key)
+
+    non_unknown_vals = [v for v in vals if v.lower() != "unknown"]
+    is_year_like = bool(non_unknown_vals) and all(re.fullmatch(r"\d{4}", v) for v in non_unknown_vals)
+    if is_year_like:
+        sorted_years = sorted(non_unknown_vals, key=lambda x: int(x), reverse=True)
+        has_unknown = any(v.lower() == "unknown" for v in vals)
+        return sorted_years + (["Unknown"] if has_unknown else [])
+
+    has_unknown = any(v.lower() == "unknown" for v in vals)
+    middle = sorted(non_unknown_vals)
+    return middle + (["Unknown"] if has_unknown else [])
 
 
 def format_count_display(value, threshold: int = COUNT_SUPPRESSION_THRESHOLD, suppressed_label: str = SUPPRESSED_COUNT_LABEL) -> str:

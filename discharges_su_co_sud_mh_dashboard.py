@@ -91,7 +91,7 @@ su_opts                 = sort_opts(df_raw.loc[df_raw["diagnosis_type"] == "su",
 mh_opts                 = sort_opts(df_raw.loc[df_raw["diagnosis_type"] == "mh", "diagnosis"])  if "diagnosis"          in df_raw.columns else []
 county_opts             = sort_opts(df_raw["county"])                                           if "county"             in df_raw.columns else []
 city_opts               = sort_opts(df_raw["city"])                                             if "city"               in df_raw.columns else []
-year_opts               = sorted(df_raw["year"].dropna().unique().tolist())                     if "year"               in df_raw.columns else []
+year_opts               = sort_opts(df_raw["year"])                                             if "year"               in df_raw.columns else []
 age_opts                = sort_opts(df_raw["age_group"])                                        if "age_group"          in df_raw.columns else []
 sex_opts                = sort_opts(df_raw["sex"])                                              if "sex"                in df_raw.columns else []
 race_ethnicity_opts     = sort_opts(df_raw["race_ethnicity"])                                   if "race_ethnicity"     in df_raw.columns else []

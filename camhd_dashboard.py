@@ -16,6 +16,7 @@ from dashboard_utils import (
     dropdown_filter,
     format_count_display,
     opts_list,
+    sort_opts,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
 )
@@ -50,7 +51,7 @@ def load_camhd_dataframe():
 df_raw = load_camhd_dataframe()
 last_updated_value = compute_last_updated_value(df_raw)
 
-year_opts = sorted(df_raw["year"].dropna().unique().tolist(), reverse=True)
+year_opts = sort_opts(df_raw["year"])
 min_date = df_raw["service_date"].min().date()
 max_date = df_raw["service_date"].max().date()
 

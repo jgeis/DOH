@@ -77,7 +77,7 @@ homeless_opts   = sort_opts(df_raw["homeless"])                      if "homeles
 sex_opts        = sort_opts(df_raw["sex"])                           if "sex"        in df_raw.columns else []
 age_opts        = sort_opts(df_raw["age_cat"])                       if "age_cat"    in df_raw.columns else []
 race_opts       = sort_opts(df_raw["race_ethnicity"])                if "race_ethnicity"       in df_raw.columns else []
-year_opts       = sorted(df_raw["year"].dropna().unique().tolist())  if "year"       in df_raw.columns else []
+year_opts       = sort_opts(df_raw["year"])                          if "year"       in df_raw.columns else []
 
 # ----------------------------
 # UI Components

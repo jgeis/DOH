@@ -20,6 +20,7 @@ from dashboard_utils import (
     dropdown_filter,
     format_count_display,
     opts_list,
+    sort_opts,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
 )
@@ -170,8 +171,8 @@ df_day = load_amhd_dataframe()
 df_raw = df_day
 last_updated_value = compute_last_updated_value(df_raw)
 
-year_opts = sorted(df_raw["year"].dropna().unique().tolist(), reverse=True)
-service_category_opts = sorted(df_raw["service_category"].dropna().unique().tolist())
+year_opts = sort_opts(df_raw["year"])
+service_category_opts = sort_opts(df_raw["service_category"])
 
 min_date = df_day["service_date"].min().date()
 max_date = df_day["service_date"].max().date()

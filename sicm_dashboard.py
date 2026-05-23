@@ -19,6 +19,7 @@ from dashboard_utils import (
     compute_last_updated_value,
     dropdown_filter,
     opts_list,
+    sort_opts,
     apply_standard_line_layout,
 )
 
@@ -116,10 +117,10 @@ def load_sicm_dataframe():
 df_raw = load_sicm_dataframe()
 last_updated_value = compute_last_updated_value(df_raw)
 
-year_opts = sorted(df_raw["year"].dropna().unique().tolist(), reverse=True)
+year_opts = sort_opts(df_raw["year"])
 month_nums_present = sorted(df_raw["month_num"].dropna().unique().tolist())
 month_opts = [MONTH_NAMES[m] for m in month_nums_present]
-county_opts = sorted(df_raw["county"].dropna().unique().tolist())
+county_opts = sort_opts(df_raw["county"])
 
 min_date = df_raw["date"].min().date()
 max_date = df_raw["date"].max().date()

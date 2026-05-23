@@ -106,7 +106,7 @@ def sort_opts(series):
 # Build the lists of choices for each filter only if the column exists.
 # Why: this makes the code more flexible if the data shape changes later.
 wonder_county_opts  = sort_opts(df_raw["county"])                           if "county"  in df_raw.columns else []
-wonder_year_opts    = sorted(df_raw["year"].dropna().unique().tolist())     if "year"    in df_raw.columns else []
+wonder_year_opts    = sort_opts(df_raw["year"])                              if "year"    in df_raw.columns else []
 
 def opts_list(values):
     """

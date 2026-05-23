@@ -17,6 +17,7 @@ from dashboard_utils import (
     dropdown_filter,
     format_count_display,
     opts_list,
+    sort_opts,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
 )
@@ -49,10 +50,10 @@ def load_cares_dataframe():
 df_raw = load_cares_dataframe()
 last_updated_value = compute_last_updated_value(df_raw)
 
-year_opts = sorted(df_raw["year"].dropna().unique().tolist())
+year_opts = sort_opts(df_raw["year"])
 month_nums_present = sorted(df_raw["month_num"].dropna().unique().tolist())
 month_opts = [MONTH_NAMES[m] for m in month_nums_present]
-crisis_line_opts = sorted(df_raw["origin_of_call"].dropna().unique().tolist())
+crisis_line_opts = sort_opts(df_raw["origin_of_call"])
 
 # ----------------------------
 # UI Components
@@ -99,7 +100,7 @@ filters_card = make_filters_card(
     title="Filter Data",
     filters=[
         dropdown_filter(
-            "Calendar Years",
+            "Calendar Year",
             "cares-year-filter",
             options=opts_list(year_opts),
             multi=True,

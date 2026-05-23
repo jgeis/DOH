@@ -237,14 +237,14 @@ def layout():
                 "Line chart showing top referral destinations by year.",
                 className="visually-hidden",
             ),
-            graph_block("cmo-age-year-line", "Age Group by Year"),
-            html.P(
-                "Line chart showing age group trends by year.",
-                className="visually-hidden",
-            ),
             graph_block("cmo-county-year-line", "County by Year"),
             html.P(
                 "Line chart showing county trends by year.",
+                className="visually-hidden",
+            ),
+            graph_block("cmo-age-year-line", "Age Group by Year"),
+            html.P(
+                "Line chart showing age group trends by year.",
                 className="visually-hidden",
             ),
         ],

@@ -278,7 +278,7 @@ substance_opts = sort_opts(df_raw["substance"]) if "substance" in df_raw.columns
 county_opts    = sort_opts(df_raw["county"]) if "county" in df_raw.columns else []
 age_opts       = sort_opts(df_raw["age_group"]) if "age_group" in df_raw.columns else []
 sex_opts       = sort_opts(df_raw["sex"])       if "sex"       in df_raw.columns else []
-year_opts      = sorted(df_raw["year"].dropna().unique().tolist()) if "year" in df_raw.columns else []
+year_opts      = sort_opts(df_raw["year"])                         if "year" in df_raw.columns else []
 
 # Total number of unique records, used for the big KPI card.
 kpi_total = df_raw["record_id"].nunique() if "record_id" in df_raw.columns else 0
@@ -895,13 +895,19 @@ def update(substance, age, sex, county, year):
         tbl_county = dbc.Alert("No county data available.", color="warning", className="mb-0")
 
     # ---------- Small tables ----------
-    def simple_table(df, col, ordered=None):
+    def simple_table(df, col, ordered=None, include_all_ordered=False):
         if col not in df.columns or df.empty:
             return dbc.Alert(f"No data for '{col}'.", color="warning", className="mb-0")
 
         g = df.groupby(col)["record_id"].nunique().reset_index(name="discharges")
 
         if ordered:
+            if include_all_ordered:
+                # Keep all configured categories visible even when the filtered slice has zero rows.
+                full = pd.DataFrame({col: ordered})
+                g = full.merge(g, on=col, how="left")
+                g["discharges"] = g["discharges"].fillna(0).astype(int)
+
             g[col] = pd.Categorical(g[col], categories=ordered, ordered=True)
             g = g.sort_values(col)
 
@@ -945,7 +951,7 @@ def update(substance, age, sex, county, year):
         year_source["year"] = year_source["year"].astype(str)
 
     tbl_year = simple_table(year_source, "year", year_groups)
-    tbl_age = simple_table(uniq, "age_group", age_groups)
+    tbl_age = simple_table(uniq, "age_group", age_opts, include_all_ordered=True)
     tbl_sex = simple_table(uniq, "sex")
 
     return kpi_value, bar_title, line_title, county_title, fig_sub, fig_year_substance, fig_year_county, tbl_county, tbl_year, tbl_age, tbl_sex

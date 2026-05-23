@@ -62,11 +62,11 @@ def load_adad_cooccurring_dataframe():
 df_raw = load_adad_cooccurring_dataframe()
 last_updated_value = compute_last_updated_value(df_raw)
 
-year_opts = sorted(df_raw["year"].dropna().unique().tolist(), reverse=True)
+year_opts = sort_opts(df_raw["year"])
 month_nums_present = sorted(df_raw["month_num"].dropna().unique().tolist())
 month_opts = [MONTH_NAMES[m] for m in month_nums_present]
-modality_opts = sorted(df_raw["modality"].dropna().unique().tolist())
-county_opts = sorted(df_raw["county"].dropna().unique().tolist())
+modality_opts = sort_opts(df_raw["modality"])
+county_opts = sort_opts(df_raw["county"])
 
 min_date = df_raw["service_date"].min().date()
 max_date = df_raw["service_date"].max().date()
