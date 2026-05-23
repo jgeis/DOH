@@ -193,7 +193,13 @@ def update_camhd_cooccurring(view, sel_years, start_date, end_date):
     dff = df_raw.copy()
 
     if sel_years:
-        dff = dff[dff["year"].isin(sel_years)]
+        selected_years_numeric = (
+            pd.to_numeric(pd.Series(sel_years), errors="coerce")
+            .dropna()
+            .astype("Int64")
+            .tolist()
+        )
+        dff = dff[dff["year"].isin(selected_years_numeric)]
 
     if start_date:
         dff = dff[dff["service_date"] >= pd.to_datetime(start_date)]

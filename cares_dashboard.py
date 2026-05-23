@@ -40,7 +40,43 @@ def load_cares_dataframe():
     print(f"load_cares_calls returned {len(df):,} rows")
     if df.empty:
         raise RuntimeError("cares_calls query returned 0 rows.")
+
+    # Normalize column names so the dashboard works with either raw or pre-aggregated SQL.
+    col_lookup = {c.lower(): c for c in df.columns}
+
+    date_col = col_lookup.get("day") or col_lookup.get("date")
+    if not date_col:
+        raise RuntimeError("load_cares_calls must return a Date/day column.")
+    if date_col != "day":
+        df = df.rename(columns={date_col: "day"})
+
+    line_col = col_lookup.get("origin_of_call") or col_lookup.get("line")
+    if line_col:
+        if line_col != "origin_of_call":
+            df = df.rename(columns={line_col: "origin_of_call"})
+    else:
+        df["origin_of_call"] = "Unknown"
+
+    count_col = col_lookup.get("count_of_users")
+    if count_col and count_col != "count_of_users":
+        df = df.rename(columns={count_col: "count_of_users"})
+
     df["day"] = pd.to_datetime(df["day"], errors="coerce")
+    df = df[df["day"].notna()].copy()
+
+    if "count_of_users" in df.columns:
+        df["count_of_users"] = pd.to_numeric(df["count_of_users"], errors="coerce").fillna(0)
+    else:
+        # Raw call-level rows: each row is one contact.
+        df["count_of_users"] = 1
+
+    df["origin_of_call"] = (
+        df["origin_of_call"]
+        .astype(str)
+        .str.strip()
+        .replace({"": "Unknown", "nan": "Unknown", "None": "Unknown"})
+    )
+
     df["year"] = df["day"].dt.year.astype("Int64")
     df["month_num"] = df["day"].dt.month.astype("Int64")
     df["month"] = df["month_num"].map(MONTH_NAMES)
@@ -209,7 +245,13 @@ def update_cares(view, sel_years, sel_months, sel_crisis):
 
     # Apply filters (None / empty → show all)
     if sel_years:
-        dff = dff[dff["year"].isin(sel_years)]
+        selected_years_numeric = (
+            pd.to_numeric(pd.Series(sel_years), errors="coerce")
+            .dropna()
+            .astype("Int64")
+            .tolist()
+        )
+        dff = dff[dff["year"].isin(selected_years_numeric)]
     if sel_months:
         dff = dff[dff["month"].isin(sel_months)]
     if sel_crisis:

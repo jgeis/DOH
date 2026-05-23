@@ -339,7 +339,13 @@ def update_cmo_dashboard(
     if end_ts is not None:
         dff = dff[dff["date"] <= end_ts]
     if selected_years:
-        dff = dff[dff["year"].isin(selected_years)]
+        selected_years_numeric = (
+            pd.to_numeric(pd.Series(selected_years), errors="coerce")
+            .dropna()
+            .astype("Int64")
+            .tolist()
+        )
+        dff = dff[dff["year"].isin(selected_years_numeric)]
     if selected_counties:
         dff = dff[dff["program_county"].isin(selected_counties)]
     if selected_cities:

@@ -316,7 +316,13 @@ def update_sicm_kpi(sel_years, sel_months, sel_counties, start_date, end_date):
     dff = df_raw.copy()
 
     if sel_years:
-        dff = dff[dff["year"].isin(sel_years)]
+        selected_years_numeric = (
+            pd.to_numeric(pd.Series(sel_years), errors="coerce")
+            .dropna()
+            .astype("Int64")
+            .tolist()
+        )
+        dff = dff[dff["year"].isin(selected_years_numeric)]
     if sel_months:
         dff = dff[dff["month"].isin(sel_months)]
     if sel_counties:
@@ -360,7 +366,13 @@ def _filter_sicm_frame(sel_years, sel_months, sel_counties, start_date, end_date
 
     # 2. THE EXTRACTORS: Pluck specific Years or Months out of that box
     if sel_years:
-        dff = dff[dff["year"].isin(sel_years)]
+        selected_years_numeric = (
+            pd.to_numeric(pd.Series(sel_years), errors="coerce")
+            .dropna()
+            .astype("Int64")
+            .tolist()
+        )
+        dff = dff[dff["year"].isin(selected_years_numeric)]
     if sel_months:
         dff = dff[dff["month"].isin(sel_months)]
 

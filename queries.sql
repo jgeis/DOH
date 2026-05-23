@@ -190,10 +190,12 @@ WHERE year IS NOT NULL;
 
 -- name: load_cares_calls
 SELECT
-  Date as day,
-  phone as origin_of_call,
-  CAST(total_calls AS INTEGER) AS count_of_users
-FROM cares_calls_volume_view
+    CASE 
+        WHEN Line = 'NSPL Text Chat' THEN 'NSPL/988 Text'
+        ELSE Line 
+    END AS Line,
+    Date
+FROM cares_calls_inbound
 WHERE Date IS NOT NULL;
 
 
