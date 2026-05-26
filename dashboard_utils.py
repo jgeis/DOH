@@ -730,6 +730,58 @@ def apply_standard_single_series_bar_trace(
     return fig
 
 
+def add_stacked_bar_total_labels(
+    fig,
+    totals_df: pd.DataFrame,
+    x_col: str,
+    y_col: str,
+    formatter=format_count_display,
+):
+    """Add readable top-of-stack labels for stacked bars, thinning when categories are dense."""
+    if fig is None or totals_df is None or totals_df.empty:
+        return fig
+
+    required = {x_col, y_col}
+    if not required.issubset(totals_df.columns):
+        return fig
+
+    totals = totals_df[[x_col, y_col]].copy()
+    totals[y_col] = pd.to_numeric(totals[y_col], errors="coerce").fillna(0)
+    totals = totals[totals[y_col] >= 0].copy()
+    if totals.empty:
+        return fig
+
+    totals = totals.reset_index(drop=True)
+    n_labels = len(totals)
+
+    # Keep labels legible on dense category axes by showing every Nth total.
+    if n_labels <= 12:
+        step = 1
+    elif n_labels <= 24:
+        step = 2
+    else:
+        step = max(3, math.ceil(n_labels / 12))
+
+    font_size = 12 if step == 1 else 11 if step == 2 else 10
+    for idx, row in totals.iterrows():
+        if idx % step != 0:
+            continue
+
+        fig.add_annotation(
+            x=row[x_col],
+            y=row[y_col],
+            text=formatter(row[y_col]) if formatter else str(row[y_col]),
+            showarrow=False,
+            yshift=10 + (6 if (step > 1 and idx % 2) else 0),
+            xshift=((8 if idx % 2 == 0 else -8) if step > 1 else 0),
+            font=dict(size=font_size),
+            bgcolor="rgba(255,255,255,0.80)",
+            borderpad=1,
+        )
+
+    return fig
+
+
 def apply_standard_line_layout(
     fig,
     margin: dict | None = None,

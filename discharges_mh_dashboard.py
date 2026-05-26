@@ -26,6 +26,7 @@ from dashboard_utils import (
     wrap_axis_label,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
+    add_stacked_bar_total_labels,
     apply_standard_line_layout,
 )
 
@@ -447,20 +448,12 @@ def update_dashboard(diagnosis, county, city, year, hawaii_residency, age, sex, 
         )
 
         totals = by_ys.groupby("year")["count"].sum().reset_index()
-        for _, row in totals.iterrows():
-            sex_bar.add_annotation(
-                x=row["year"],
-                y=row["count"],
-                text=format_count_display(row["count"]),
-                showarrow=False,
-                yshift=10,
-                font=dict(size=12)
-            )
+        add_stacked_bar_total_labels(sex_bar, totals, x_col="year", y_col="count")
 
         max_y = int(totals["count"].max()) if not totals.empty else 0
         apply_standard_bar_layout(
             sex_bar,
-            yaxis=dict(range=[0, max_y * 1.15 if max_y else 1]),
+            yaxis=dict(range=[0, max_y * 1.25 if max_y else 1]),
         )
     else:
         sex_bar = px.bar()
