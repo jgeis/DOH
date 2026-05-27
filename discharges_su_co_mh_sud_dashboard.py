@@ -247,6 +247,27 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
         """Small helper for filter logic."""
         if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
             return frame
+
+        if col == "year":
+            selected_year_values = val if isinstance(val, (list, tuple)) else [val]
+            selected_year_text = [str(v).strip() for v in selected_year_values if v is not None]
+
+            selected_years_numeric = (
+                pd.to_numeric(pd.Series(selected_year_text), errors="coerce")
+                .dropna()
+                .astype("Int64")
+                .tolist()
+            )
+
+            year_numeric = pd.to_numeric(frame[col], errors="coerce").astype("Int64")
+            year_mask = year_numeric.isin(selected_years_numeric)
+
+            if any(v.lower() == "unknown" for v in selected_year_text):
+                unknown_mask = frame[col].astype(str).str.strip().str.lower().eq("unknown")
+                year_mask = year_mask | unknown_mask
+
+            return frame[year_mask]
+
         if isinstance(val, (list, tuple)):
             return frame[frame[col].isin(val)]
         return frame[frame[col] == val]
