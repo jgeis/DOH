@@ -564,6 +564,7 @@ def build_summary_count_table(
     include_statewide_county: bool = False,
     county_col: str = "county",
     header_labels: dict | None = None,
+    count_label: str = "Discharges",
 ):
     """
     Build a standardized summary table of distinct counts for a grouping column.
@@ -585,7 +586,12 @@ def build_summary_count_table(
             categories = [STATEWIDE_COUNTY] + list(categories)
 
     if categories is not None and include_all_ordered:
+        # Ensure both group_col and categories are the same type (string) for merging
         full = pd.DataFrame({group_col: categories})
+        # If group_col is year or types differ, cast both to string
+        if group_col == "year" or full[group_col].dtype != grouped[group_col].dtype:
+            full[group_col] = full[group_col].astype(str)
+            grouped[group_col] = grouped[group_col].astype(str)
         grouped = full.merge(grouped, on=group_col, how="left")
         grouped["count"] = grouped["count"].fillna(0).astype(int)
 
@@ -610,7 +616,7 @@ def build_summary_count_table(
     if header_labels:
         labels.update(header_labels)
 
-    grouped = grouped.rename(columns={group_col: labels.get(group_col, group_col), "count": "Discharges"})
+    grouped = grouped.rename(columns={group_col: labels.get(group_col, group_col), "count": count_label})
 
     return dbc.Table.from_dataframe(grouped, striped=True, bordered=True, hover=True)
 

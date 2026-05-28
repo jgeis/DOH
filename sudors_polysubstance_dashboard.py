@@ -28,6 +28,7 @@ from dashboard_utils import (
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
     apply_standard_non_axis_layout,
+    build_summary_count_table,
 )
 
 register_template()
@@ -414,12 +415,26 @@ def update_dashboard(substance, homeless, sex, age, race, year):
 
        If the user did not pick anything, we leave the data alone.
        If they picked one or more values, we only keep matching rows.
+       For year columns, normalize both data and filter to comparable format.
        """
        if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
            return frame
+       
+       # Year normalization: convert frame year to numeric, then to string for comparison
+       if col == "year" and col in frame.columns:
+           frame_copy = frame.copy()
+           frame_copy[col] = pd.to_numeric(frame_copy[col], errors="coerce").fillna("Unknown").astype(str)
+           if isinstance(val, (list, tuple)):
+               val_normalized = [str(v) for v in val]
+               return frame_copy[frame_copy[col].isin(val_normalized)]
+           else:
+               val_normalized = str(val)
+               return frame_copy[frame_copy[col] == val_normalized]
+       
        if isinstance(val, (list, tuple)):
            return frame[frame[col].isin(val)]
        return frame[frame[col] == val]
+
 
    selected_values = (
        [v for v in substance if v]
@@ -445,6 +460,11 @@ def update_dashboard(substance, homeless, sex, age, race, year):
    # Used to update the total on the KPI card when user selects the filter
    filter_total = dff["incident_id"].nunique()
 
+   # Compute age table order using sort_opts utility
+   age_table_order = []
+   if "age_cat" in dff.columns:
+       age_table_order = sort_opts(dff["age_cat"]) 
+
 
    # ---------- Bar chart: Deaths by Substance ----------
    if {"substance"}.issubset(dff.columns):
@@ -467,9 +487,27 @@ def update_dashboard(substance, homeless, sex, age, race, year):
            return (
                format_count_display(filter_total),
                sud_bar,
-               tbl("race_ethnicity"),
-               tbl("year"),
-               tbl("age_cat", age_table_order),
+               build_summary_count_table(
+                   dff,
+                   "race_ethnicity",
+                   id_col="incident_id",
+                   count_label="Deaths",
+               ),
+               build_summary_count_table(
+                   dff,
+                   "year",
+                   id_col="incident_id",
+                   count_label="Deaths",
+               ),
+               build_summary_count_table(
+                   dff,
+                   "age_cat",
+                   id_col="incident_id",
+                   categories=age_table_order,
+                   include_all_ordered=True,
+                   count_label="Deaths",
+                   header_labels={"age_cat": "Age Group"},
+               ),
            )
 
        def ellipsize(text, max_len=25):
@@ -498,74 +536,37 @@ def update_dashboard(substance, homeless, sex, age, race, year):
        sud_bar = px.bar()
 
 
-   # ---------- Helper for the summary tables ----------
-   def tbl(column, categories=None):
-       """Build a small table for the summary."""
-       if column not in dff.columns:
-           return dbc.Alert(
-               f"Column '{column}' not found.",
-               color="warning",
-               className="mb-0"
-           )
 
-       # Count unique discharges per category
-       g = dff.groupby(column)["incident_id"].nunique().reset_index(name="count")
-
-       # Use the given category order if provided
-       if categories:
-           g[column] = pd.Categorical(g[column], categories=categories, ordered=True)
-           g = g.sort_values(column)
-       elif column == "race_ethnicity":
-           g = g.sort_values("count", ascending=False)
-       elif column == "homeless":
-           g = g.sort_values("count", ascending=False)
-
-       # Make the counts look nicer with commas
-       g["count"] = g["count"].map(format_count_display)
-
-       # Use friendly display labels for table headers
-       header_labels = {
-           "race_ethnicity": "Race/Ethnicity",
-           "homeless": "Is Homeless",
-           "year": "Calendar Year",
-           "age_cat": "Age Group",
-       }
-       display_column = header_labels.get(column, column)
-       g = g.rename(columns={column: display_column, "count": "Deaths"})
-
-       # Build a styled table for the dashboard
-       return dbc.Table.from_dataframe(g, striped=True, bordered=True, hover=True)
-
-   # pin "under 15" at the top and "unknown" at the bottom, with the rest in numeric order in between
-   def age_sort_key(label):
-       text = str(label).strip()
-       lower = text.lower()
-
-       if lower == "under 15":
-           return (0, -1, text)
-       if lower == "unknown":
-           return (2, float("inf"), text)
-
-       match = re.search(r"\d+", text)
-       if match:
-           return (1, int(match.group()), text)
-
-       return (1, float("inf"), text)
-
-   age_table_order = []
-   if "age_cat" in dff.columns:
-       age_table_order = sorted(
-           [v for v in dff["age_cat"].dropna().astype(str).unique()],
-           key=age_sort_key,
-       )
 
    # Return all the updated visuals and tables to Dash
    return (
        format_count_display(filter_total),
        sud_bar,
-       tbl("race_ethnicity"),
-       tbl("year"),
-       tbl("age_cat", age_table_order),
+       build_summary_count_table(
+           dff,
+           "race_ethnicity",
+           id_col="incident_id",
+           categories=race_opts,
+           include_all_ordered=True,
+           count_label="Deaths",
+       ),
+       build_summary_count_table(
+           dff,
+           "year",
+           id_col="incident_id",
+           categories=year_opts,
+           include_all_ordered=True,
+           count_label="Deaths",
+       ),
+       build_summary_count_table(
+           dff,
+           "age_cat",
+           id_col="incident_id",
+           categories=age_table_order,
+           include_all_ordered=True,
+           count_label="Deaths",
+           header_labels={"age_cat": "Age Group"},
+       ),
    )
 
 @callback(
@@ -588,9 +589,22 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
 
         If the user did not pick anything, we leave the data alone.
         If they picked one or more values, we only keep matching rows.
+        For year columns, normalize both data and filter to comparable format.
         """
         if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
             return frame
+        
+        # Year normalization: convert frame year to numeric, then to string for comparison
+        if col == "year" and col in frame.columns:
+            frame_copy = frame.copy()
+            frame_copy[col] = pd.to_numeric(frame_copy[col], errors="coerce").fillna("Unknown").astype(str)
+            if isinstance(val, (list, tuple)):
+                val_normalized = [str(v) for v in val]
+                return frame_copy[frame_copy[col].isin(val_normalized)]
+            else:
+                val_normalized = str(val)
+                return frame_copy[frame_copy[col] == val_normalized]
+        
         if isinstance(val, (list, tuple)):
             return frame[frame[col].isin(val)]
         return frame[frame[col] == val]
