@@ -31,14 +31,14 @@ NAV_GROUPS = {
     "substance": [
         ("/discharges-su", "Any Discharge Related to Substance Use"),
         ("/discharges-su-polysubstance", "Related to Polysubstance Use"),
-        ("/discharges-su-co-sud-mh", "Related to co-occuring SUD (primary) and MH disorder (secondary)"),
-        ("/discharges-su-co-mh-sud", "Related to co-occuring MH disorder (primary) and SUD (secondary)"),
+        ("/discharges-su-co-sud-mh", "Related to co-occurring SUD (primary) and MH disorder (secondary)"),
+        ("/discharges-su-co-mh-sud", "Related to co-occurring MH disorder (primary) and SUD (secondary)"),
         # ("/polysubstance-alt", "Polysubstance Alternates"),
     ],
     "mental_health_discharges": [
         ("/discharges-mh", "Any Discharge Related to Mental Health Disorders"),
-        ("/discharges-mh-co-sud-mh", "Related to co-occuring SUD (primary) and MH disorder (secondary)"),
-        ("/discharges-mh-co-mh-sud", "Related to co-occuring MH disorder (primary) and SUD (secondary)"),
+        ("/discharges-mh-co-sud-mh", "Related to co-occurring SUD (primary) and MH disorder (secondary)"),
+        ("/discharges-mh-co-mh-sud", "Related to co-occurring MH disorder (primary) and SUD (secondary)"),
     ],
     "adad": [
         ("/adad", "ADAD Clients Served"),
