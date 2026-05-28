@@ -54,6 +54,9 @@ def load_sql_query(name, path="queries.sql"):
 sql_substance = load_sql_query("load_wonder_substance")
 df_raw_substance = execute_query(sql_substance)
 
+sql_overview = load_sql_query("load_wonder_overview")
+df_raw_overview = execute_query(sql_overview)
+
 sql_race = load_sql_query("load_wonder_race")
 df_raw_race = execute_query(sql_race)
 
@@ -67,6 +70,7 @@ last_updated_value = max(
     (
         value
         for value in [
+            compute_last_updated_value(df_raw_overview),
             compute_last_updated_value(df_raw_substance),
             compute_last_updated_value(df_raw_race),
             compute_last_updated_value(df_raw_age_group),
@@ -336,6 +340,40 @@ def update_dashboard(county, year):
         """
         if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
             return frame
+        if col == "year":
+            frame_year = pd.to_numeric(frame[col], errors="coerce")
+
+            def normalize_year_value(item):
+                if item is None or pd.isna(item):
+                    return None
+                text = str(item).strip()
+                if not text:
+                    return None
+                if text.lower() == "unknown":
+                    return "Unknown"
+                numeric_item = pd.to_numeric(text, errors="coerce")
+                if pd.notna(numeric_item):
+                    return str(int(numeric_item))
+                return text
+
+            year_as_text = frame_year.apply(
+                lambda item: str(int(item)) if pd.notna(item) else "Unknown"
+            )
+
+            if isinstance(val, (list, tuple)):
+                normalized_values = {
+                    normalized
+                    for normalized in (normalize_year_value(item) for item in val)
+                    if normalized is not None
+                }
+                if not normalized_values:
+                    return frame.iloc[0:0]
+                return frame[year_as_text.isin(normalized_values)]
+
+            normalized_value = normalize_year_value(val)
+            if normalized_value is None:
+                return frame.iloc[0:0]
+            return frame[year_as_text == normalized_value]
         if isinstance(val, (list, tuple)):
             return frame[frame[col].isin(val)]
         return frame[frame[col] == val]
@@ -367,27 +405,33 @@ def update_dashboard(county, year):
 
         return df
 
-    # KPI: use age_group (has county-level data for all years including 2023).
-    # For the KPI we never fall back to Statewide when a specific county is
-    # selected — that would show the wrong total.
     def kpi_filter_df(df):
         if "year" in df.columns:
             df = apply_filter(df, "year", year)
+
         if "county" in df.columns and county is not None:
             county_text = str(county).strip().lower()
             statewide_text = STATEWIDE_COUNTY.lower()
+
             if county_text == statewide_text:
-                non_statewide = df[
-                    df["county"].astype(str).str.strip().str.lower() != statewide_text
-                ]
-                df = non_statewide if not non_statewide.empty else df[
+                statewide_rows = df[
                     df["county"].astype(str).str.strip().str.lower() == statewide_text
                 ]
+                if not statewide_rows.empty:
+                    df = statewide_rows
+                else:
+                    df = df[
+                        df["county"].astype(str).str.strip().str.lower() != statewide_text
+                    ]
             else:
                 df = apply_filter(df, "county", county)
+
         return df
 
-    filter_total = kpi_filter_df(df_raw_age_group.copy())["deaths"].sum()
+    filter_total = pd.to_numeric(
+        kpi_filter_df(df_raw_overview.copy())["deaths"],
+        errors="coerce",
+    ).fillna(0).sum()
 
     dff_substance = filter_df(df_raw_substance.copy())
     dff_race = filter_df(df_raw_race.copy())
