@@ -555,6 +555,66 @@ def append_statewide_aggregate_rows(
     return pd.concat([base, statewide], ignore_index=True)
 
 
+def build_summary_count_table(
+    frame: pd.DataFrame,
+    group_col: str,
+    id_col: str = "record_id",
+    categories=None,
+    include_all_ordered: bool = False,
+    include_statewide_county: bool = False,
+    county_col: str = "county",
+    header_labels: dict | None = None,
+):
+    """
+    Build a standardized summary table of distinct counts for a grouping column.
+
+    This helper centralizes category completion, statewide county aggregation,
+    suppression-safe count formatting, and table rendering.
+    """
+    if frame is None or frame.empty or group_col not in frame.columns or id_col not in frame.columns:
+        return dbc.Alert(f"Column '{group_col}' not found.", color="warning", className="mb-0")
+
+    grouped = frame.groupby(group_col)[id_col].nunique().reset_index(name="count")
+
+    if group_col == county_col and include_statewide_county:
+        grouped = append_statewide_aggregate_rows(grouped, value_col="count", county_col=county_col)
+
+    if group_col == county_col and categories is not None:
+        categories = statewide_first(categories)
+        if include_statewide_county and STATEWIDE_COUNTY not in categories:
+            categories = [STATEWIDE_COUNTY] + list(categories)
+
+    if categories is not None and include_all_ordered:
+        full = pd.DataFrame({group_col: categories})
+        grouped = full.merge(grouped, on=group_col, how="left")
+        grouped["count"] = grouped["count"].fillna(0).astype(int)
+
+    if group_col == "year":
+        grouped = grouped.sort_values(group_col, ascending=False)
+    elif categories is not None:
+        grouped[group_col] = pd.Categorical(grouped[group_col], categories=categories, ordered=True)
+        grouped = grouped.sort_values(group_col)
+    else:
+        grouped = grouped.sort_values("count", ascending=False)
+
+    grouped["count"] = grouped["count"].map(format_count_display)
+
+    labels = {
+        "year": "Calendar Year",
+        "age_group": "Age Group",
+        "county": "County",
+        "sex": "Sex at Birth",
+        "race_ethnicity": "Race/Ethnicity",
+        "hawaii_residency": "Hawaii Resident",
+    }
+    if header_labels:
+        labels.update(header_labels)
+
+    grouped = grouped.rename(columns={group_col: labels.get(group_col, group_col), "count": "Discharges"})
+
+    return dbc.Table.from_dataframe(grouped, striped=True, bordered=True, hover=True)
+
+
 def graph_block(base_id: str, title_text: str, height_px: str | None = None):
     """
     Make a standard "card" that holds:

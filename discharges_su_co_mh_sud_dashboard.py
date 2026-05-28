@@ -8,10 +8,9 @@ from dashboard_utils import (
     load_sql_query,
     sort_opts,
     opts_list,
-    statewide_first,
     apply_county_filter,
     county_output_should_include_statewide,
-    append_statewide_aggregate_rows,
+    build_summary_count_table,
     graph_block,
     make_kpi_card,
     make_left_sidebar,
@@ -387,56 +386,30 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
         mh_line = px.line()
 
 
-    # ---------- Helper for the summary tables ----------
-    def tbl(column, categories=None):
-        """Build a small table for the summary."""
-        if column not in dff.columns:
-            return dbc.Alert(
-                f"Column '{column}' not found.",
-                color="warning",
-                className="mb-0"
-            )
-
-        g = dff.groupby(column)["record_id"].nunique().reset_index(name="count")
-
-        if column == "county" and include_statewide_county_outputs:
-            g = append_statewide_aggregate_rows(g, value_col="count", county_col="county")
-
-        if column == "county":
-            categories = statewide_first(sort_opts(g[column]))
-
-        if column == "year":
-            g = g.sort_values(column, ascending=False)
-        elif categories:
-            g[column] = pd.Categorical(g[column], categories=categories, ordered=True)
-            g = g.sort_values(column)
-        else:
-            g = g.sort_values("count", ascending=False)
-
-        g["count"] = g["count"].map(format_count_display)
-
-        header_labels = {
-            "year": "Calendar Year",
-            "age_group": "Age Group",
-            "county": "County",
-            "sex": "Sex at Birth",
-            "race_ethnicity": "Race/Ethnicity",
-            "hawaii_residency": "Hawaii Resident",
-        }
-        display_column = header_labels.get(column, column)
-        g = g.rename(columns={column: display_column, "count": "Discharges"})
-
-        return dbc.Table.from_dataframe(g, striped=True, bordered=True, hover=True)
-
-    # Extract age groups dynamically from the filtered data using shared sort rules.
-    age_groups = sort_opts(dff["age_group"]) if "age_group" in dff.columns and not dff.empty else None
+    county_categories = sort_opts(county_opts) if county_opts else None
 
     # Return all the updated visuals and tables to Dash
     return (
         format_count_display(filter_total),
         mh_bar,
         mh_line,
-        tbl("county"),
-        tbl("age_group", age_groups),
-        tbl("sex"),
+        build_summary_count_table(
+            dff,
+            "county",
+            categories=county_categories,
+            include_all_ordered=True,
+            include_statewide_county=include_statewide_county_outputs,
+        ),
+        build_summary_count_table(
+            dff,
+            "age_group",
+            categories=age_opts,
+            include_all_ordered=True,
+        ),
+        build_summary_count_table(
+            dff,
+            "sex",
+            categories=sex_opts,
+            include_all_ordered=True,
+        ),
     )
