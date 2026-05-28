@@ -58,7 +58,21 @@ def load_adad_dataframe():
     return df
 
 
+def load_adad_kpi_total():
+    try:
+        sql = load_sql_query("load_adad_kpi_total")
+        df = execute_query(sql)
+        if df.empty:
+            return 0
+        value = pd.to_numeric(df.iloc[0, 0], errors="coerce")
+        return int(0 if pd.isna(value) else value)
+    except Exception as exc:
+        print(f"load_adad_kpi_total failed; falling back to dataframe distinct count. Details: {exc}")
+        return int(df_raw["client_id"].nunique())
+
+
 df_raw = load_adad_dataframe()
+adad_kpi_total = load_adad_kpi_total()
 last_updated_value = compute_last_updated_value(df_raw)
 
 # Filter option lists
@@ -314,6 +328,12 @@ def reset_adad_filters(_n_clicks):
 def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start_date, end_date):
     dff = df_raw.copy()
 
+    start_day = pd.to_datetime(start_date, errors="coerce").date() if start_date else None
+    end_day = pd.to_datetime(end_date, errors="coerce").date() if end_date else None
+
+    no_dim_filters = not sel_years and not sel_months and not sel_modalities and not sel_counties
+    full_date_range = (start_day == min_date) and (end_day == max_date)
+
     if sel_years:
         selected_years_numeric = (
             pd.to_numeric(pd.Series(sel_years), errors="coerce")
@@ -334,7 +354,7 @@ def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start
     if end_date:
         dff = dff[dff["service_date"] <= pd.to_datetime(end_date)]
 
-    total_clients = dff["client_id"].nunique()
+    total_clients = adad_kpi_total if (no_dim_filters and full_date_range) else int(dff["client_id"].nunique())
 
     # Build time-based bar chart
     if view == "year":

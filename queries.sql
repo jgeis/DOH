@@ -336,8 +336,12 @@ SELECT
   county,
   modality,
   [date] AS service_date
-FROM adad_service_view
+FROM adad_service_view_test
 WHERE [date] IS NOT NULL;
+
+-- name: load_adad_kpi_total
+SELECT COUNT(DISTINCT client_id) AS client_count
+FROM adad_service_view_test;
 
 
 -- name: load_adad_cooccurring
@@ -347,10 +351,10 @@ select
   sv.modality, 
   sv.date, 
   iv.num_su, 
-  iv.num_mh, 
+  iv.num_mh,  
   iv.su_primary, 
   iv.mh_primary
-from adad_service_view as sv
+from adad_service_view_test as sv
 inner join adad_indicators_view iv 
 on 
   sv.client_id = iv.client_id
