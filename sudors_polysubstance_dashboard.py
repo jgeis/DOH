@@ -60,9 +60,11 @@ def load_sudors_dataframe_from_db():
    if df.empty:
        raise RuntimeError("Query returned 0 rows.")
 
-   # Make the year column numeric when possible so graphs treat it as numbers
+   # Make the year column numeric for sorting, then string for filtering
    if "year" in df.columns:
        df["year"] = pd.to_numeric(df["year"], errors="coerce")
+       # Now convert to string for filtering and UI consistency
+       df["year"] = df["year"].fillna("Unknown").astype(int).astype(str)
 
    # For these columns, replace missing values with "Unknown"
    # so we don't get blank labels in filters and tables.
@@ -251,7 +253,7 @@ def layout():
     # Adjust plot heights for desktop
     bar_h = f"{compute_adaptive_horizontal_bar_height(len(substance_opts))}px"
 
-    # Left column: KPI, reset button, and filters.
+# Left column: updated for nested md=4
     left_col = make_left_sidebar(
         kpi_card,
         reset_filters_button,
@@ -259,10 +261,10 @@ def layout():
         helper_text=sudors_cooccurrence_sidebar_text,
         last_updated_value=last_updated_value,
         xs=12,
-        md=3,
+        md=4, # CHANGED from 3 to 4
     )
 
-    # Center column: the main line, bar, and pie charts.
+    # Center column: updated for nested md=8
     center_col = dbc.Col(
         [
             graph_block("sudors-cooccurrence-bar", "Deaths by Co-occurring Substances"),
@@ -276,6 +278,7 @@ def layout():
                             html.H5("Co-occurrence Sunburst", className="mb-0")
                         ]),
                         dbc.CardBody([
+                            # ... (Keep your existing CardBody contents unchanged) ...
                             html.P([
                                 "Sunburst chart showing how selected substances branch into co-occurring substance combinations.",
                                 "Use the filter in the left panel to focus on one substance.",
@@ -300,10 +303,10 @@ def layout():
                 ], md=12, className="mb-4")
             ])
         ],
-        xs=12, md=6
+        xs=12, md=8 # CHANGED from 6 to 8
     )
 
-    # Center alt column: the main line and bar charts.
+    # Center alt column: updated to take full width (md=12) of the nested wrapper
     center_alt_col = dbc.Col([
         # Cooccurrence Chart
         dbc.Row([
@@ -313,6 +316,7 @@ def layout():
                         html.H5("Co-occurrence with selected substance", className="mb-0")
                     ]),
                     dbc.CardBody([
+                        # ... (Keep your existing CardBody contents unchanged) ...
                         html.P([
                             "Grouped bar chart showing what percentage of cases with a given substance also contain each other substance. ",
                             "Use the filter in the left panel to focus on one substance.",
@@ -335,13 +339,15 @@ def layout():
                     ])
                 ])
             ])
-        ]),
-    ], xs=12, md=12, className="mb-4")
+        ])
+    ], xs=12, md=12, className="mb-4") # CHANGED from 9 to 12
 
-    # Right column: summary tables (ordered by shared site-wide utility)
+    # Right column: Remains exactly the same (md=3)
     right_col = make_right_summary_tables_col(
         [
             ("Race/Ethnicity", "sudors-cooccurrence-table-race"),
+            ("Sex at Birth", "sudors-cooccurrence-table-sex"),
+            ("Homeless", "sudors-cooccurrence-table-homeless"),
             ("Calendar Year", "sudors-cooccurrence-table-year"),
             ("Age Group", "sudors-cooccurrence-table-age"),
         ],
@@ -349,16 +355,26 @@ def layout():
         md=3,
     )
 
+    # RESTRUCTURED RETURN BLOCK
     return dbc.Container([
         skip_link,
-        html.Div(
-            dbc.Row([left_col, center_col, right_col], className="g-3"),
-            id="sudors-cooccurrence-section",
-        ),
-        html.Div(
-            dbc.Row([center_alt_col], className="g-3"),
-            id="sudors-alt-cooccurrence-section",
-        ),
+        html.Div([
+            dbc.Row([
+                
+                # 1. THE LEFT WRAPPER (Takes up 9 columns on the main grid)
+                dbc.Col([
+                    # Top inner row (Left and Center)
+                    dbc.Row([left_col, center_col], className="g-3"),
+                    
+                    # Bottom inner row (Center Alt Chart)
+                    dbc.Row([center_alt_col], className="g-3 mt-0")
+                ], xs=12, md=9),
+
+                # 2. THE RIGHT WRAPPER (Takes up 3 columns on the main grid)
+                right_col
+                
+            ], className="g-3"),
+        ], id="sudors-cooccurrence-section"),
     ], fluid=True, className="p-2")
 
 # This is the default layout used when the app imports this file.
@@ -390,10 +406,12 @@ def reset_cooccurrence_filters(_n_clicks):
    Output("sudors-cooccurrence-kpi-total", "children"),
    # graphs
    Output("sudors-cooccurrence-bar", "figure"),
-   # tables
-   Output("sudors-cooccurrence-table-race", "children"),
-   Output("sudors-cooccurrence-table-year", "children"),
-   Output("sudors-cooccurrence-table-age", "children"),
+    # tables
+    Output("sudors-cooccurrence-table-race", "children"),
+    Output("sudors-cooccurrence-table-sex", "children"),
+    Output("sudors-cooccurrence-table-homeless", "children"),
+    Output("sudors-cooccurrence-table-year", "children"),
+    Output("sudors-cooccurrence-table-age", "children"),
    # filters
    Input("sudors-cooccurrence-substance-filter", "value"),
    Input("sudors-cooccurrence-homeless-filter", "value"),
@@ -415,22 +433,9 @@ def update_dashboard(substance, homeless, sex, age, race, year):
 
        If the user did not pick anything, we leave the data alone.
        If they picked one or more values, we only keep matching rows.
-       For year columns, normalize both data and filter to comparable format.
        """
        if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
            return frame
-       
-       # Year normalization: convert frame year to numeric, then to string for comparison
-       if col == "year" and col in frame.columns:
-           frame_copy = frame.copy()
-           frame_copy[col] = pd.to_numeric(frame_copy[col], errors="coerce").fillna("Unknown").astype(str)
-           if isinstance(val, (list, tuple)):
-               val_normalized = [str(v) for v in val]
-               return frame_copy[frame_copy[col].isin(val_normalized)]
-           else:
-               val_normalized = str(val)
-               return frame_copy[frame_copy[col] == val_normalized]
-       
        if isinstance(val, (list, tuple)):
            return frame[frame[col].isin(val)]
        return frame[frame[col] == val]
@@ -460,10 +465,10 @@ def update_dashboard(substance, homeless, sex, age, race, year):
    # Used to update the total on the KPI card when user selects the filter
    filter_total = dff["incident_id"].nunique()
 
-   # Compute age table order using sort_opts utility
+   # Always use the full set of age categories from df_raw for summary tables
    age_table_order = []
-   if "age_cat" in dff.columns:
-       age_table_order = sort_opts(dff["age_cat"]) 
+   if "age_cat" in df_raw.columns:
+       age_table_order = sort_opts(df_raw["age_cat"])
 
 
    # ---------- Bar chart: Deaths by Substance ----------
@@ -546,24 +551,41 @@ def update_dashboard(substance, homeless, sex, age, race, year):
            dff,
            "race_ethnicity",
            id_col="incident_id",
-           categories=race_opts,
-           include_all_ordered=True,
+           categories=race_opts if not race else None,
+           include_all_ordered=not bool(race),
+           count_label="Deaths",
+       ),
+       build_summary_count_table(
+           dff,
+           "sex",
+           id_col="incident_id",
+           categories=sex_opts if not sex else None,
+           include_all_ordered=not bool(sex),
+           count_label="Deaths",
+           header_labels={"sex": "Sex at Birth"},
+       ),
+       build_summary_count_table(
+           dff,
+           "homeless",
+           id_col="incident_id",
+           categories=homeless_opts if not homeless else None,
+           include_all_ordered=not bool(homeless),
            count_label="Deaths",
        ),
        build_summary_count_table(
            dff,
            "year",
            id_col="incident_id",
-           categories=year_opts,
-           include_all_ordered=True,
+           categories=year_opts if not year else None,
+           include_all_ordered=not bool(year),
            count_label="Deaths",
        ),
        build_summary_count_table(
            dff,
            "age_cat",
            id_col="incident_id",
-           categories=age_table_order,
-           include_all_ordered=True,
+           categories=age_table_order if not age else None,
+           include_all_ordered=not bool(age),
            count_label="Deaths",
            header_labels={"age_cat": "Age Group"},
        ),
@@ -589,22 +611,9 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
 
         If the user did not pick anything, we leave the data alone.
         If they picked one or more values, we only keep matching rows.
-        For year columns, normalize both data and filter to comparable format.
         """
         if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
             return frame
-        
-        # Year normalization: convert frame year to numeric, then to string for comparison
-        if col == "year" and col in frame.columns:
-            frame_copy = frame.copy()
-            frame_copy[col] = pd.to_numeric(frame_copy[col], errors="coerce").fillna("Unknown").astype(str)
-            if isinstance(val, (list, tuple)):
-                val_normalized = [str(v) for v in val]
-                return frame_copy[frame_copy[col].isin(val_normalized)]
-            else:
-                val_normalized = str(val)
-                return frame_copy[frame_copy[col] == val_normalized]
-        
         if isinstance(val, (list, tuple)):
             return frame[frame[col].isin(val)]
         return frame[frame[col] == val]
