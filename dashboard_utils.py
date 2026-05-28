@@ -225,17 +225,17 @@ def format_count_display(value, threshold: int = COUNT_SUPPRESSION_THRESHOLD, su
     """
     Format a count for UI display with small-number suppression.
 
-    Values where 0 < value < threshold are shown as '<10*' by default.
+    Values where 0 <= value < threshold are shown as '<10*' by default.
     """
     if value is None or pd.isna(value):
-        return "0"
+        return suppressed_label
 
     try:
         numeric = int(value)
     except (TypeError, ValueError):
         return str(value)
 
-    if 0 < numeric < threshold:
+    if 0 <= numeric < threshold:
         return suppressed_label
     return f"{numeric:,}"
 
