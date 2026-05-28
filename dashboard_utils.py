@@ -612,6 +612,7 @@ def build_summary_count_table(
         "sex": "Sex at Birth",
         "race_ethnicity": "Race/Ethnicity",
         "hawaii_residency": "Hawaii Resident",
+        "homeless": "Is Homeless",
     }
     if header_labels:
         labels.update(header_labels)

@@ -470,6 +470,47 @@ def update_dashboard(substance, homeless, sex, age, race, year):
    if "age_cat" in df_raw.columns:
        age_table_order = sort_opts(df_raw["age_cat"])
 
+   # Build all summary tables once for reuse
+   table_race = build_summary_count_table(
+       dff,
+       "race_ethnicity",
+       id_col="incident_id",
+       categories=race_opts if not race else None,
+       include_all_ordered=not bool(race),
+       count_label="Deaths",
+   )
+   table_sex = build_summary_count_table(
+       dff,
+       "sex",
+       id_col="incident_id",
+       categories=sex_opts if not sex else None,
+       include_all_ordered=not bool(sex),
+       count_label="Deaths",
+   )
+   table_homeless = build_summary_count_table(
+       dff,
+       "homeless",
+       id_col="incident_id",
+       categories=homeless_opts if not homeless else None,
+       include_all_ordered=not bool(homeless),
+       count_label="Deaths",
+   )
+   table_year = build_summary_count_table(
+       dff,
+       "year",
+       id_col="incident_id",
+       categories=year_opts if not year else None,
+       include_all_ordered=not bool(year),
+       count_label="Deaths",
+   )
+   table_age = build_summary_count_table(
+       dff,
+       "age_cat",
+       id_col="incident_id",
+       categories=age_table_order if not age else None,
+       include_all_ordered=not bool(age),
+       count_label="Deaths",
+   )
 
    # ---------- Bar chart: Deaths by Substance ----------
    if {"substance"}.issubset(dff.columns):
@@ -492,27 +533,11 @@ def update_dashboard(substance, homeless, sex, age, race, year):
            return (
                format_count_display(filter_total),
                sud_bar,
-               build_summary_count_table(
-                   dff,
-                   "race_ethnicity",
-                   id_col="incident_id",
-                   count_label="Deaths",
-               ),
-               build_summary_count_table(
-                   dff,
-                   "year",
-                   id_col="incident_id",
-                   count_label="Deaths",
-               ),
-               build_summary_count_table(
-                   dff,
-                   "age_cat",
-                   id_col="incident_id",
-                   categories=age_table_order,
-                   include_all_ordered=True,
-                   count_label="Deaths",
-                   header_labels={"age_cat": "Age Group"},
-               ),
+               table_race,
+               table_year,
+               table_age,
+               table_sex,
+               table_homeless,
            )
 
        def ellipsize(text, max_len=25):
@@ -540,55 +565,15 @@ def update_dashboard(substance, homeless, sex, age, race, year):
    else:
        sud_bar = px.bar()
 
-
-
-
    # Return all the updated visuals and tables to Dash
    return (
        format_count_display(filter_total),
        sud_bar,
-       build_summary_count_table(
-           dff,
-           "race_ethnicity",
-           id_col="incident_id",
-           categories=race_opts if not race else None,
-           include_all_ordered=not bool(race),
-           count_label="Deaths",
-       ),
-       build_summary_count_table(
-           dff,
-           "sex",
-           id_col="incident_id",
-           categories=sex_opts if not sex else None,
-           include_all_ordered=not bool(sex),
-           count_label="Deaths",
-           header_labels={"sex": "Sex at Birth"},
-       ),
-       build_summary_count_table(
-           dff,
-           "homeless",
-           id_col="incident_id",
-           categories=homeless_opts if not homeless else None,
-           include_all_ordered=not bool(homeless),
-           count_label="Deaths",
-       ),
-       build_summary_count_table(
-           dff,
-           "year",
-           id_col="incident_id",
-           categories=year_opts if not year else None,
-           include_all_ordered=not bool(year),
-           count_label="Deaths",
-       ),
-       build_summary_count_table(
-           dff,
-           "age_cat",
-           id_col="incident_id",
-           categories=age_table_order if not age else None,
-           include_all_ordered=not bool(age),
-           count_label="Deaths",
-           header_labels={"age_cat": "Age Group"},
-       ),
+       table_race,
+       table_sex,
+       table_homeless,
+       table_year,
+       table_age,
    )
 
 @callback(
