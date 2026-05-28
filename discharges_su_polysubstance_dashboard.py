@@ -40,6 +40,7 @@ from dashboard_utils import (
     apply_standard_heatmap_layout,
     apply_standard_network_layout,
     apply_standard_sankey_layout,
+    build_summary_count_table,
 )
 
 # This applies our custom Plotly look (colors, fonts, etc.) everywhere in this app.
@@ -903,8 +904,7 @@ def update(substance, age, sex, county, year):
         )
         county_counts = county_counts.sort_values("county")
         county_counts["discharges"] = county_counts["discharges"].map(format_count_display)
-        header_labels = {"county": "County", "discharges": "Discharges"}
-        county_counts = county_counts.rename(columns=header_labels)
+        # Let build_summary_count_table handle column renaming
         # Manual table builder for compatibility
         tbl_county = dbc.Table([
             html.Thead(html.Tr([html.Th(col) for col in county_counts.columns])),
@@ -917,38 +917,16 @@ def update(substance, age, sex, county, year):
 
     # ---------- Small tables ----------
     def simple_table(df, col, ordered=None, include_all_ordered=False):
+        # Use shared build_summary_count_table for summary tables, letting it handle header labels
         if col not in df.columns or df.empty:
             return dbc.Alert(f"No data for '{col}'.", color="warning", className="mb-0")
-
-        g = df.groupby(col)["record_id"].nunique().reset_index(name="discharges")
-
-        if ordered:
-            if include_all_ordered:
-                # Keep all configured categories visible even when the filtered slice has zero rows.
-                full = pd.DataFrame({col: ordered})
-                g = full.merge(g, on=col, how="left")
-                g["discharges"] = g["discharges"].fillna(0).astype(int)
-
-            g[col] = pd.Categorical(g[col], categories=ordered, ordered=True)
-            g = g.sort_values(col)
-
-        g["discharges"] = g["discharges"].map(format_count_display)
-
-        header_labels = {
-            "year": "Year",
-            "age_group": "Age Group",
-            "sex": "Sex at Birth",
-            "discharges": "Discharges",
-        }
-        g = g.rename(columns=header_labels)
-
-        # Manual table builder for compatibility
-        return dbc.Table([
-            html.Thead(html.Tr([html.Th(col) for col in g.columns])),
-            html.Tbody([
-                html.Tr([html.Td(val) for val in row]) for row in g.values
-            ])
-        ], striped=True, bordered=True, hover=True, size="sm")
+        return build_summary_count_table(
+            df,
+            group_col=col,
+            id_col="record_id",
+            categories=ordered,
+            include_all_ordered=include_all_ordered,
+        )
 
     # Extract year groups dynamically in descending order (newest first).
     year_groups = None

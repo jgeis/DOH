@@ -31,6 +31,7 @@ FILTER_LABEL_ORDER = [
     "City",
     "Age Group",
     "Sex",
+    "Sex at Birth",
     "Race/Ethnicity",
     "Hawaii Resident",
     "Homeless",
@@ -613,6 +614,7 @@ def build_summary_count_table(
         "race_ethnicity": "Race/Ethnicity",
         "hawaii_residency": "Hawaii Resident",
         "homeless": "Is Homeless",
+        "discharges": "Discharges",
     }
     if header_labels:
         labels.update(header_labels)

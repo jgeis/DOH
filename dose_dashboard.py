@@ -29,6 +29,7 @@ from dashboard_utils import (
     apply_standard_line_layout,
     apply_standard_map_layout,
     apply_standard_single_series_bar_trace,
+    build_summary_count_table,
 )
 
 register_template()
@@ -351,40 +352,16 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         dose_line = px.line()
 
     # ---------- Helper for the summary tables ----------
-    def tbl(column, categories=None):
-        """Build a small table for the DOSE summary."""
-        if column not in dose_df.columns:
-            return dbc.Alert(
-                f"Column '{column}' not found.",
-                color="warning",
-                className="mb-0"
-            )
-
-        g = dose_df.groupby(column)["record_id"].nunique().reset_index(name="count")
-
-        if column == "county" and include_statewide_county_outputs:
-            g = append_statewide_aggregate_rows(g, value_col="count", county_col="county")
-
-        if column == "county":
-            categories = statewide_first(sort_opts(g[column]))
-
-        if categories:
-            g[column] = pd.Categorical(g[column], categories=categories, ordered=True)
-            g = g.sort_values(column)
-        else:
-            g = g.sort_values("count", ascending=False)
-
-        g["count"] = g["count"].map(format_count_display)
-
-        header_labels = {
-            "age_group": "Age Group",
-            "county": "County",
-            "sex": "Sex at Birth",
-        }
-        display_column = header_labels.get(column, column)
-        g = g.rename(columns={column: display_column, "count": "Discharges"})
-
-        return dbc.Table.from_dataframe(g, striped=True, bordered=True, hover=True)
+    # Use shared build_summary_count_table for summary tables
+    def summary_table(group_col, categories=None):
+        return build_summary_count_table(
+            dose_df,
+            group_col=group_col,
+            id_col="record_id",
+            categories=categories,
+            include_all_ordered=bool(categories),
+            include_statewide_county=(group_col == "county" and include_statewide_county_outputs),
+        )
     
     # Extract age groups dynamically from the filtered DOSE data using shared sort rules.
     dose_age_groups = sort_opts(dose_df["age_group"]) if "age_group" in dose_df.columns and not dose_df.empty else None
@@ -444,7 +421,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         dose_bar,
         dose_line,
         map_fig,
-        tbl("county"),
-        tbl("age_group", dose_age_groups),
-        tbl("sex"),
+        summary_table("county"),
+        summary_table("age_group", dose_age_groups),
+        summary_table("sex"),
     )

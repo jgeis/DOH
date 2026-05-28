@@ -21,6 +21,7 @@ from dashboard_utils import (
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
+    build_summary_count_table,
 )
 
 register_template()
@@ -317,45 +318,15 @@ def update_dashboard(substance, homeless, sex, age, race, year):
 
     
     # ---------- Helper for the summary tables ----------
-    def tbl(column, categories=None):
-        """Build a small table for the summary."""
-        if column not in dff.columns:
-            return dbc.Alert(
-                f"Column '{column}' not found.",
-                color="warning",
-                className="mb-0"
-            )
-
-        # Count unique discharges per category
-        g = dff.groupby(column)["incident_id"].nunique().reset_index(name="count")
-
-        # Use the given category order if provided
-        if categories:
-            g[column] = pd.Categorical(g[column], categories=categories, ordered=True)
-            g = g.sort_values(column)
-        elif column == "race_ethnicity":
-            g = g.sort_values("count", ascending=False)
-        elif column == "sex":
-            g = g.sort_values("count", ascending=False)
-        elif column == "homeless":
-            g = g.sort_values("count", ascending=False)
-
-        # Make the counts look nicer with commas
-        g["count"] = g["count"].map(format_count_display)
-
-        # Use friendly display labels for table headers
-        header_labels = {
-            "race_ethnicity": "Race/Ethnicity",
-            "sex": "Sex at Birth",
-            "homeless": "Is Homeless",
-            "year": "Calendar Year",
-            "age_cat": "Age Group",
-        }
-        display_column = header_labels.get(column, column)
-        g = g.rename(columns={column: display_column, "count": "Deaths"})
-
-        # Build a styled table for the dashboard
-        return dbc.Table.from_dataframe(g, striped=True, bordered=True, hover=True)
+    # Use shared build_summary_count_table for summary tables
+    def summary_table(group_col, categories=None):
+        return build_summary_count_table(
+            dff,
+            group_col=group_col,
+            id_col="incident_id",
+            categories=categories,
+            include_all_ordered=bool(categories),
+        )
 
     # pin "under 15" at the top and "unknown" at the bottom, with the rest in numeric order in between
     def age_sort_key(label):
@@ -384,10 +355,10 @@ def update_dashboard(substance, homeless, sex, age, race, year):
     return (
         format_count_display(filter_total),
         sud_bar,
-        tbl("race_ethnicity"),
-        tbl("sex"),
-        tbl("homeless"),
-        tbl("year"),
-        tbl("age_cat", age_table_order),
+        summary_table("race_ethnicity"),
+        summary_table("sex"),
+        summary_table("homeless"),
+        summary_table("year"),
+        summary_table("age_cat", age_table_order),
         line_fig,
     )
