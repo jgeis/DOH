@@ -315,6 +315,40 @@ def update_dashboard(county, year):
         """
         if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
             return frame
+        if col == "year":
+            frame_year = pd.to_numeric(frame[col], errors="coerce")
+
+            def normalize_year_value(item):
+                if item is None or pd.isna(item):
+                    return None
+                text = str(item).strip()
+                if not text:
+                    return None
+                if text.lower() == "unknown":
+                    return "Unknown"
+                numeric_item = pd.to_numeric(text, errors="coerce")
+                if pd.notna(numeric_item):
+                    return str(int(numeric_item))
+                return text
+
+            year_as_text = frame_year.apply(
+                lambda item: str(int(item)) if pd.notna(item) else "Unknown"
+            )
+
+            if isinstance(val, (list, tuple)):
+                normalized_values = {
+                    normalized
+                    for normalized in (normalize_year_value(item) for item in val)
+                    if normalized is not None
+                }
+                if not normalized_values:
+                    return frame.iloc[0:0]
+                return frame[year_as_text.isin(normalized_values)]
+
+            normalized_value = normalize_year_value(val)
+            if normalized_value is None:
+                return frame.iloc[0:0]
+            return frame[year_as_text == normalized_value]
         if isinstance(val, (list, tuple)):
             return frame[frame[col].isin(val)]
         return frame[frame[col] == val]
@@ -326,15 +360,19 @@ def update_dashboard(county, year):
     if "county" in dff.columns:    dff = apply_filter(dff, "county", county)
     if "year" in dff.columns:      dff = apply_filter(dff, "year", year)
 
-    # KPI should reflect the statewide total only.
-    # We still honor the selected year filter, but do not sum county + statewide together.
+    # KPI should honor selected filters.
+    # When no county is selected, default to statewide rows when available
+    # so we avoid summing statewide + county rows together.
     kpi_df = df_raw.copy()
     if "year" in kpi_df.columns:
         kpi_df = apply_filter(kpi_df, "year", year)
     if "county" in kpi_df.columns:
-        statewide_mask = kpi_df["county"].astype(str).str.strip().str.lower() == "statewide"
-        if statewide_mask.any():
-            kpi_df = kpi_df[statewide_mask]
+        if county is not None and isinstance(county, (list, tuple)) and len(county) > 0:
+            kpi_df = apply_filter(kpi_df, "county", county)
+        else:
+            statewide_mask = kpi_df["county"].astype(str).str.strip().str.lower() == "statewide"
+            if statewide_mask.any():
+                kpi_df = kpi_df[statewide_mask]
 
     filter_total = kpi_df["deaths"].sum()
 
