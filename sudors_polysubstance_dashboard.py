@@ -749,6 +749,7 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                             'Count: %{customdata[0]}<br>' +
                             'Total: %{customdata[1]}<extra></extra>',
             )
+            bar_fig.update_layout(legend=dict(orientation="v", x=1.02, y=1, xanchor="left", yanchor="top"))
             apply_standard_bar_layout(bar_fig)
         
     # --- Sunburst Chart ---
