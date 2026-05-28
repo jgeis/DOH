@@ -357,64 +357,20 @@ on
   and iv.num_mh >= 1
   and iv.num_su >= 1;
 
-
--- name: load_amhd_day
-SELECT 
-  service_date,
-  service_category
-FROM amhd_aggregate_day_reporting;
-
--- Calendar Year Total Query
--- name: load_amhd_consumers_total
-SELECT
-  COUNT(DISTINCT PATID) AS total_consumers
-FROM amhd_dashboard_fact
-WHERE 1=1
-{where_filters};
-
--- Calendar Year Query
--- name: load_amhd_consumers_by_year
-SELECT 
-  {year_expr} AS year,
-  COUNT(DISTINCT PATID) AS consumer_count
-FROM amhd_dashboard_fact
-WHERE 1=1
-{where_filters}
-GROUP BY {year_expr}
-ORDER BY year DESC;
-
--- Month Query
--- name: load_amhd_consumers_by_month
-SELECT
-  {month_period_expr} AS period_date,
-  COUNT(DISTINCT PATID) AS consumer_count
-FROM amhd_dashboard_fact
-WHERE 1=1
-{where_filters}
-GROUP BY {month_period_expr}
-ORDER BY period_date;
-
--- Service Category Query
--- name: load_amhd_consumers_by_service_category
-SELECT 
-  {service_category_expr} AS service_category,
-  COUNT(DISTINCT PATID) AS consumer_count
-FROM amhd_dashboard_fact
-WHERE 1=1
-{where_filters}
-GROUP BY {service_category_expr}
-ORDER BY consumer_count DESC;
-
--- Date Only Query
--- name: load_amhd_consumers_by_date
-SELECT 
-  {day_period_expr} AS service_date,
-    COUNT(DISTINCT PATID) AS consumer_count
-FROM amhd_dashboard_fact
-WHERE 1=1
-{where_filters}
-GROUP BY {day_period_expr}
-ORDER BY service_date;
+-- name: load_amhd_year_all
+select * from amhd_aggregate_reporting where date_type = 'Year' and service_category = 'All' order by date;
+-- name: load_amhd_month_all
+select * from amhd_aggregate_reporting where date_type = 'Month' and service_category = 'All' order by date;
+-- name: load_amhd_day_all
+select * from amhd_aggregate_reporting where date_type = 'Day' and service_category = 'All' order by date;
+-- name: load_amhd_year_categories
+select * from amhd_aggregate_reporting where date_type = 'Year' and service_category <> 'All' order by date;
+-- name: load_amhd_month_categories
+select * from amhd_aggregate_reporting where date_type = 'Month' and service_category <> 'All' order by date;
+-- name: load_amhd_day_categories
+select * from amhd_aggregate_reporting where date_type = 'Day' and service_category <> 'All' order by date;
+-- name: load_amhd_kpi_total
+select * from amhd_aggregate_reporting where date_type = 'All';
 
 -- name: load_amhd_cooccurring_day
 SELECT DISTINCT
