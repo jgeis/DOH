@@ -236,6 +236,44 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         """Small helper for filter logic."""
         if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
             return frame
+        if col == "year":
+            frame_year = pd.to_numeric(frame[col], errors="coerce")
+
+            def normalize_year_value(item):
+                if item is None or pd.isna(item):
+                    return None
+                text = str(item).strip()
+                if not text:
+                    return None
+                if text.lower() == "unknown":
+                    return "Unknown"
+                numeric_item = pd.to_numeric(text, errors="coerce")
+                if pd.notna(numeric_item):
+                    return str(int(numeric_item))
+                return text
+
+            if isinstance(val, (list, tuple)):
+                normalized_values = {
+                    normalized
+                    for normalized in (normalize_year_value(item) for item in val)
+                    if normalized is not None
+                }
+                if not normalized_values:
+                    return frame.iloc[0:0]
+
+                year_as_text = frame_year.apply(
+                    lambda item: str(int(item)) if pd.notna(item) else "Unknown"
+                )
+                return frame[year_as_text.isin(normalized_values)]
+
+            normalized_value = normalize_year_value(val)
+            if normalized_value is None:
+                return frame.iloc[0:0]
+
+            year_as_text = frame_year.apply(
+                lambda item: str(int(item)) if pd.notna(item) else "Unknown"
+            )
+            return frame[year_as_text == normalized_value]
         if isinstance(val, (list, tuple)):
             return frame[frame[col].isin(val)]
         return frame[frame[col] == val]
