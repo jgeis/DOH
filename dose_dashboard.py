@@ -275,6 +275,16 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
                 lambda item: str(int(item)) if pd.notna(item) else "Unknown"
             )
             return frame[year_as_text == normalized_value]
+        if col == "city":
+            # Normalize both city column and filter value(s) for robust matching
+            def norm(s):
+                return str(s).strip().lower() if s is not None else ""
+            city_col = frame["city"].astype(str).apply(norm)
+            if isinstance(val, (list, tuple)):
+                norm_vals = set(norm(v) for v in val if v is not None)
+                return frame[city_col.isin(norm_vals)]
+            else:
+                return frame[city_col == norm(val)]
         if isinstance(val, (list, tuple)):
             return frame[frame[col].isin(val)]
         return frame[frame[col] == val]
