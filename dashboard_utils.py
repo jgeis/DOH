@@ -14,6 +14,7 @@ FILTER_LABELS = {
     "Age Group": "Age Group",
     "Sex": "Sex at Birth",
     "sex": "Sex at Birth",
+    "Gender": "Sex at Birth",
     "sex_at_birth": "Sex at Birth",
     "Race/Ethnicity": "Race/Ethnicity",
     "Hawaii Resident": "Hawaii Resident",

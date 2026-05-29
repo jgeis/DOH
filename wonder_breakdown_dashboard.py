@@ -271,7 +271,7 @@ def layout_for(
 
     right_col = make_right_summary_tables_col(
         [
-            ("Gender", "wonder-gender-table"),
+            ("Sex at Birth", "wonder-gender-table"),
         ],
         xs=12,
         md=3,
@@ -539,7 +539,7 @@ def update_dashboard(county, year):
         )
         by_gender_table = by_gender.rename(
             columns={
-                "gender": "Gender",
+                "gender": "Sex at Birth",
                 "deaths": "Number of Deaths",
             }
         )
