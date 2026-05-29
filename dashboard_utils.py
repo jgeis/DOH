@@ -1,3 +1,36 @@
+
+# Mapping from code/column names to canonical filter display labels
+FILTER_LABELS = {
+    "Substance": "Substance Type",
+    "Substance Type": "Substance Type",
+    "primary_substance": "Primary Substance",
+    "Mental Health Diagnosis": "Mental Health Diagnosis",
+    "Year": "Calendar Year",
+    "Calendar Year": "Calendar Year",
+    "Month": "Month",
+    "county_of_death": "County",
+    "County": "County",
+    "city": "City",
+    "Age Group": "Age Group",
+    "Sex": "Sex at Birth",
+    "Race/Ethnicity": "Race/Ethnicity",
+    "Hawaii Resident": "Hawaii Resident",
+    "Hawaii Residency": "Hawaii Resident",
+    "Homeless Status": "Is Homeless",
+    "Referral Destination": "Referral Destination",
+    "Service Modality": "Service Modality",
+    "Service Category": "Service Category",
+    "Crisis Line": "Crisis Line",
+    
+}
+
+def get_standard_filter_label(label: str) -> str:
+    """
+    Return the canonical display label for a filter, given a code/column name or variant.
+    Falls back to the original label if not found.
+    """
+    key = str(label).strip().lower().replace(" ", "_")
+    return FILTER_LABELS.get(key, label)
 # dashboard_utils.py — Shared utilities for dashboards
 
 import pandas as pd
@@ -1163,22 +1196,26 @@ def dropdown_filter(label: str, control_id: str, **kwargs):
     """
     Convenience builder for dropdown filters used by make_filters_card.
 
+    Automatically applies get_standard_filter_label to the label argument.
     If persistence is not provided, defaults to the control id.
     """
+    from dashboard_utils import get_standard_filter_label
     kwargs.setdefault("persistence", control_id)
     kwargs.setdefault("persistence_type", "session")
-    return label, dcc.Dropdown(id=control_id, **kwargs)
+    return get_standard_filter_label(label), dcc.Dropdown(id=control_id, **kwargs)
 
 
 def checklist_filter(label: str, control_id: str, **kwargs):
-    """Convenience builder for checklist filters used by make_filters_card."""
+    """Convenience builder for checklist filters used by make_filters_card. Automatically applies get_standard_filter_label to the label argument."""
+    from dashboard_utils import get_standard_filter_label
     kwargs.setdefault("persistence", control_id)
     kwargs.setdefault("persistence_type", "session")
-    return label, dcc.Checklist(id=control_id, **kwargs)
+    return get_standard_filter_label(label), dcc.Checklist(id=control_id, **kwargs)
 
 
 def radio_filter(label: str, control_id: str, **kwargs):
-    """Convenience builder for radio-item filters used by make_filters_card."""
+    """Convenience builder for radio-item filters used by make_filters_card. Automatically applies get_standard_filter_label to the label argument."""
+    from dashboard_utils import get_standard_filter_label
     kwargs.setdefault("persistence", control_id)
     kwargs.setdefault("persistence_type", "session")
-    return label, dcc.RadioItems(id=control_id, **kwargs)
+    return get_standard_filter_label(label), dcc.RadioItems(id=control_id, **kwargs)
