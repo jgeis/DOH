@@ -13,6 +13,8 @@ FILTER_LABELS = {
     "city": "City",
     "Age Group": "Age Group",
     "Sex": "Sex at Birth",
+    "sex": "Sex at Birth",
+    "sex_at_birth": "Sex at Birth",
     "Race/Ethnicity": "Race/Ethnicity",
     "Hawaii Resident": "Hawaii Resident",
     "Hawaii Residency": "Hawaii Resident",
@@ -30,7 +32,15 @@ def get_standard_filter_label(label: str) -> str:
     Falls back to the original label if not found.
     """
     key = str(label).strip().lower().replace(" ", "_")
-    return FILTER_LABELS.get(key, label)
+    # Try direct match, then normalized key
+    if label in FILTER_LABELS:
+        return FILTER_LABELS[label]
+    if key in FILTER_LABELS:
+        return FILTER_LABELS[key]
+    # Try title case and other common variants
+    if label.title() in FILTER_LABELS:
+        return FILTER_LABELS[label.title()]
+    return label
 # dashboard_utils.py — Shared utilities for dashboards
 
 import pandas as pd
