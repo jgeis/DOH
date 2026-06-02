@@ -559,7 +559,11 @@ def _line_chart(grouped, period_title, color_col=None, chart_title="Occupancy Ra
     apply_standard_line_layout(
         fig,
         xaxis=xaxis_overrides,
-        yaxis=dict(title="Occupancy Rate", tickformat=".0%", range=[y_min, 1.05]),
+        yaxis=dict(title="Occupancy Rate", tickformat=".0%", range=[y_min, 1.05],
+            tickmode="array",    # Tells Plotly we are taking over the labels
+            tickvals=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0] # Stops exactly at 100%
+        ),
+        legend=dict(x=0.5, xanchor="center"),
     )
 
     if period_title == "Date of Service":
