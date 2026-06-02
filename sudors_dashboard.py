@@ -238,6 +238,21 @@ def update_dashboard(substance, homeless, sex, age, race, year):
         """
         if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
             return frame
+
+        # Dropdown values are strings; coerce selected years so they match numeric year values.
+        if col == "year":
+            selected = list(val) if isinstance(val, (list, tuple)) else [val]
+            selected_text = pd.Series(selected).astype(str).str.strip().str.lower()
+            include_unknown = (selected_text == "unknown").any()
+
+            selected_years = pd.to_numeric(pd.Series(selected), errors="coerce").dropna().tolist()
+            year_numeric = pd.to_numeric(frame[col], errors="coerce")
+            mask = year_numeric.isin(selected_years)
+
+            if include_unknown:
+                mask = mask | frame[col].astype(str).str.strip().str.lower().eq("unknown")
+            return frame[mask]
+
         if isinstance(val, (list, tuple)):
             return frame[frame[col].isin(val)]
         return frame[frame[col] == val]
