@@ -151,7 +151,7 @@ view_toggle_card = dbc.Card(
                     {"label": "Month View", "value": "month"},
                     {"label": "Day View", "value": "day"},
                 ],
-                value="year",
+                value="month",
                 persistence="sicm-view-toggle",
                 persistence_type="session",
                 class_name="spaced-radio-buttons d-flex justify-content-center gap-3",
