@@ -21,7 +21,7 @@ TAB_PATHS = {
     "/camhd-cooccurring": "CAMHD with Co-Occurring MH and SU",
     "/amhd": "AMHD Clients Served",
     "/amhd-cooccurring": "AMHD Co-Occurring Clients Served",
-    "/lcrs": "Licensed Crisis Residential Facilities",
+    "/lcrs": "Licensed Crisis Residential Shelters",
     "/sicm": "Stabilization Bed Facilities Occupancy Rates",
 }
 
@@ -53,8 +53,8 @@ NAV_GROUPS = {
         ("/amhd-cooccurring", "AMHD Co-Occurring Clients Served"),
     ],
     "lcrs": [
-        ("/lcrs", "Licensed Crisis Residential Facilities"),
-        ("/sicm", "Stabilization Intensive Case Management"),
+        ("/lcrs", "Licensed Crisis Residential Shelters"),
+        ("/sicm", "Stabilization Bed Facilities"),
     ],
     # Example future group:
     # "new-visuals": [

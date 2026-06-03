@@ -43,12 +43,10 @@ SECTION_TEXTS = {
         "* Per data sharing agreements, ED data values less than 11 are suppressed and are displayed as <11*."
     ],
     "lcrf": [
-        "Licensed Crisis Residential Facility occupancy rates by year, month, or date.",
-        "Filter by county, facility month, and custom date range.",
+        "Licensed Crisis Residential Facilities = Licensed Crisis Residential Services (LCRS).",    
     ],
     "sicm": [
-        "Stabilization bed facilities occupancy rates by year, month, or date.",
-        "Filter by county, facility, month, and custom date range.",
+        "Stabilization Bed Facilities = Stabilization Intensive Case Management (SICM).",
     ],
     "sudors": [
         "This data visual presents the number of unintentional and undetermined (accidental) intent drug overdose deaths in Hawaiʻi sourced from the State Unintentional Drug Overdose Reporting System (SUDORS). Data can be filtered by substances that were deemed the cause of death (not mutually exclusive), housing status, race/ethnicity, sex, age group, and calendar year.",

@@ -260,7 +260,7 @@ def build_layout():
             html.Div(
                 [
                     html.H5("Stabilization Bed Facility Occupancy Rates", id="sicm-facility-chart-title", className="plot-card-header mb-2 text-center"),
-                    html.H6("Average of Daily Occupancy Rates.  These facilities only host adults", id="sicm-facility-chart-subtitle", className="plot-card-header mb-2 text-center"),
+                    html.H6("Occupancy Rate = Average of Daily Occupancy Rates.  These facilities only host adults", id="sicm-facility-chart-subtitle", className="plot-card-header mb-2 text-center"),
                     dcc.Graph(
                         id="sicm-facility-line-chart",
                         style={"width": "100%"},

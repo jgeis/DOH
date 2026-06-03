@@ -1,4 +1,4 @@
-# lcrf_dashboard.py — Licensed Crisis Residential Facility Occupancy Rates
+# lcrf_dashboard.py — Licensed Crisis Residential Shelters Occupancy Rates
 
 from pathlib import Path
 from functools import lru_cache
@@ -259,8 +259,8 @@ def build_layout():
         [
             html.Div(
                 [
-                    html.H5("Licensed Crisis Residential Facility Occupancy Rates", id="lcrf-facility-chart-title", className="plot-card-header mb-2 text-center"),
-                    html.H6("Average of Daily Occupancy Rates.  These facilities only host adults", id="lcrf-facility-chart-subtitle", className="plot-card-header mb-2 text-center"),
+                    html.H5("Licensed Crisis Residential Shelters Occupancy Rates", id="lcrf-facility-chart-title", className="plot-card-header mb-2 text-center"),
+                    html.H6("Occupancy Rate = Average of Daily Occupancy Rates.  These facilities only host adults", id="lcrf-facility-chart-subtitle", className="plot-card-header mb-2 text-center"),
 
                     dcc.Graph(
                         id="lcrf-facility-line-chart",
