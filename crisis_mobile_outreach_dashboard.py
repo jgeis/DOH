@@ -393,12 +393,16 @@ def update_cmo_dashboard(
         axis=1,
     )
 
+    # For the referral bar chart and referral summary table, hide destinations
+    # that contribute less than 1% of the filtered total.
+    agg_display = agg[agg["percentage"] >= 1].copy()
+
     # For horizontal bar charts, categoryarray[0] is rendered at the bottom.
     # Reverse here so the highest-count destination appears at the top.
-    y_order = agg["referral_destination"].tolist()[::-1]
+    y_order = agg_display["referral_destination"].tolist()[::-1]
 
     fig = px.bar(
-        agg,
+        agg_display,
         x="percentage",
         y="referral_destination",
         orientation="h",
@@ -418,7 +422,7 @@ def update_cmo_dashboard(
     )
     apply_standard_single_series_bar_trace(
         fig,
-        customdata=agg[["ct_display"]],
+        customdata=agg_display[["ct_display"]],
         hovertemplate="%{y}: %{x:.2f}% (%{customdata[0]} clients)<extra></extra>",
     )
 
@@ -537,7 +541,7 @@ def update_cmo_dashboard(
         xaxis=dict(dtick=1),
     )
 
-    table_df = agg[["referral_destination", "ct", "percentage"]].rename(
+    table_df = agg_display[["referral_destination", "ct", "percentage"]].rename(
         columns={
             "referral_destination": "Referral Destination",
             "ct": "Distinct Clients",
@@ -545,7 +549,7 @@ def update_cmo_dashboard(
         }
     )
     table_df["Distinct Clients"] = table_df["Distinct Clients"].apply(format_count_display)
-    table_df["Percent of Total"] = agg["percentage_table_display"].values
+    table_df["Percent of Total"] = agg_display["percentage_table_display"].values
 
     table = dbc.Table.from_dataframe(
         table_df,
