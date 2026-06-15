@@ -17,6 +17,25 @@ dir = os.path.dirname(os.path.abspath(__file__))
 #CSV_FILENAME = 'discharge_data_view.csv'
 #CSV_FILENAME = 'sudors_data_view_demographics$.csv'
 CSV_FILENAME = 'sudors_data_view_diag_su$.csv'
+#CSV_FILENAME = 'cares_calls_clean_text_chat.csv'
+#CSV_FILENAME = 'cares_calls_volume_view_test.csv'
+#CSV_FILENAME = 'AMHD_Crisis_Mobile_Outreach.csv'
+#CSV_FILENAME = 'adad_service_view.csv'
+#CSV_FILENAME = 'AMHD_dates_of_service.csv'
+#CSV_FILENAME = 'AMHD_Crisis_Stabilization_Bed.csv'
+#CSV_FILENAME = 'AMHD_Licensed_Crisis_Residential_Services.csv'
+#CSV_FILENAME = 'AMHD_service_category_CO_patid.csv'
+#CSV_FILENAME = 'amhd_mh_services_view.csv'
+#CSV_FILENAME = 'amhd_aggregate_month_reporting.csv'
+#CSV_FILENAME = 'amhd_aggregate_year_reporting.csv'
+#CSV_FILENAME = 'amhd_aggregate_day_reporting.csv'
+#CSV_FILENAME = 'amhd_dashboard_fact.csv'
+#CSV_FILENAME = 'camhd_co_mh_su_view.csv'
+#CSV_FILENAME = 'camhd_service_view_test.csv'
+#CSV_FILENAME = 'amhd_aggregate_view.csv'
+#CSV_FILENAME = 'amhd_aggregate_reporting.csv'
+#CSV_FILENAME = 'adad_service_view_test.csv'
+
 
 CSV_FILE = os.path.join(dir, CSV_FILENAME)
 CREDENTIALS_FILE = os.path.join(dir, 'credentials.json')

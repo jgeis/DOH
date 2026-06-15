@@ -174,5 +174,8 @@ def update_active_tab(pathname):
 
     return tabs, nav_style
 
+#def update_output_div(input_value):
+#    return f'Output: {input_value}'
+
 if __name__ == "__main__":
     app.run(debug=True)

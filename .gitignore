@@ -14,6 +14,7 @@ PlotlyDemo.mp4
 credentials.json
 settings.json
 test_queries.sql
+.coverage
 
 # OS stuff
 .DS_Store

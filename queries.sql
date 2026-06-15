@@ -133,9 +133,7 @@ FROM dx_union AS u
 JOIN poly_ids AS p
   ON p.incident_id = u.incident_id
 JOIN sudors_data_view_demographics$ AS m
-  ON m.incident_id = u.incident_id
-WHERE
-  LOWER(COALESCE(NULLIF(TRIM(m.age_cat), ''), 'unknown')) <> 'unknown';  -- drop Unknown/blank ages
+  ON m.incident_id = u.incident_id;
 
 
 -- name: load_wonder_overview
