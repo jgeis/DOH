@@ -155,6 +155,56 @@ Open your web browser and navigate to `http://127.0.0.1:8050/` to view the dashb
 
 **Note:** If you're in an Anaconda environment, always use the `run_dashboard.py` or `run_mobile.py` wrapper scripts to avoid Jupyter comm compatibility errors.
 
+## 🧪 Testing
+
+The project includes a comprehensive test suite with unit tests, integration tests, and regression tests.
+
+### Quick Start
+
+Install test dependencies:
+```bash
+pip install -r requirements-dev.txt
+```
+
+Run all tests:
+```bash
+pytest
+```
+
+Run specific test categories:
+```bash
+pytest -m unit          # Fast unit tests only
+pytest -m integration   # Integration tests
+pytest -m regression    # Regression tests
+```
+
+Run with coverage report:
+```bash
+pytest --cov=. --cov-report=html
+open htmlcov/index.html  # View coverage report
+```
+
+### Test Structure
+
+- **165 tests** across 6 test modules
+- **Unit tests**: Dashboard utilities, database operations, data formatting
+- **Integration tests**: App initialization, page routing, navigation
+- **Regression tests**: Critical functionality, edge cases, workflows
+
+### Using the Test Runner
+
+```bash
+./run_tests.sh              # All tests
+./run_tests.sh unit         # Unit tests only
+./run_tests.sh coverage     # With coverage report
+./run_tests.sh fast         # Skip slow tests
+```
+
+For detailed testing documentation, see:
+- [TESTING.md](TESTING.md) - Quick start guide
+- [tests/README.md](tests/README.md) - Comprehensive testing guide
+- [TEST_SETUP_SUMMARY.md](TEST_SETUP_SUMMARY.md) - Test setup details
+
 ### Production Server
 
 

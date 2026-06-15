@@ -1,0 +1,32 @@
+# Coverage.py configuration
+
+[run]
+source = .
+omit =
+    */tests/*
+    */test_*
+    */__pycache__/*
+    */venv/*
+    */.venv/*
+    */site-packages/*
+    */data/*
+    */assets/*
+    */jens_changes/*
+    setup.py
+    conftest.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+    
+precision = 2
+show_missing = True
+
+[html]
+directory = htmlcov

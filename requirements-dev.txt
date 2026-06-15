@@ -1,0 +1,30 @@
+# Development and testing-specific packages
+
+# Core testing framework
+pytest>=7.0.0
+pytest-cov>=4.0.0  # Code coverage reporting
+pytest-mock>=3.10.0  # Enhanced mocking capabilities
+pytest-xdist>=3.0.0  # Parallel test execution
+
+# Dash-specific testing
+# Note: pytest-dash has compatibility issues with Selenium 4.x
+# For Dash integration tests, use dash.testing directly or skip Selenium tests
+# pytest-dash>=2.0.0
+# webdriver-manager>=3.8.0
+# selenium>=4.0.0
+
+# Additional testing utilities
+coverage>=7.0.0  # Code coverage analysis
+pytest-html>=3.1.0  # HTML test reports
+pytest-timeout>=2.1.0  # Test timeout handling
+freezegun>=1.2.0  # Time mocking for date-sensitive tests
+
+# Code quality tools
+black>=23.0.0  # Code formatting
+flake8>=6.0.0  # Linting
+mypy>=1.0.0  # Type checking
+isort>=5.12.0  # Import sorting
+
+# Development utilities
+ipython>=8.0.0  # Enhanced REPL
+ipdb>=0.13.0  # Debugger
