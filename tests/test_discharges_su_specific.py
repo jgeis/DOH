@@ -106,16 +106,21 @@ class TestDischargesSUFiltering:
             substance=None,
             county=['Honolulu'],
             city=None,
-            year=None,
+            year=[2024],
             hawaii_residency=None,
             age=None,
             sex=None,
             race_ethnicity=None
         )
-        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, table_year, table_county, table_age, table_sex, table_race, table_residency = result
         # Bar chart should have data
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
+        # County table should show 7,001 for county Honolulu
+        assert table_county is not None, "County table should not be None"
+        table_county_str = str(table_county)
+        assert '7,001' in table_county_str or '7001' in table_county_str, f"County table should contain 7,001, got: {table_county_str}"
+        assert 'Honolulu' in table_county_str, f"County table should contain Honolulu, got: {table_county_str}"
     
     def test_filter_by_year_2024(self):
         """Test filtering by year 2024 with real data."""
@@ -142,16 +147,21 @@ class TestDischargesSUFiltering:
             substance=None,
             county=None,
             city=['Honolulu'],
-            year=None,
+            year=[2024],
             hawaii_residency=None,
             age=None,
             sex=None,
             race_ethnicity=None
         )
-        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, table_year, table_county, table_age, table_sex, table_race, table_residency = result
         # Bar chart should have data
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
+        # County table should show 4,875 for city Honolulu
+        assert table_county is not None, "County table should not be None"
+        table_county_str = str(table_county)
+        assert '4,875' in table_county_str or '4875' in table_county_str, f"County table should contain 4,875, got: {table_county_str}"
+        assert 'Honolulu' in table_county_str, f"County table should contain Honolulu, got: {table_county_str}"
 
     def test_filter_by_age_group_18_44(self):
         """Test filtering by age group 18-44 with real data."""
@@ -159,16 +169,21 @@ class TestDischargesSUFiltering:
             substance=None,
             county=None,
             city=None,
-            year=None,
+            year=[2024],
             hawaii_residency=None,
             age=['18-44'],
             sex=None,
             race_ethnicity=None
         )
-        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, table_year, table_county, table_age, table_sex, table_race, table_residency = result
         # Bar chart should have data
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
+        # Age table should show 5,097 for age group 18-44
+        assert table_age is not None, "Age table should not be None"
+        table_age_str = str(table_age)
+        assert '5,097' in table_age_str or '5097' in table_age_str, f"Age table should contain 5,097, got: {table_age_str}"
+        assert '18-44' in table_age_str, f"Age table should contain 18-44, got: {table_age_str}"
 
     def test_filter_by_sex_male(self):
         """Test filtering by sex Male with real data."""
@@ -176,16 +191,21 @@ class TestDischargesSUFiltering:
             substance=None,
             county=None,
             city=None,
-            year=None,
+            year=[2024],
             hawaii_residency=None,
             age=None,
             sex=['Male'],
             race_ethnicity=None
         )
-        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, table_year, table_county, table_age, table_sex, table_race, table_residency = result
         # Bar chart should have data
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
+        # Sex table should show 7,057 for Male
+        assert table_sex is not None, "Sex table should not be None"
+        table_sex_str = str(table_sex)
+        assert '7,057' in table_sex_str or '7057' in table_sex_str, f"Sex table should contain 7,057, got: {table_sex_str}"
+        assert 'Male' in table_sex_str, f"Sex table should contain Male, got: {table_sex_str}"
 
     def test_filter_by_race_ethnicity_white(self):
         """Test filtering by race/ethnicity White/Caucasian with real data."""
@@ -193,16 +213,21 @@ class TestDischargesSUFiltering:
             substance=None,
             county=None,
             city=None,
-            year=None,
+            year=[2024],
             hawaii_residency=None,
             age=None,
             sex=None,
             race_ethnicity=['White/Caucasian']
         )
-        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, table_year, table_county, table_age, table_sex, table_race, table_residency = result
         # Bar chart should have data
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
+        # Race/Ethnicity table should show 5,289 for White/Caucasian
+        assert table_race is not None, "Race/Ethnicity table should not be None"
+        table_race_str = str(table_race)
+        assert '5,289' in table_race_str or '5289' in table_race_str, f"Race/Ethnicity table should contain 5,289, got: {table_race_str}"
+        assert 'White/Caucasian' in table_race_str, f"Race/Ethnicity table should contain White/Caucasian, got: {table_race_str}"
 
     def test_filter_by_hawaii_residency_resident(self):
         """Test filtering by Hawaii residency with real data."""
@@ -210,16 +235,23 @@ class TestDischargesSUFiltering:
             substance=None,
             county=None,
             city=None,
-            year=None,
+            year=[2024],
             hawaii_residency=['Resident'],
             age=None,
             sex=None,
             race_ethnicity=None
         )
-        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, table_year, table_county, table_age, table_sex, table_race, table_residency = result
         # Bar chart should have data
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
+        # KPI card should show 9,854 
+        assert '9,854' in kpi or '9854' in kpi, f"KPI should contain '9,854', got: {kpi}"
+        # Residency table should show 9,854 for Resident
+        assert table_residency is not None, "Residency table should not be None"
+        table_residency_str = str(table_residency)
+        assert '9,854' in table_residency_str or '9854' in table_residency_str, f"Residency table should contain 9,854, got: {table_residency_str}"
+        assert 'Resident' in table_residency_str, f"Residency table should contain Resident, got: {table_residency_str}"
 
 
 @pytest.mark.regression
