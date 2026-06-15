@@ -68,6 +68,12 @@ def load_discharge_dataframe_from_db():
     for col in ["county", "city", "zip", "hawaii_residency", "age_group", "sex", "substance", "year"]:
         if col in df.columns:
             df[col] = df[col].fillna("Unknown")
+    
+    # Trim whitespace from text columns (fixes issue where trailing spaces prevent filter matches)
+    for col in ["county", "city", "zip", "hawaii_residency", "age_group", "sex", "substance", "race_ethnicity"]:
+        if col in df.columns:
+            df[col] = df[col].astype(str).str.strip()
+    
     return df
 
 # Load the full dataset once at startup.

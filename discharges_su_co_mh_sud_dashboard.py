@@ -64,6 +64,12 @@ def load_diagnosis_dataframe_from_db():
    for col in ["substance", "diagnosis_type", "is_primary", "county", "city", "zip", "hawaii_residency", "age_group", "sex", "race_ethnicity", "year"]:
        if col in df.columns:
            df[col] = df[col].fillna("Unknown")
+   
+   # Trim whitespace from text columns (fixes issue where trailing spaces prevent filter matches)
+   for col in ["substance", "diagnosis_type", "is_primary", "county", "city", "zip", "hawaii_residency", "age_group", "sex", "race_ethnicity"]:
+       if col in df.columns:
+           df[col] = df[col].astype(str).str.strip()
+   
    return df
 
 # Load the full dataset once at startup.
