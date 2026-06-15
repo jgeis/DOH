@@ -478,6 +478,7 @@ def update_dashboard(diagnosis, county, city, year, hawaii_residency, age, sex, 
         max_y = int(totals["count"].max()) if not totals.empty else 0
         apply_standard_bar_layout(
             sex_bar,
+            xaxis=dict(dtick=1),
             yaxis=dict(range=[0, max_y * 1.25 if max_y else 1]),
         )
     else:

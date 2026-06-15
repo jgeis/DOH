@@ -112,9 +112,7 @@ class TestDischargesSUFiltering:
             sex=None,
             race_ethnicity=None
         )
-        
         kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
-        
         # Bar chart should have data
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
@@ -131,14 +129,97 @@ class TestDischargesSUFiltering:
             sex=None,
             race_ethnicity=None
         )
-        
         kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
-        
         # Line charts should only show 2024 data
         if len(substance_line.data) > 0:
             for trace in substance_line.data:
                 if len(trace.x) > 0:
                     assert all(x == 2024 for x in trace.x), f"All years should be 2024, got {trace.x}"
+
+    def test_filter_by_city_honolulu(self):
+        """Test filtering by Honolulu city with real data."""
+        result = discharges_su_dashboard.update_dashboard(
+            substance=None,
+            county=None,
+            city=['Honolulu'],
+            year=None,
+            hawaii_residency=None,
+            age=None,
+            sex=None,
+            race_ethnicity=None
+        )
+        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        # Bar chart should have data
+        assert bar_fig is not None, "Bar chart should not be None"
+        assert len(bar_fig.data) > 0, "Bar chart should have data"
+
+    def test_filter_by_age_group_18_44(self):
+        """Test filtering by age group 18-44 with real data."""
+        result = discharges_su_dashboard.update_dashboard(
+            substance=None,
+            county=None,
+            city=None,
+            year=None,
+            hawaii_residency=None,
+            age=['18-44'],
+            sex=None,
+            race_ethnicity=None
+        )
+        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        # Bar chart should have data
+        assert bar_fig is not None, "Bar chart should not be None"
+        assert len(bar_fig.data) > 0, "Bar chart should have data"
+
+    def test_filter_by_sex_male(self):
+        """Test filtering by sex Male with real data."""
+        result = discharges_su_dashboard.update_dashboard(
+            substance=None,
+            county=None,
+            city=None,
+            year=None,
+            hawaii_residency=None,
+            age=None,
+            sex=['Male'],
+            race_ethnicity=None
+        )
+        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        # Bar chart should have data
+        assert bar_fig is not None, "Bar chart should not be None"
+        assert len(bar_fig.data) > 0, "Bar chart should have data"
+
+    def test_filter_by_race_ethnicity_white(self):
+        """Test filtering by race/ethnicity White/Caucasian with real data."""
+        result = discharges_su_dashboard.update_dashboard(
+            substance=None,
+            county=None,
+            city=None,
+            year=None,
+            hawaii_residency=None,
+            age=None,
+            sex=None,
+            race_ethnicity=['White/Caucasian']
+        )
+        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        # Bar chart should have data
+        assert bar_fig is not None, "Bar chart should not be None"
+        assert len(bar_fig.data) > 0, "Bar chart should have data"
+
+    def test_filter_by_hawaii_residency_resident(self):
+        """Test filtering by Hawaii residency with real data."""
+        result = discharges_su_dashboard.update_dashboard(
+            substance=None,
+            county=None,
+            city=None,
+            year=None,
+            hawaii_residency=['Resident'],
+            age=None,
+            sex=None,
+            race_ethnicity=None
+        )
+        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        # Bar chart should have data
+        assert bar_fig is not None, "Bar chart should not be None"
+        assert len(bar_fig.data) > 0, "Bar chart should have data"
 
 
 @pytest.mark.regression
@@ -309,6 +390,87 @@ class TestDischargesSURegressionScenarios:
             alcohol_trace = substance_line.data[0]
             years_shown = set(alcohol_trace.x)
             assert 2023 in years_shown or 2024 in years_shown, "Should show at least one of the selected years"
+    
+    def test_yearly_sex_stacked_bar_xaxis_single_year_filter(self):
+        """
+        REGRESSION TEST: Verify x-axis behavior when filtering to single year.
+        
+        When filtering to a single year (e.g., 2024) and single sex (e.g., Male),
+        the "Yearly Discharges by Gender" stacked bar chart should:
+        1. Show only the filtered year on the x-axis (not interpolated values)
+        2. Have dtick=1 set to force integer-only tick marks
+        3. Not show spurious intermediate ticks like "2,2023.6", "2,2023.8", etc.
+        
+        This prevents Plotly from treating the numeric year axis as continuous
+        and auto-generating intermediate tick marks.
+        """
+        result = discharges_su_dashboard.update_dashboard(
+            substance=None,
+            county=None,
+            city=None,
+            year=[2024],  # Single year filter
+            hawaii_residency=None,
+            age=None,
+            sex=['Male'],  # Single sex filter
+            race_ethnicity=None
+        )
+        
+        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        
+        # Verify sex_stacked bar chart exists and has data
+        assert sex_stacked is not None, "Sex stacked bar chart should not be None"
+        assert len(sex_stacked.data) > 0, "Sex stacked bar chart should have data"
+        
+        # Verify x-axis data shows only 2024
+        male_trace = sex_stacked.data[0]
+        assert len(male_trace.x) == 1, f"Should have exactly 1 year point, got {len(male_trace.x)}"
+        assert male_trace.x[0] == 2024, f"X-axis should show 2024, got {male_trace.x[0]}"
+        
+        # Verify x-axis configuration has dtick=1 to force integer ticks
+        xaxis_config = sex_stacked.layout.xaxis
+        assert hasattr(xaxis_config, 'dtick'), "X-axis should have dtick configured"
+        assert xaxis_config.dtick == 1, f"X-axis dtick should be 1 (integer ticks only), got {xaxis_config.dtick}"
+        
+    def test_yearly_sex_stacked_bar_xaxis_multiple_years(self):
+        """
+        REGRESSION TEST: Verify x-axis with multiple years displays correctly.
+        
+        When filtering to multiple years (e.g., 2023, 2024), the chart should:
+        1. Display all selected years that have data
+        2. Still use dtick=1 for integer-only tick marks
+        3. Maintain proper spacing between bars
+        """
+        result = discharges_su_dashboard.update_dashboard(
+            substance=None,
+            county=None,
+            city=None,
+            year=[2023, 2024],  # Multiple years
+            hawaii_residency=None,
+            age=None,
+            sex=None,
+            race_ethnicity=None
+        )
+        
+        kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        
+        # Verify sex_stacked bar chart exists and has data
+        assert sex_stacked is not None, "Sex stacked bar chart should not be None"
+        assert len(sex_stacked.data) > 0, "Sex stacked bar chart should have data"
+        
+        # Collect all years across all traces (Male, Female, etc.)
+        all_years = set()
+        for trace in sex_stacked.data:
+            if hasattr(trace, 'x') and len(trace.x) > 0:
+                all_years.update(trace.x)
+        
+        # Should have both years (or at least one if data doesn't exist for one year)
+        assert len(all_years) > 0, "Should have at least one year displayed"
+        assert all(year in [2023, 2024] for year in all_years), f"All years should be from selected [2023, 2024], got {all_years}"
+        
+        # Verify x-axis configuration still has dtick=1
+        xaxis_config = sex_stacked.layout.xaxis
+        assert hasattr(xaxis_config, 'dtick'), "X-axis should have dtick configured"
+        assert xaxis_config.dtick == 1, f"X-axis dtick should be 1 (integer ticks only), got {xaxis_config.dtick}"
 
 
 @pytest.mark.integration
