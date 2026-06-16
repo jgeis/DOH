@@ -9,4 +9,4 @@ register_page(
     title="Any Discharge Related to Substance Use",
 )
 
-layout = discharges_su_dashboard.layout
+layout = discharges_su_dashboard.layout()
