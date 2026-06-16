@@ -223,6 +223,127 @@ class TestFiltering:
         assert 'Male' in table_sex_str, f"Sex table should contain Male, got: {table_sex_str}"
 
 
+@pytest.mark.regression
+class TestRegressionScenarios:
+    """Regression tests for known scenarios using real data."""
+    def test_empty_filters_shows_all_data(self):
+        """Regression: Empty filters should show all data from real database."""
+        result = discharges_su_polysubstance_dashboard.update(
+            substance=None,
+            county=None,
+            year=None,
+            age=None,
+            sex=None
+        )
+        
+        (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
+         bar_fig, substance_line, county_line, 
+         table_county, table_year, table_age, table_sex) = result
+                
+        # Should have data for multiple substances
+        assert bar_fig is not None, "Bar chart should not be None"
+        assert len(bar_fig.data) > 0, "Bar chart should have data"
+        
+        bar_data = bar_fig.data[0]
+        assert len(bar_data.y) > 1, f"Should show multiple substances, got {len(bar_data.y)}"
+    
+    def test_multiple_years_selected(self):
+        """Regression: Multiple year selection should work with real data."""
+        result = discharges_su_polysubstance_dashboard.update(
+            substance=['Alcohol'],
+            county=['Honolulu'],
+            year=[2023, 2024],
+            age=['18-44'],
+            sex=['Male']
+        )
+        
+        (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
+         bar_fig, substance_line, county_line, 
+         table_county, table_year, table_age, table_sex) = result
+                
+        # Line charts should show both years
+        if len(substance_line.data) > 0:
+            alcohol_trace = substance_line.data[0]
+            years_shown = set(alcohol_trace.x)
+            assert 2023 in years_shown and 2024 in years_shown, "Should show both of the selected years"
+
+@pytest.mark.integration
+class TestCharts:
+    """Test chart generation and data validation with real data."""
+    
+    def test_bar_chart_structure(self):
+        """Test that bar chart has correct structure with real data."""
+        result = discharges_su_polysubstance_dashboard.update(
+            substance=None,
+            county=None,
+            year=[2024],
+            age=None,
+            sex=None
+        )
+        (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
+         bar_fig, substance_line, county_line, 
+         table_county, table_year, table_age, table_sex) = result
+                
+        # Should be a bar chart
+        assert isinstance(bar_fig, go.Figure), "Should be a Plotly Figure"
+        assert len(bar_fig.data) > 0, "Should have at least one trace"
+        assert bar_fig.data[0].type == 'bar', "Should be a bar chart"
+
+        # Bar chart should be horizontal (orientation='h')
+        assert bar_fig.data[0].orientation == 'h', "Bar chart should be horizontal"
+
+    
+    def test_line_chart_structure(self):
+        """Test that line charts have correct structure with real data."""
+        result = discharges_su_polysubstance_dashboard.update(
+            substance=['Alcohol'],
+            county=None,
+            year=None,
+            age=None,
+            sex=None
+        )
+        
+        (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
+         bar_fig, substance_line, county_line, 
+         table_county, table_year, table_age, table_sex) = result
+                
+        # Substance line should be a line chart
+        assert isinstance(substance_line, go.Figure), "Should be a Plotly Figure"
+        if len(substance_line.data) > 0:
+            for trace in substance_line.data:
+                assert trace.type == 'scatter', "Should be scatter type"
+
+        # County line should be a line chart
+        assert isinstance(county_line, go.Figure), "Should be a Plotly Figure"
+        if len(county_line.data) > 0:
+            for trace in county_line.data:
+                assert trace.type == 'scatter', "Should be scatter type"
+    
+
+
+
+class TestTables:
+    """Test table generation with real data."""
+    
+    def test_tables_are_not_none(self):
+        """Test that all tables are generated."""
+        result = discharges_su_polysubstance_dashboard.update(
+            substance=['Alcohol'],
+            county=None,
+            year=[2024],
+            age=None,
+            sex=None
+        )
+        
+        (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
+         bar_fig, substance_line, county_line, 
+         table_county, table_year, table_age, table_sex) = result
+
+        assert table_year is not None, "Year table should not be None"
+        assert table_county is not None, "County table should not be None"
+        assert table_age is not None, "Age table should not be None"
+        assert table_sex is not None, "Sex table should not be None"
+
 class TestResetFilters:
     """Test filter reset functionality."""
     
