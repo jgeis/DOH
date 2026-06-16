@@ -64,6 +64,15 @@ class TestDischargesSUDataLoading:
         
         assert pd.api.types.is_numeric_dtype(df['year']), "Year column should be numeric"
     
+    def test_county_column_has_no_trailing_whitespace(self):
+        """Test that county column values are trimmed (regression test for county filter bug)."""
+        df = discharges_su_dashboard.df_raw
+        if 'county' in df.columns:
+            county_values = df['county'].unique()
+            for county in county_values:
+                county_str = str(county)
+                assert county_str == county_str.strip(), f"County '{county}' should not have trailing whitespace"
+
     def test_city_column_has_no_trailing_whitespace(self):
         """Test that city column values are trimmed (regression test for city filter bug)."""
         df = discharges_su_dashboard.df_raw
@@ -73,6 +82,58 @@ class TestDischargesSUDataLoading:
             for city in city_values:
                 city_str = str(city)
                 assert city_str == city_str.strip(), f"City '{city}' should not have trailing whitespace"
+
+    def test_age_column_has_no_trailing_whitespace(self):
+        """Test that age column values are trimmed (regression test for age filter bug)."""
+        df = discharges_su_dashboard.df_raw
+        
+        if 'age_group' in df.columns:
+            age_values = df['age_group'].unique()
+            for age in age_values:
+                age_str = str(age)
+                assert age_str == age_str.strip(), f"Age '{age}' should not have trailing whitespace"
+
+
+    def test_sex_column_has_no_trailing_whitespace(self):
+        """Test that sex column values are trimmed (regression test for sex filter bug)."""
+        df = discharges_su_dashboard.df_raw
+        
+        if 'sex' in df.columns:
+            sex_values = df['sex'].unique()
+            for sex in sex_values:
+                sex_str = str(sex)
+                assert sex_str == sex_str.strip(), f"Sex '{sex}' should not have trailing whitespace"
+
+    def test_substance_column_has_no_trailing_whitespace(self):
+        """Test that substance column values are trimmed (regression test for substance filter bug)."""
+        df = discharges_su_dashboard.df_raw
+        
+        if 'substance' in df.columns:
+            substance_values = df['substance'].unique()
+            for substance in substance_values:
+                substance_str = str(substance)
+                assert substance_str == substance_str.strip(), f"Substance '{substance}' should not have trailing whitespace"
+
+    def test_race_ethnicity_column_has_no_trailing_whitespace(self):
+        """Test that race/ethnicity column values are trimmed (regression test for race/ethnicity filter bug)."""
+        df = discharges_su_dashboard.df_raw
+        
+        if 'race_ethnicity' in df.columns:
+            race_ethnicity_values = df['race_ethnicity'].unique()
+            for race_ethnicity in race_ethnicity_values:
+                race_ethnicity_str = str(race_ethnicity)
+                assert race_ethnicity_str == race_ethnicity_str.strip(), f"Race/Ethnicity '{race_ethnicity}' should not have trailing whitespace"
+
+    def test_hawaii_residency_column_has_no_trailing_whitespace(self):
+        """Test that Hawaii residency column values are trimmed (regression test for Hawaii residency filter bug)."""
+        df = discharges_su_dashboard.df_raw
+        
+        if 'hawaii_residency' in df.columns:
+            hawaii_residency_values = df['hawaii_residency'].unique()
+            for residency in hawaii_residency_values:
+                residency_str = str(residency)
+                assert residency_str == residency_str.strip(), f"Hawaii Residency '{residency}' should not have trailing whitespace"
+
 
 
 @pytest.mark.integration
@@ -135,6 +196,14 @@ class TestDischargesSUFiltering:
             race_ethnicity=None
         )
         kpi, bar_fig, substance_line, county_line, age_line, sex_stacked, *tables = result
+        print(f"kpi: {kpi}")
+        print(f"bar_fig: {bar_fig}")
+        print(f"substance_line: {substance_line}")
+        print(f"county_line: {county_line}")
+        print(f"age_line: {age_line}")
+        print(f"sex_stacked: {sex_stacked}")
+        #assert false, "failure"
+
         # Line charts should only show 2024 data
         if len(substance_line.data) > 0:
             for trace in substance_line.data:
@@ -157,6 +226,8 @@ class TestDischargesSUFiltering:
         # Bar chart should have data
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
+        # KPI card should show 4,875 
+        assert '4,875' in kpi or '4875' in kpi, f"KPI should contain '4,875', got: {kpi}"
         # County table should show 4,875 for city Honolulu
         assert table_county is not None, "County table should not be None"
         table_county_str = str(table_county)
@@ -179,6 +250,8 @@ class TestDischargesSUFiltering:
         # Bar chart should have data
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
+        # KPI card should show 5,097 
+        assert '5,097' in kpi or '5097' in kpi, f"KPI should contain '5,097', got: {kpi}"
         # Age table should show 5,097 for age group 18-44
         assert table_age is not None, "Age table should not be None"
         table_age_str = str(table_age)
@@ -201,6 +274,8 @@ class TestDischargesSUFiltering:
         # Bar chart should have data
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
+        # KPI card should show 7,057 
+        assert '7,057' in kpi or '7057' in kpi, f"KPI should contain '7,057', got: {kpi}"
         # Sex table should show 7,057 for Male
         assert table_sex is not None, "Sex table should not be None"
         table_sex_str = str(table_sex)
@@ -223,6 +298,8 @@ class TestDischargesSUFiltering:
         # Bar chart should have data
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
+        # KPI card should show 5,289 
+        assert '5,289' in kpi or '5289' in kpi, f"KPI should contain '5,289', got: {kpi}"
         # Race/Ethnicity table should show 5,289 for White/Caucasian
         assert table_race is not None, "Race/Ethnicity table should not be None"
         table_race_str = str(table_race)
