@@ -104,7 +104,8 @@ SELECT
   m.race_ethnicity,
   m.year
 FROM dx
-JOIN sudors_data_view_demographics$ m ON m.incident_id = dx.incident_id;
+JOIN sudors_data_view_demographics$ m ON m.incident_id = dx.incident_id
+WHERE m.year > 2020;  -- drop 2020 and earlier since they are partial years with different reporting rules
 
 
 -- name: load_sudors_polysubstance_data
@@ -133,7 +134,8 @@ FROM dx_union AS u
 JOIN poly_ids AS p
   ON p.incident_id = u.incident_id
 JOIN sudors_data_view_demographics$ AS m
-  ON m.incident_id = u.incident_id;
+  ON m.incident_id = u.incident_id
+where m.year > 2020;  -- drop 2020 and earlier since they are partial years with different reporting rules
 
 
 -- name: load_wonder_overview
