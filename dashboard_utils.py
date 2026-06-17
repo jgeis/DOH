@@ -12,6 +12,7 @@ FILTER_LABELS = {
     "County": "County",
     "city": "City",
     "Age Group": "Age Group",
+    "Age_cat": "Age Group",
     "Sex": "Sex at Birth",
     "sex": "Sex at Birth",
     "Gender": "Sex at Birth",
@@ -19,7 +20,8 @@ FILTER_LABELS = {
     "Race/Ethnicity": "Race/Ethnicity",
     "Hawaii Resident": "Hawaii Resident",
     "Hawaii Residency": "Hawaii Resident",
-    "Homeless Status": "Is Homeless",
+    "Homeless Status": "Homeless",
+    "Is Homeless": "Homeless",
     "Referral Destination": "Referral Destination",
     "Service Modality": "Service Modality",
     "Service Category": "Service Category",
@@ -93,7 +95,6 @@ RIGHT_TABLE_LABEL_ORDER = [
     "Race/Ethnicity",
     "Hawaii Resident",
     "Homeless",
-    "Is Homeless",
 ]
 
 
@@ -653,11 +654,12 @@ def build_summary_count_table(
     labels = {
         "year": "Calendar Year",
         "age_group": "Age Group",
+        "age_cat": "Age Group",
         "county": "County",
         "sex": "Sex at Birth",
         "race_ethnicity": "Race/Ethnicity",
         "hawaii_residency": "Hawaii Resident",
-        "homeless": "Is Homeless",
+        "homeless": "Homeless",
         "discharges": "Discharges",
     }
     if header_labels:
