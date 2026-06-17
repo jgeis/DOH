@@ -162,7 +162,7 @@ def layout():
         [
             ("Race/Ethnicity", "sudors-table-race"),
             ("Sex at Birth", "sudors-table-sex"),
-            ("Is Homeless", "sudors-table-homeless"),
+            ("Homeless", "sudors-table-homeless"),
             ("Calendar Year", "sudors-table-year"),
             ("Age Group", "sudors-table-age"),
         ],
@@ -349,6 +349,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             id_col="incident_id",
             categories=categories,
             include_all_ordered=bool(categories),
+            count_label="Deaths",
         )
 
     # pin "under 15" at the top and "unknown" at the bottom, with the rest in numeric order in between
@@ -378,10 +379,10 @@ def update_dashboard(substance, homeless, sex, age, race, year):
     return (
         format_count_display(filter_total),
         sud_bar,
-        summary_table("race_ethnicity"),
-        summary_table("sex"),
-        summary_table("homeless"),
-        summary_table("year"),
-        summary_table("age_cat", age_table_order),
+        summary_table("race_ethnicity", categories=race_opts if not race else None),
+        summary_table("sex", categories=sex_opts if not sex else None),
+        summary_table("homeless", categories=homeless_opts if not homeless else None),
+        summary_table("year", categories=year_opts if not year else None),
+        summary_table("age_cat", categories=age_table_order if not age else None),
         line_fig,
     )

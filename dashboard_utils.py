@@ -606,7 +606,7 @@ def build_summary_count_table(
     group_col: str,
     id_col: str = "record_id",
     categories=None,
-    include_all_ordered: bool = False,
+    include_all_ordered: bool = True,
     include_statewide_county: bool = False,
     county_col: str = "county",
     header_labels: dict | None = None,

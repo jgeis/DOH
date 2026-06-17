@@ -20,10 +20,12 @@ from db_utils import execute_query
 from dashboard_utils import (
     make_kpi_card,
     make_left_sidebar,
+    make_right_summary_tables_col,
     compute_last_updated_value,
     compute_adaptive_horizontal_bar_height,
     make_filters_card,
     dropdown_filter,
+    graph_block,
     sort_opts,
     statewide_first,
     apply_county_filter,
@@ -385,31 +387,6 @@ def _records_matching_all_selected_substances(frame: pd.DataFrame, selected_valu
     matched_ids = record_match_counts[record_match_counts == required_count].index
     return frame[frame["record_id"].isin(matched_ids)].copy()
 
-
-def graph_block(base_id: str, title_text: str, height: str | None = None):
-    """
-    Build a reusable chart "card" with a title and graph.
-
-    Why: this keeps plot sections consistent across the page and helps
-    avoid repeating the same layout code every time we add a graph.
-    """
-    return html.Div(
-        [
-            html.H5(title_text, id=f"{base_id}-title", className="mb-2"),
-
-            # The graph itself; Plotly tools bar (modebar) is always ON.
-            dcc.Graph(
-                id=base_id,
-                style=({"height": height, "width": "100%"} if height else {"width": "100%"}),
-                config={"displayModeBar": True, "displaylogo": False},
-            ),
-        ],
-        className="mb-4",
-        # Let the tools bar hang outside the card if needed so it’s not cut off.
-        style={"overflow": "visible"},
-    )
-
-
 # ---------- layout factory (mobile-aware) ----------
 def layout_for(is_mobile: bool = False):
     """
@@ -456,29 +433,22 @@ def layout_for(is_mobile: bool = False):
     # CENTER: main charts focused on substance over time
     center = dbc.Col([
         graph_block("bar-top-substances", "Substance Type"),
-        # Hidden description for screen readers.
         html.P("Horizontal bar chart showing the top substances among polysubstance records.", className="visually-hidden"),
-
         graph_block("line-year-substance", "Yearly Discharges by Polysubstance", h_stack),
         html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
     ], xs=12, md=6)
 
-    # RIGHT: county share chart + two small summary tables (no headers per site-wide standard)
-    right = dbc.Col([
-        html.Div(id="tbl-county-share", className="sidebar-table mb-4"),
-
-        html.Div(id="tbl-year", className="sidebar-table mb-4"),
-
-        # Two summary tables (Age + Sex at Birth) — NO HEADERS
-        dbc.Row([
-            dbc.Col([
-                html.Div(id="tbl-age", className="sidebar-table"),
-            ], xs=12, md=12),
-            dbc.Col([
-                html.Div(id="tbl-sex", className="sidebar-table"),
-            ], xs=12, md=12),
-        ], className="g-3"),
-    ], xs=12, md=3)
+    # RIGHT: summary tables (ordered by shared site-wide utility)
+    right = make_right_summary_tables_col(
+        [
+            ("County", "tbl-county-share"),
+            ("Calendar Year", "tbl-year"),
+            ("Age Group", "tbl-age"),
+            ("Sex", "tbl-sex"),
+        ],
+        xs=12,
+        md=3,
+    )
 
     # Wrap everything up in one fluid container.
     return dbc.Container([
@@ -891,31 +861,6 @@ def update(substance, age, sex, county, year):
     else:
         fig_year_county = px.line()
 
-    # ---------- Table: county share ----------
-    uniq = demographic_source.drop_duplicates(subset=["record_id"])
-    if {"county", "record_id"}.issubset(uniq.columns) and not uniq.empty:
-        county_counts = uniq.groupby("county")["record_id"].nunique().reset_index(name="discharges")
-
-        county_order = statewide_first(sort_opts(county_counts["county"]))
-        county_counts["county"] = pd.Categorical(
-            county_counts["county"],
-            categories=county_order,
-            ordered=True,
-        )
-        county_counts = county_counts.sort_values("county")
-        county_counts["discharges"] = county_counts["discharges"].map(format_count_display)
-        # Let build_summary_count_table handle column renaming
-        # Manual table builder for compatibility
-        tbl_county = dbc.Table([
-            html.Thead(html.Tr([html.Th(col) for col in county_counts.columns])),
-            html.Tbody([
-                html.Tr([html.Td(val) for val in row]) for row in county_counts.values
-            ])
-        ], striped=True, bordered=True, hover=True, size="sm")
-    else:
-        tbl_county = dbc.Alert("No county data available.", color="warning", className="mb-0")
-
-    # ---------- Small tables ----------
     def simple_table(df, col, ordered=None, include_all_ordered=False):
         # Use shared build_summary_count_table for summary tables, letting it handle header labels
         if col not in df.columns or df.empty:
@@ -928,6 +873,9 @@ def update(substance, age, sex, county, year):
             include_all_ordered=include_all_ordered,
         )
 
+    # ---------- Small tables ----------
+    uniq = demographic_source.drop_duplicates(subset=["record_id"])
+    
     # Extract year groups dynamically in descending order (newest first).
     year_groups = None
     if "year" in uniq.columns and not uniq.empty:
@@ -943,12 +891,13 @@ def update(substance, age, sex, county, year):
             key=lambda v: int(v) if str(v).isdigit() else str(v),
             reverse=True,
         )
-    age_groups = sort_opts(uniq["age_group"]) if "age_group" in uniq.columns and not uniq.empty else None
 
     year_source = uniq.copy()
     if "year" in year_source.columns and not year_source.empty:
         year_source["year"] = year_source["year"].astype(str)
 
+    county_opts_ordered = statewide_first(sort_opts(uniq["county"])) if "county" in uniq.columns and not uniq.empty else None
+    tbl_county = simple_table(uniq, "county", ordered=county_opts_ordered, include_all_ordered=True)
     tbl_year = simple_table(year_source, "year", year_groups)
     tbl_age = simple_table(uniq, "age_group", age_opts, include_all_ordered=True)
     tbl_sex = simple_table(uniq, "sex")

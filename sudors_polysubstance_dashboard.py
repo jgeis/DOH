@@ -470,47 +470,22 @@ def update_dashboard(substance, homeless, sex, age, race, year):
    if "age_cat" in df_raw.columns:
        age_table_order = sort_opts(df_raw["age_cat"])
 
-   # Build all summary tables once for reuse
-   table_race = build_summary_count_table(
-       dff,
-       "race_ethnicity",
-       id_col="incident_id",
-       categories=race_opts if not race else None,
-       include_all_ordered=not bool(race),
-       count_label="Deaths",
-   )
-   table_sex = build_summary_count_table(
-       dff,
-       "sex",
-       id_col="incident_id",
-       categories=sex_opts if not sex else None,
-       include_all_ordered=not bool(sex),
-       count_label="Deaths",
-   )
-   table_homeless = build_summary_count_table(
-       dff,
-       "homeless",
-       id_col="incident_id",
-       categories=homeless_opts if not homeless else None,
-       include_all_ordered=not bool(homeless),
-       count_label="Deaths",
-   )
-   table_year = build_summary_count_table(
-       dff,
-       "year",
-       id_col="incident_id",
-       categories=year_opts if not year else None,
-       include_all_ordered=not bool(year),
-       count_label="Deaths",
-   )
-   table_age = build_summary_count_table(
-       dff,
-       "age_cat",
-       id_col="incident_id",
-       categories=age_table_order if not age else None,
-       include_all_ordered=not bool(age),
-       count_label="Deaths",
-   )
+   # ---------- Helper for the summary tables ----------
+   # Use shared build_summary_count_table for summary tables
+   def summary_table(group_col, categories=None):
+        return build_summary_count_table(
+            dff,
+            group_col=group_col,
+            id_col="incident_id",
+            categories=categories,
+            include_all_ordered=bool(categories),
+            count_label="Deaths",
+        )
+   table_race = summary_table("race_ethnicity", categories=race_opts if not race else None)
+   table_sex = summary_table("sex", categories=sex_opts if not sex else None)
+   table_homeless = summary_table("homeless", categories=homeless_opts if not homeless else None)
+   table_year = summary_table("year", categories=year_opts if not year else None)
+   table_age = summary_table("age_cat", categories=age_table_order if not age else None)
 
    # ---------- Bar chart: Deaths by Substance ----------
    if {"substance"}.issubset(dff.columns):
