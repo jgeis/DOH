@@ -1088,7 +1088,9 @@ def compute_last_updated_value(df: pd.DataFrame | None) -> str | None:
             continue
 
         if "date" in col_name or col_name in {"day", "month", "period"}:
-            parsed = pd.to_datetime(series, errors="coerce")
+            # Try a few common formats before falling back to slow individual parsing.
+            # This helps resolve the UserWarning about inferring formats.
+            parsed = pd.to_datetime(series, format="mixed", errors="coerce")
             parsed = parsed.dropna()
             if parsed.empty:
                 continue
