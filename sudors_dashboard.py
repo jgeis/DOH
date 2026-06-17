@@ -319,10 +319,18 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             labels={"year": "Year", "count": "Number of Deaths", "substance": "Substance"},
         )
         by_year_substance["display_count"] = by_year_substance["count"].apply(format_count_display)
-        line_fig.update_traces(
-            customdata=by_year_substance[["display_count"]],
-            hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>Deaths: %{customdata[0]}<extra></extra>"
-        )
+
+        # To fix the hover issue, we need to iterate through each trace Plotly Express created
+        # and assign the correct customdata for that specific substance.
+        for trace in line_fig.data:
+            substance_name = trace.name
+            # Filter the dataframe to get data just for this trace's substance
+            substance_df = by_year_substance[by_year_substance["substance"] == substance_name]
+            # Sort it by year to ensure the data points line up
+            substance_df = substance_df.sort_values("year")
+            # Assign the correctly ordered customdata
+            trace.customdata = substance_df[["display_count"]]
+            trace.hovertemplate = "Year: %{x}<br>Substance: %{fullData.name}<br>Deaths: %{customdata[0]}<extra></extra>"
 
         apply_standard_line_layout(
             line_fig,
