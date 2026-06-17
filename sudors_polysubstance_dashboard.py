@@ -313,7 +313,7 @@ def layout():
             dbc.Col([
                 dbc.Card([
                     dbc.CardHeader([
-                        html.H5("Co-occurrence with selected substance", className="mb-0")
+                        html.H5("Co-occurrence with Selected Substance", className="mb-0")
                     ]),
                     dbc.CardBody([
                         # ... (Keep your existing CardBody contents unchanged) ...
@@ -651,7 +651,7 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                 x="Plot_Percentage",
                 y="Also Found",
                 orientation="h",
-                labels={"Percentage": "Co-occurrence", "Also Found": "Other Substance"},
+                labels={"Plot_Percentage": "Co-occurrence", "Also Found": "Co-occurring Substances"},
                 text="label",
                 custom_data=["Count_formatted", "Total_formatted", "Cooccurrence_line"],
             )
@@ -697,7 +697,7 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                 y='Plot_Percentage',
                 color='Also Found',
                 barmode='group',
-                labels={'Percentage': 'Co-occurrence', 'Primary': 'Primary Substance'},
+                labels={'Plot_Percentage': 'Co-occurrence', 'Primary': 'Primary Substance'},
                 text=co_data['Percentage_display'],
                 custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line', 'Also Found']
             )
