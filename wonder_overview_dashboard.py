@@ -207,7 +207,7 @@ filters_card = make_filters_card(
 )
 
 from section_texts import SECTION_TEXTS
-wonder_overview_sidebar_text = SECTION_TEXTS.get("wonder_overview", [])
+wonder_overview_sidebar_text = SECTION_TEXTS.get("wonder-overview", [])
 
 def layout_for(
     is_mobile: bool = False,

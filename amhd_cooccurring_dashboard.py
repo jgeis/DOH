@@ -280,7 +280,7 @@ filters_card = make_filters_card(
 )
 
 from section_texts import SECTION_TEXTS
-amhd_sidebar_text = SECTION_TEXTS.get("amhd_cooccurring", [])
+amhd_sidebar_text = SECTION_TEXTS.get("amhd-cooccurring", [])
 
 
 def layout():

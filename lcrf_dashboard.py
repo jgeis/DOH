@@ -234,7 +234,7 @@ filters_card = make_filters_card(
 )
 
 from section_texts import SECTION_TEXTS
-lcrf_sidebar_text = SECTION_TEXTS.get("lcrf", [])
+lcrf_sidebar_text = SECTION_TEXTS.get("lcrs", [])
 
 
 def build_layout():

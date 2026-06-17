@@ -207,7 +207,7 @@ filters_card = make_filters_card(
 )
 
 from section_texts import SECTION_TEXTS
-sidebar_text = SECTION_TEXTS.get("crisis_mobile_outreach", [])
+sidebar_text = SECTION_TEXTS.get("crisis-mobile-outreach", [])
 
 
 # ----------------------------

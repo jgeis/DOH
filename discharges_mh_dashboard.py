@@ -150,7 +150,7 @@ filters_card = make_filters_card(
 )
 
 from section_texts import SECTION_TEXTS
-discharges_mh_sidebar_text = SECTION_TEXTS.get("discharges_mh", [])
+discharges_mh_sidebar_text = SECTION_TEXTS.get("discharges-mh", [])
 
 # ----------------------------
 # Layout

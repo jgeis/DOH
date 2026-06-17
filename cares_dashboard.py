@@ -163,7 +163,7 @@ filters_card = make_filters_card(
 )
 
 from section_texts import SECTION_TEXTS
-cares_sidebar_text = SECTION_TEXTS.get("cares", [])
+cares_sidebar_text = SECTION_TEXTS.get("cares-call-volume", [])
 
 # ----------------------------
 # Layout

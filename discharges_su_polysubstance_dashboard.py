@@ -285,7 +285,7 @@ year_opts      = sort_opts(df_raw["year"])                         if "year" in 
 kpi_total = df_raw["record_id"].nunique() if "record_id" in df_raw.columns else 0
 
 from section_texts import SECTION_TEXTS
-polysubstance_sidebar_text = SECTION_TEXTS.get("discharges_su_polysubstance", [])
+polysubstance_sidebar_text = SECTION_TEXTS.get("discharges-su-polysubstance", [])
 
 # Filter display order is managed centrally in dashboard_utils.make_filters_card.
 filters_card = make_filters_card(

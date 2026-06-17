@@ -119,10 +119,8 @@ filters_card_dose = make_filters_card(
     ],
 )
 
-dose_sidebar_text = [
-    "This data visual presents the number of emergency discharges related to nonfatal drug overdose by specific substance types (not mutually exclusive), as categorized by the CDC’s Drug Overdose Surveillance and Epidemiology (DOSE) definitions. Data elements include patient demographics (i.e., age, sex at birth), discharge outcomes, and temporal trends by month and year.",
-    "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*."
-]
+from section_texts import SECTION_TEXTS
+dose_sidebar_text = SECTION_TEXTS.get("dose", [])
 
 # ----------------------------
 # Layout

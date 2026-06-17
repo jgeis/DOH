@@ -63,12 +63,12 @@ def load_diagnosis_dataframe_from_db():
 
     # For these columns, replace missing values with "Unknown"
     # so we don't get blank labels in filters and tables.
-    for col in ["substance", "diagnosis_type", "is_primary", "county", "city", "zip", "hawaii_residency", "age_group", "sex", "race_ethnicity", "year"]:
+    for col in ["diagnosis", "diagnosis_type", "is_primary", "county", "city", "zip", "hawaii_residency", "age_group", "sex", "race_ethnicity", "year"]:
         if col in df.columns:
             df[col] = df[col].fillna("Unknown")
     
     # Trim whitespace from text columns (fixes issue where trailing spaces prevent filter matches)
-    for col in ["substance", "diagnosis_type", "is_primary", "county", "city", "zip", "hawaii_residency", "age_group", "sex", "race_ethnicity"]:
+    for col in ["diagnosis", "diagnosis_type", "is_primary", "county", "city", "zip", "hawaii_residency", "age_group", "sex", "race_ethnicity"]:
         if col in df.columns:
             df[col] = df[col].astype(str).str.strip()
     
@@ -147,10 +147,8 @@ filters_card = make_filters_card(
     ],
 )
 
-discharges_sidebar_text = [
-    "This data visual highlights emergency department (ED) discharges involving substance use as a primary factor. Data include substance types and demographic breakdowns by age group, sex at birth, county, and year. Specific substances tracked are not mutually exclusive and include alcohol, nicotine, cannabis, opioids, cocaine, stimulants, and psychoactive drugs, among others.",
-    "* Per data sharing agreements, ED data values less than 11 are suppressed and are displayed as <11*."
-]
+from section_texts import SECTION_TEXTS
+discharges_sidebar_text = SECTION_TEXTS.get("discharges-su-co-sud-mh", [])
 
 def layout():
     """
@@ -175,6 +173,8 @@ def layout():
     center_col = dbc.Col([
         graph_block("su-primary-bar", "Discharges by Substance"),
         html.P("Bar chart showing discharges by substance.", className="visually-hidden"),
+        graph_block("sud-mh-primary-bar", "Discharges by Mental Health Diagnosis"),
+        html.P("Bar chart showing discharges by mental health diagnosis.", className="visually-hidden"),
         graph_block("su-primary-line", "Yearly Discharges by Substance", line_h),
         html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
     ], xs=12, md=6)
@@ -229,6 +229,7 @@ def reset_discharges_filters(_n_clicks):
     Output("su-primary-kpi-total", "children"),
     # graphs
     Output("su-primary-bar", "figure"),
+    Output("sud-mh-primary-bar", "figure"),
     Output("su-primary-line", "figure"),
     # tables 
     Output("su-primary-table-county", "children"),
@@ -344,6 +345,40 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
         sub_bar = px.bar()
 
 
+    # ---------- Bar chart: Discharges by Mental Health Diagnosis ----------
+    if {"record_id", "diagnosis", "diagnosis_type"}.issubset(dff.columns):
+        
+        mh_df = dff[dff["diagnosis_type"] == "mh"]
+
+        by_mh = (
+            mh_df.groupby("diagnosis")["record_id"]
+            .nunique()
+            .reset_index().rename(columns={"record_id": "count"})
+            .sort_values("count", ascending=True)
+        )
+
+        by_mh["diagnosis_label"] = by_mh["diagnosis"].apply(wrap_axis_label)
+        by_mh["display_count"] = by_mh["count"].apply(format_count_display)
+
+        mh_bar = px.bar(
+            by_mh,
+            x="count",
+            y="diagnosis_label",
+            barmode="stack",
+            text="display_count",
+            labels={"count": "Number of Discharges", "diagnosis_label": "Mental Health Diagnosis"},
+        )
+        
+        apply_standard_single_series_bar_trace(
+            mh_bar,
+            customdata=by_mh["diagnosis"],
+            hovertemplate="%{customdata}:<br>%{text}<extra></extra>",
+        )
+
+        apply_standard_bar_layout(mh_bar)
+    else:
+        mh_bar = px.bar()
+
     # ---------- Line chart: Yearly Discharges by Substance ----------
     if {"record_id", "diagnosis", "diagnosis_type", "year"}.issubset(dff.columns):
 
@@ -400,6 +435,7 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
     return (
         format_count_display(filter_total),
         sub_bar,
+        mh_bar,
         sub_line,
         build_summary_count_table(
             dff,

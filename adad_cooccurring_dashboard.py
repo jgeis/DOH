@@ -185,7 +185,7 @@ filters_card = make_filters_card(
     ],
 )
 
-adad_cooccurring_sidebar_text = SECTION_TEXTS.get("adad_cooccurring", [])
+adad_cooccurring_sidebar_text = SECTION_TEXTS.get("adad-cooccurring", [])
 
 
 def layout():

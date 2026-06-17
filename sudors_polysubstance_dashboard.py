@@ -244,7 +244,7 @@ filters_card = make_filters_card(
 )
 
 from section_texts import SECTION_TEXTS
-sudors_cooccurrence_sidebar_text = SECTION_TEXTS.get("sudors_polysubstance", [])
+sudors_cooccurrence_sidebar_text = SECTION_TEXTS.get("sudors-polysubstance", [])
 
 def layout():
     """

@@ -15,6 +15,7 @@ from dashboard_utils import (
     compute_adaptive_horizontal_bar_height,
     dropdown_filter,
     format_count_display,
+    make_left_sidebar,
     opts_list,
     sort_opts,
     apply_standard_bar_layout,
@@ -145,20 +146,21 @@ filters_card = make_filters_card(
     ],
 )
 
+from section_texts import SECTION_TEXTS
+camhd_sidebar_text = SECTION_TEXTS.get("camhd", [])
 
 def layout():
-    last_updated_block = make_last_updated_block(last_updated_value)
-    left_col = dbc.Col(
-        [
-            kpi_card,
-            reset_button,
-            view_toggle_card,
-            filters_card,
-            last_updated_block,
-        ],
+    # Left column: KPI, reset button, and filters.
+    left_col = make_left_sidebar(
+        kpi_card,
+        reset_button,
+        view_toggle_card,
+        filters_card,
+        helper_text=camhd_sidebar_text,
+        last_updated_value=last_updated_value,
         xs=12,
         md=3,
-    )
+    )  
 
     center_col = dbc.Col(
         [

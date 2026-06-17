@@ -14,6 +14,7 @@ from dashboard_utils import (
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
+    make_sidebar_helper_text,
 )
 from theme import register_template
 
@@ -166,6 +167,8 @@ def _load_cmo_bar_chart():
         hovertemplate="%{x}: %{y:,}<extra></extra>")
     return fig
 
+from section_texts import SECTION_TEXTS
+cares_statistics_sidebar_text = make_sidebar_helper_text(SECTION_TEXTS.get("cares-statistics", []))
 
 def layout():
     try:
@@ -199,6 +202,7 @@ def layout():
                     [
                         html.H5("Top 10 reasons for contacting Hawai'i CARES 988", className="plot-card-header mb-2"),
                         html.Div(table_component, style={"overflowX": "auto"}),
+                        cares_statistics_sidebar_text,
                         html.Div(make_last_updated_block(last_updated_value), className="mt-2"),
                     ],
                     xs=12,

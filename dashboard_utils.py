@@ -1125,6 +1125,7 @@ def make_left_sidebar(
     kpi_card_component,
     reset_filters_button,
     filters_card,
+    view_toggle_card=None,
     helper_text: str | list[str] | tuple[str, ...] | None = None,
     last_updated_value: str | None = None,
     xs: int = 12,
@@ -1136,11 +1137,16 @@ def make_left_sidebar(
     Order is always:
       1) KPI card
       2) Reset button
-      3) Filters card
-      4) Optional Last Updated
-      5) Optional helper text block
+      3) Optional View Toggle
+      4) Filters card
+      5) Optional Last Updated
+      6) Optional helper text block
     """
-    children = [kpi_card_component, reset_filters_button, filters_card]
+    children = [kpi_card_component, reset_filters_button]
+    if view_toggle_card:
+        children.append(view_toggle_card)
+    children.append(filters_card)
+
     last_updated_block = make_last_updated_block(last_updated_value)
     if last_updated_block is not None:
         children.append(last_updated_block)
