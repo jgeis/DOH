@@ -17,6 +17,7 @@ from dashboard_utils import (
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
     create_styled_table,
+    wrap_axis_label,
 )
 import re
 
@@ -447,12 +448,15 @@ def update_dashboard(county, year):
             .sort_values("deaths", ascending=False)
         )
 
+        by_sub["substance_label"] = by_sub["substance"].apply(wrap_axis_label)
+
+
         sub_bar = px.bar(
             by_sub,
             x="deaths",
-            y="substance",
+            y="substance_label",
             barmode="stack",
-            labels={"deaths": "Number of Deaths", "substance": "Substance"},
+            labels={"deaths": "Number of Deaths", "substance_label": "Substance"},
         )
 
         apply_standard_single_series_bar_trace(sub_bar)
