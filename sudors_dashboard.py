@@ -103,7 +103,7 @@ reset_filters_button = dbc.Button(
 
 # Big green card that shows the total number of discharges.
 kpi_card = make_kpi_card(
-    label="Number of Unintentional or Undetermined Overdose Deaths (Polysubstance)",
+    label="Number of Unintentional or Undetermined Overdose Deaths",
     count_id="sudors-kpi-total",
 )
 
