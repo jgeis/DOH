@@ -140,52 +140,52 @@ where m.year > 2020;  -- drop 2020 and earlier since they are partial years with
 
 -- name: load_wonder_overview
 SELECT
-  CAST(year AS INTEGER) AS year,
+  year,
   county,
-  CAST(deaths AS INTEGER) AS deaths
+  deaths
 FROM wonder_overview
-WHERE year IS NOT NULL;
+WHERE year IS NOT NULL and year < 2023;
 
 
 -- name: load_wonder_substance
 SELECT
-  CAST(year AS INTEGER) AS year,
+  year,
   county,
   substance,
-  CAST(deaths AS INTEGER) AS deaths
+  deaths
 FROM wonder_substance
-WHERE year IS NOT NULL;
+WHERE year IS NOT NULL and year < 2023;
 
 
 -- name: load_wonder_race
 SELECT
-  CAST(year AS INTEGER) AS year,
+  year,
   county,
   race,
-  CAST(deaths AS INTEGER) AS deaths
+  deaths
 FROM wonder_race
-WHERE year IS NOT NULL;
+WHERE year IS NOT NULL and year < 2023;
 
 
 -- name: load_wonder_age_group
 SELECT
-  CAST(year AS INTEGER) AS year,
+  year,
   county,
   age_group,
-  CAST(deaths AS INTEGER) AS deaths,
+  deaths,
   precedence
 FROM wonder_age_group
-WHERE year IS NOT NULL;
+WHERE year IS NOT NULL and year < 2023;
 
 
 -- name: load_wonder_gender
 SELECT
-  CAST(year AS INTEGER) AS year,
+  year,
   county,
   gender,
-  CAST(deaths AS INTEGER) AS deaths
+  deaths
 FROM wonder_gender
-WHERE year IS NOT NULL;
+WHERE year IS NOT NULL and year < 2023;
 
 
 -- name: load_cares_calls
