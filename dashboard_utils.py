@@ -81,6 +81,8 @@ FILTER_LABEL_ORDER = [
     "Race/Ethnicity",
     "Hawaii Resident",
     "Homeless",
+    "Modality",
+    "Service Modality",
 ]
 
 
@@ -95,6 +97,7 @@ RIGHT_TABLE_LABEL_ORDER = [
     "Race/Ethnicity",
     "Hawaii Resident",
     "Homeless",
+    "Service Modality",
 ]
 
 
@@ -606,7 +609,7 @@ def build_summary_count_table(
     group_col: str,
     id_col: str = "record_id",
     categories=None,
-    include_all_ordered: bool = True,
+    include_all_ordered: bool = False,
     include_statewide_county: bool = False,
     county_col: str = "county",
     header_labels: dict | None = None,
@@ -661,6 +664,7 @@ def build_summary_count_table(
         "hawaii_residency": "Hawaii Resident",
         "homeless": "Homeless",
         "discharges": "Discharges",
+        "modality": "Service Modality",
     }
     if header_labels:
         labels.update(header_labels)
