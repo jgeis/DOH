@@ -582,10 +582,17 @@ def update_cmo_dashboard(
         dim_df["Percent of Total"] = (
             dim_df["Distinct Clients"] / dim_total * 100 if dim_total > 0 else 0.0
         )
-        dim_df["Distinct Clients"] = dim_df["Distinct Clients"].apply(format_count_display)
-        dim_df["Percent of Total"] = dim_df["Percent of Total"].apply(
-            lambda pct: format_percentage_display(pct, decimals=2)
+        dim_df["Distinct Clients_formatted"] = dim_df["Distinct Clients"].apply(format_count_display)
+        dim_df["Percent of Total"] = dim_df.apply(
+            lambda row: format_percentage_display(
+                row["Percent of Total"],
+                count_display=row["Distinct Clients_formatted"],
+                decimals=2
+            ),
+            axis=1
         )
+        dim_df["Distinct Clients"] = dim_df["Distinct Clients_formatted"]
+        dim_df = dim_df.drop(columns=["Distinct Clients_formatted"])
         return dbc.Table.from_dataframe(
             dim_df,
             striped=True,
@@ -599,7 +606,7 @@ def update_cmo_dashboard(
     county_table = _build_dimension_table("program_county", "County")
     age_table = _build_dimension_table("age_group", "Age Group")
     sex_table = _build_dimension_table("sex", "Sex")
-    homeless_table = _build_dimension_table("is_homeless", "Homeless Status")
+    homeless_table = _build_dimension_table("is_homeless", "Homeless")
 
     return (
         format_count_display(total_clients),
