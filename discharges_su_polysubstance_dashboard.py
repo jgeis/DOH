@@ -43,44 +43,11 @@ from dashboard_utils import (
     apply_standard_network_layout,
     apply_standard_sankey_layout,
     build_summary_count_table,
+    load_sql_query,
 )
 
 # This applies our custom Plotly look (colors, fonts, etc.) everywhere in this app.
 register_template()  # set your Plotly template globally
-
-# Simple shortcuts so we can change these in one place if paths ever move
-QUERIES_PATH = "queries.sql"
-PREFERRED_QUERY = "load_polysubstance_data"
-FALLBACK_QUERY  = "load_discharge_data_view_diag_su"
-
-
-# ---------- SQL loader ----------
-def load_sql_query(name: str, path: str = QUERIES_PATH) -> str:
-    """
-    Look inside queries.sql and pull out the SQL text that matches `name`.
-
-    Why:
-    - Keeps long SQL out of this Python file.
-    - Makes it easier to update queries without touching code.
-    """
-    with open(path, "r", encoding="utf-8") as f:
-        text = f.read()
-
-    # queries.sql is broken up into blocks that start with "-- name:"
-    blocks = text.split("-- name:")
-    for b in blocks:
-        b = b.strip()
-        if not b:
-            continue
-        lines = b.split("\n")
-        block_name = lines[0].strip()
-        sql = "\n".join(lines[1:]).strip()
-        if block_name == name:
-            return sql
-
-    # If we get here, we didn't find a block with that name
-    raise KeyError(f"Named query '{name}' not found in {path}.")
-
 
 # ---------- DB → DataFrame ----------
 def load_df():
@@ -88,19 +55,12 @@ def load_df():
     Load the main dataset from the SQLite database.
 
     Steps:
-      1. Try to use the polysubstance-only query.
-      2. If it doesn't exist, fall back to the main data query.
-      3. Read the result into a table (DataFrame).
-      4. Clean up some columns so they behave nicely in filters and charts.
+      1. Load the polysubstance data query.
+      2. Read the result into a table (DataFrame).
+      3. Clean up some columns so they behave nicely in filters and charts.
     """
-    try:
-        # First choice: use the specific polysubstance query
-        sql = load_sql_query(PREFERRED_QUERY, QUERIES_PATH)
-        print(f"[load_df] Using query: {PREFERRED_QUERY}")
-    except KeyError:
-        # If that fails, fall back to the more general query
-        sql = load_sql_query(FALLBACK_QUERY, QUERIES_PATH)
-        print(f"[load_df] Using query: {FALLBACK_QUERY}")
+
+    sql = load_sql_query("load_polysubstance_data")
 
     # Execute query using db_utils (automatically uses correct database)
     df = execute_query(sql)
@@ -236,7 +196,6 @@ def build_sunburst_cooccurrence_data(df):
 # Load the cleaned dataset once when the module is imported.
 # All callbacks reuse this instead of hitting the DB over and over.
 df_raw = load_df()
-print("[debug] queries.sql path:", Path(QUERIES_PATH).resolve())
 
 # Guard rails: limit years to our window and drop "unknown" ages
 if "year" in df_raw.columns:

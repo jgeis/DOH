@@ -16,6 +16,7 @@ from dashboard_utils import (
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
+    load_sql_query,
 )
 import json
 
@@ -24,31 +25,6 @@ register_template()
 # ----------------------------
 # Data helpers
 # ----------------------------
-
-def load_sql_query(name, path="queries.sql"):
-    """
-    This helper looks inside the queries.sql file and pulls out
-    the specific SQL block we want by name.
-
-    Why: this keeps all the SQL in one file instead of hard-coding
-    long queries directly in the Python file.
-    """
-    with open(path, "r", encoding="utf-8") as f:
-        sql = f.read()
-    # The SQL file is split into blocks marked with "-- name:"
-    blocks = sql.split("-- name:")
-    m = {}
-    for b in blocks:
-        # Skip any empty chunks
-        if not b.strip():
-            continue
-        # First line after "-- name:" is the name, the rest is the SQL text
-        lines = b.strip().split("\n")
-        m[lines[0].strip()] = "\n".join(lines[1:]).strip()
-    # If we typed the wrong query name, complain loudly
-    if name not in m:
-        raise KeyError(f"Named query '{name}' not found in {path}.")
-    return m[name]
 
 def load_wonder_overview_df_from_db():
     """

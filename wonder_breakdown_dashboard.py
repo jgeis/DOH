@@ -18,6 +18,7 @@ from dashboard_utils import (
     apply_standard_single_series_bar_trace,
     create_styled_table,
     wrap_axis_label,
+    load_sql_query,
 )
 import re
 
@@ -26,32 +27,6 @@ register_template()
 # ----------------------------
 # Data helpers
 # ----------------------------
-
-def load_sql_query(name, path="queries.sql"):
-    """
-    This helper looks inside the queries.sql file and pulls out
-    the specific SQL block we want by name.
-
-    Why: this keeps all the SQL in one file instead of hard-coding
-    long queries directly in the Python file.
-    """
-    with open(path, "r", encoding="utf-8") as f:
-        sql = f.read()
-    # The SQL file is split into blocks marked with "-- name:"
-    blocks = sql.split("-- name:")
-    m = {}
-    for b in blocks:
-        # Skip any empty chunks
-        if not b.strip():
-            continue
-        # First line after "-- name:" is the name, the rest is the SQL text
-        lines = b.strip().split("\n")
-        m[lines[0].strip()] = "\n".join(lines[1:]).strip()
-    # If we typed the wrong query name, complain loudly
-    if name not in m:
-        raise KeyError(f"Named query '{name}' not found in {path}.")
-    return m[name]
-
 
 sql_substance = load_sql_query("load_wonder_substance")
 df_raw_substance = execute_query(sql_substance)
