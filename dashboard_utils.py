@@ -1,4 +1,3 @@
-
 # Mapping from code/column names to canonical filter display labels
 FILTER_LABELS = {
     "Substance": "Substance Type",
@@ -22,6 +21,7 @@ FILTER_LABELS = {
     "Hawaii Residency": "Hawaii Resident",
     "Homeless Status": "Homeless",
     "Is Homeless": "Homeless",
+    "Homeless Status": "Homeless",
     "Referral Destination": "Referral Destination",
     "Service Modality": "Service Modality",
     "Service Category": "Service Category",

@@ -348,31 +348,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             group_col=group_col,
             id_col="incident_id",
             categories=categories,
-            include_all_ordered=bool(categories),
             count_label="Deaths",
-        )
-
-    # pin "under 15" at the top and "unknown" at the bottom, with the rest in numeric order in between
-    def age_sort_key(label):
-        text = str(label).strip()
-        lower = text.lower()
-
-        if lower == "under 15":
-            return (0, -1, text)
-        if lower == "unknown":
-            return (2, float("inf"), text)
-
-        match = re.search(r"\d+", text)
-        if match:
-            return (1, int(match.group()), text)
-
-        return (1, float("inf"), text)
-
-    age_table_order = []
-    if "age_cat" in dff.columns:
-        age_table_order = sorted(
-            [v for v in dff["age_cat"].dropna().astype(str).unique()],
-            key=age_sort_key,
         )
 
     # Return all the updated visuals and tables to Dash
@@ -383,6 +359,6 @@ def update_dashboard(substance, homeless, sex, age, race, year):
         summary_table("sex", categories=sex_opts if not sex else None),
         summary_table("homeless", categories=homeless_opts if not homeless else None),
         summary_table("year", categories=year_opts if not year else None),
-        summary_table("age_cat", categories=age_table_order if not age else None),
+        summary_table("age_cat", categories=age_opts if not age else None),
         line_fig,
     )

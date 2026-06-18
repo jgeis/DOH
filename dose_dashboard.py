@@ -371,7 +371,6 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             group_col=group_col,
             id_col="record_id",
             categories=categories,
-            include_all_ordered=bool(categories),
             include_statewide_county=(group_col == "county" and include_statewide_county_outputs),
         )
     

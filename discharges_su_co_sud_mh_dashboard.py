@@ -185,6 +185,8 @@ def layout():
             ("County", "su-primary-table-county"),
             ("Age Group", "su-primary-table-age"),
             ("Sex", "su-primary-table-sex"),
+            ("Race/Ethnicity", "su-primary-table-race-ethnicity"),
+            ("Hawaii Residency", "su-primary-table-hawaii-residency"),
         ],
         xs=12,
         md=3,
@@ -235,6 +237,8 @@ def reset_discharges_filters(_n_clicks):
     Output("su-primary-table-county", "children"),
     Output("su-primary-table-age", "children"),
     Output("su-primary-table-sex", "children"),
+    Output("su-primary-table-race-ethnicity", "children"),
+    Output("su-primary-table-hawaii-residency", "children"),   
     # filters
     Input("su-primary-su-filter", "value"),
     Input("su-primary-mh-filter", "value"),
@@ -431,29 +435,26 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
 
     county_categories = sort_opts(county_opts) if county_opts else None
 
+    # ---------- Helper for the summary tables ----------
+    # Use shared build_summary_count_table for summary tables
+    def summary_table(group_col, categories=None):
+        return build_summary_count_table(
+            dff,
+            group_col=group_col,
+            id_col="record_id",
+            categories=categories,
+            include_statewide_county=(group_col == "county" and include_statewide_county_outputs),
+        )
+
     # Return all the updated visuals and tables to Dash
     return (
         format_count_display(filter_total),
         sub_bar,
         mh_bar,
         sub_line,
-        build_summary_count_table(
-            dff,
-            "county",
-            categories=county_categories,
-            include_all_ordered=True,
-            include_statewide_county=include_statewide_county_outputs,
-        ),
-        build_summary_count_table(
-            dff,
-            "age_group",
-            categories=age_opts,
-            include_all_ordered=True,
-        ),
-        build_summary_count_table(
-            dff,
-            "sex",
-            categories=sex_opts,
-            include_all_ordered=True,
-        ),
+        summary_table("county", categories=county_categories),
+        summary_table("age_group", categories=age_opts),
+        summary_table("sex", categories=sex_opts),
+        summary_table("race_ethnicity", categories=race_ethnicity_opts),
+        summary_table("hawaii_residency", categories=hawaii_residency_opts),
     )

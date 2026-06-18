@@ -7,6 +7,7 @@ from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
 from dashboard_utils import (
+    build_summary_count_table,
     load_sql_query,
     make_kpi_card,
     make_left_sidebar,
@@ -454,36 +455,19 @@ def update_adad_cooccurring(view, sel_years, sel_months, sel_modalities, sel_cou
         hovertemplate="%{fullData.name}<br>Year: %{x}<br>Clients: %{y:,}<extra></extra>"
     )
 
-    modality_tbl = (
-        dff.groupby("modality", as_index=False)["client_id"]
-        .nunique()
-        .rename(columns={"modality": "Modality", "client_id": "Number of Clients"})
-        .sort_values("Number of Clients", ascending=False)
-        .reset_index(drop=True)
-    )
+    # ---------- Helper for the summary tables ----------
+    # Use shared build_summary_count_table for summary tables
+    def summary_table(group_col, categories=None):
+        return build_summary_count_table(
+            dff,
+            group_col=group_col,
+            id_col="client_id",
+            categories=categories,
+            count_label="Number of Clients",
+        )
 
-    year_tbl = (
-        dff.groupby("year", as_index=False)["client_id"]
-        .nunique()
-        .rename(columns={"year": "Year", "client_id": "Number of Clients"})
-        .sort_values("Year", ascending=False)
-        .reset_index(drop=True)
-    )
-
-    county_order = sort_opts(dff["county"])
-    county_tbl = (
-        dff.groupby("county", as_index=False)["client_id"]
-        .nunique()
-        .rename(columns={"county": "County", "client_id": "Number of Clients"})
-    )
-    county_tbl["County"] = pd.Categorical(county_tbl["County"], categories=county_order, ordered=True)
-    county_tbl = county_tbl.sort_values("County").reset_index(drop=True)
-
-    for tbl_df in (modality_tbl, year_tbl, county_tbl):
-        tbl_df["Number of Clients"] = tbl_df["Number of Clients"].apply(format_count_display)
-
-    modality_table = dbc.Table.from_dataframe(modality_tbl, striped=True, bordered=True, hover=True, responsive=True, size="sm")
-    year_table = dbc.Table.from_dataframe(year_tbl, striped=True, bordered=True, hover=True, responsive=True, size="sm")
-    county_table = dbc.Table.from_dataframe(county_tbl, striped=True, bordered=True, hover=True, responsive=True, size="sm")
+    modality_table = summary_table("modality", categories=modality_opts)
+    year_table = summary_table("year", categories=year_opts)
+    county_table = summary_table("county", categories=county_opts)
 
     return bar_fig, modality_line_fig, county_line_fig, format_count_display(total_clients), modality_table, year_table, county_table

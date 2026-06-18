@@ -540,10 +540,10 @@ def update_dashboard(county, year):
         by_gender_table = by_gender.rename(
             columns={
                 "gender": "Sex at Birth",
-                "deaths": "Number of Deaths",
+                "deaths": "Deaths",
             }
         )
-        by_gender_table["Number of Deaths"] = by_gender_table["Number of Deaths"].apply(
+        by_gender_table["Deaths"] = by_gender_table["Deaths"].apply(
             format_count_display
         )
         gender_table = dbc.Table.from_dataframe(
