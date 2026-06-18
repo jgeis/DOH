@@ -16,6 +16,7 @@ from dashboard_utils import (
     format_count_display,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
+    create_styled_table,
 )
 import re
 
@@ -546,14 +547,7 @@ def update_dashboard(county, year):
         by_gender_table["Deaths"] = by_gender_table["Deaths"].apply(
             format_count_display
         )
-        gender_table = dbc.Table.from_dataframe(
-            by_gender_table,
-            striped=True,
-            bordered=True,
-            hover=True,
-            responsive=True,
-            size="sm",
-        )
+        gender_table = create_styled_table(by_gender_table)
     else:
         gender_table = html.Div("No gender data available.", className="text-muted small")
 

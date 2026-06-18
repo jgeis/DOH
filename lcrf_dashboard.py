@@ -565,7 +565,7 @@ def _render_table(df):
                 value = ""
             cells.append(html.Td(value))
         body_rows.append(html.Tr(cells))
-    return dbc.Table([header, html.Tbody(body_rows)], bordered=True, hover=True, responsive=True, size="sm", className="mb-0")
+    return dbc.Table([header, html.Tbody(body_rows)], bordered=True, hover=False, responsive=True, size="sm", className="custom-striped-table table-hover mb-0")
 
 
 @callback(

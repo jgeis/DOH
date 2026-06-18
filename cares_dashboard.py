@@ -20,6 +20,7 @@ from dashboard_utils import (
     sort_opts,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
+    create_styled_table,
 )
 
 register_template()
@@ -320,13 +321,6 @@ def update_cares(view, sel_years, sel_months, sel_crisis):
     )
     crisis_totals["Total Calls"] = crisis_totals["Total Calls"].apply(format_count_display)
 
-    table = dbc.Table.from_dataframe(
-        crisis_totals,
-        striped=True,
-        bordered=True,
-        hover=True,
-        responsive=True,
-        size="sm",
-    )
+    table = create_styled_table(crisis_totals)
 
     return fig, format_count_display(total), table

@@ -20,6 +20,7 @@ from dashboard_utils import (
     sort_opts,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
+    create_styled_table,
 )
 
 register_template()
@@ -419,11 +420,4 @@ def update_amhd_tables(view, sel_years, sel_service_categories):
 
     service_category_tbl["Number of AMHD Consumers"] = service_category_tbl["Number of AMHD Consumers"].apply(format_count_display)
 
-    return dbc.Table.from_dataframe(
-        service_category_tbl,
-        striped=True,
-        bordered=True,
-        hover=True,
-        responsive=True,
-        size="sm",
-    )
+    return create_styled_table(service_category_tbl)

@@ -1,0 +1,30 @@
+/* Custom table styling for light green striping */
+/* Applied to all summary tables across dashboards via dashboard_utils */
+
+/* Force override ALL Bootstrap table row backgrounds */
+table.custom-striped-table tbody tr,
+table.custom-striped-table tbody tr td,
+.table.custom-striped-table tbody tr,
+.table.custom-striped-table tbody tr td,
+.table-striped.custom-striped-table tbody tr,
+.table-striped.custom-striped-table tbody tr td {
+    background-color: white !important;
+}
+
+/* Striping for odd rows - light teal/green (increased opacity to 20% for visibility) */
+table.custom-striped-table tbody tr:nth-child(odd),
+table.custom-striped-table tbody tr:nth-child(odd) td,
+.table.custom-striped-table tbody tr:nth-child(odd),
+.table.custom-striped-table tbody tr:nth-child(odd) td,
+.table-striped.custom-striped-table tbody tr:nth-child(odd),
+.table-striped.custom-striped-table tbody tr:nth-child(odd) td {
+    background-color: rgba(34, 118, 124, 0.15) !important;
+}
+
+/* Hover styles */
+table.custom-striped-table tbody tr:hover,
+table.custom-striped-table tbody tr:hover td,
+.table.custom-striped-table tbody tr:hover,
+.table.custom-striped-table tbody tr:hover td {
+    background-color: rgba(34, 118, 124, 0.30) !important;
+}

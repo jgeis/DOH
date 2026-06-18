@@ -23,6 +23,7 @@ from dashboard_utils import (
     sort_opts,
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
+    create_styled_table,
 )
 
 register_template()
@@ -427,7 +428,7 @@ def _build_amhd_tables(query_context):
 
     service_category_tbl["Number of AMHD Co-Occurring Consumers"] = service_category_tbl["Number of AMHD Co-Occurring Consumers"].apply(format_count_display)
 
-    service_category_table = dbc.Table.from_dataframe(service_category_tbl, striped=True, bordered=True, hover=True, responsive=True, size="sm")
+    service_category_table = create_styled_table(service_category_tbl)
 
     return service_category_table
 

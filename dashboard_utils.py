@@ -60,6 +60,18 @@ COUNT_SUPPRESSION_THRESHOLD = 10
 SUPPRESSED_COUNT_LABEL = "<10*"
 
 
+# Custom table styling - light green striping for all summary tables
+# This CSS should be added to your assets/custom.css file for the styling to work:
+CUSTOM_TABLE_CSS = """
+.custom-striped-table tbody tr:nth-of-type(odd) {
+    background-color: rgba(34, 118, 124, 0.08) !important;
+}
+.custom-striped-table tbody tr:hover {
+    background-color: rgba(34, 118, 124, 0.15) !important;
+}
+"""
+
+
 # Global preferred order for sidebar filters.
 # Unknown/new labels are intentionally placed after these.
 FILTER_LABEL_ORDER = [
@@ -671,7 +683,41 @@ def build_summary_count_table(
 
     grouped = grouped.rename(columns={group_col: labels.get(group_col, group_col), "count": count_label})
 
-    return dbc.Table.from_dataframe(grouped, striped=True, bordered=True, hover=True)
+    return dbc.Table.from_dataframe(grouped, striped=False, bordered=True, hover=False, className="custom-striped-table table-hover")
+
+
+def create_styled_table(
+    dataframe: pd.DataFrame,
+    bordered: bool = True,
+    hover: bool = True,
+    responsive: bool = True,
+    size: str = "sm",
+) -> dbc.Table:
+    """
+    Create a table with custom light green striping applied consistently.
+    
+    Use this helper instead of dbc.Table.from_dataframe() directly to ensure
+    all tables across dashboards have consistent styling.
+    
+    Args:
+        dataframe: The pandas DataFrame to convert to a table
+        bordered: Whether to show borders
+        hover: Whether to show hover effect
+        responsive: Whether table should be responsive
+        size: Table size ("sm", "md", "lg", or None)
+    
+    Returns:
+        dbc.Table with custom styling applied
+    """
+    return dbc.Table.from_dataframe(
+        dataframe,
+        striped=False,
+        bordered=bordered,
+        hover=False,
+        responsive=responsive,
+        size=size,
+        className="custom-striped-table table-hover"
+    )
 
 
 def graph_block(base_id: str, title_text: str, height_px: str | None = None):

@@ -23,6 +23,7 @@ from dashboard_utils import (
     apply_standard_bar_layout,
     apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
+    create_styled_table,
 )
 from theme import register_template
 
@@ -551,14 +552,7 @@ def update_cmo_dashboard(
     table_df["Distinct Clients"] = table_df["Distinct Clients"].apply(format_count_display)
     table_df["Percent of Total"] = agg_display["percentage_table_display"].values
 
-    table = dbc.Table.from_dataframe(
-        table_df,
-        striped=True,
-        bordered=True,
-        hover=True,
-        responsive=True,
-        size="sm",
-    )
+    table = create_styled_table(table_df)
 
     def _build_dimension_table(column_name, label_name):
         dim_df = (
@@ -593,14 +587,7 @@ def update_cmo_dashboard(
         )
         dim_df["Distinct Clients"] = dim_df["Distinct Clients_formatted"]
         dim_df = dim_df.drop(columns=["Distinct Clients_formatted"])
-        return dbc.Table.from_dataframe(
-            dim_df,
-            striped=True,
-            bordered=True,
-            hover=True,
-            responsive=True,
-            size="sm",
-        )
+        return create_styled_table(dim_df)
 
     year_table = _build_dimension_table("year", "Year")
     county_table = _build_dimension_table("program_county", "County")

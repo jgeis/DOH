@@ -15,6 +15,7 @@ from dashboard_utils import (
     apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
     make_sidebar_helper_text,
+    create_styled_table,
 )
 from theme import register_template
 
@@ -186,14 +187,7 @@ def layout():
             fluid=True,
         )
 
-    table_component = dbc.Table.from_dataframe(
-        top_10_df,
-        striped=True,
-        bordered=True,
-        hover=True,
-        responsive=True,
-        size="sm",
-    )
+    table_component = create_styled_table(top_10_df)
 
     return dbc.Container(
         dbc.Row(
