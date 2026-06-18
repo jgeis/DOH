@@ -615,7 +615,18 @@ def append_statewide_aggregate_rows(
     statewide = statewide[base.columns.tolist()]
     return pd.concat([base, statewide], ignore_index=True)
 
+"""
+Takes raw data and performs grouping/aggregation.
+Counts distinct IDs by a grouping column.
+Handles category ordering, statewide county logic, suppression formatting.
+Data transformation + styling in one function.
+Used for the right-side summary tables (year, sex, age group, etc.)
 
+Doesn't work in cases like the following:
+cares_statistics_dashboard.py: Has a pre-computed "Top 10 reasons" table with custom columns - doesn't need grouping/counting
+crisis_mobile_outreach_dashboard.py: Tables with percentage calculations and custom formatting - different structure than simple counts
+lcrf_dashboard.py & sicm_dashboard.py: Manually construct HTML tables with custom row/cell logic - can't use the groupby pattern
+"""
 def build_summary_count_table(
     frame: pd.DataFrame,
     group_col: str,
@@ -683,9 +694,16 @@ def build_summary_count_table(
 
     grouped = grouped.rename(columns={group_col: labels.get(group_col, group_col), "count": count_label})
 
-    return dbc.Table.from_dataframe(grouped, striped=False, bordered=True, hover=False, className="custom-striped-table table-hover")
+    return create_styled_table(grouped)
 
 
+
+"""
+Takes an already-prepared DataFrame
+Only applies consistent styling (no data transformation)
+Styling only
+Used when tables don't fit the summary count pattern
+"""
 def create_styled_table(
     dataframe: pd.DataFrame,
     bordered: bool = True,
