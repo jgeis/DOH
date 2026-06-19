@@ -1,31 +1,39 @@
 # Mapping from code/column names to canonical filter display labels
 FILTER_LABELS = {
-    "Substance": "Substance Type",
-    "Substance Type": "Substance Type",
-    "primary_substance": "Primary Substance",
-    "Mental Health Diagnosis": "Mental Health Diagnosis",
+"Age Group": "Age Group",
+    "Age_cat": "Age Group",
+    "age_group": "Age Group",
     "Year": "Calendar Year",
+    "year": "Calendar Year",
     "Calendar Year": "Calendar Year",
-    "Month": "Month",
+    "city": "City",
     "county_of_death": "County",
     "County": "County",
-    "city": "City",
-    "Age Group": "Age Group",
-    "Age_cat": "Age Group",
+    "county": "County",
+    "Crisis Line": "Crisis Line",
+    "discharges": "Discharges",
+    "Hawaii Resident": "Hawaii Resident",
+    "Hawaii Residency": "Hawaii Resident",
+    "hawaii_residency": "Hawaii Resident",
+    "Homeless Status": "Homeless",
+    "Is Homeless": "Homeless",
+    "homeless": "Homeless",
+    "Mental Health Diagnosis": "Mental Health Diagnosis",
+    "Month": "Month",
+    "primary_substance": "Primary Substance",
+    "Race/Ethnicity": "Race/Ethnicity",
+    "race_ethnicity": "Race/Ethnicity",
+    "race": "Race/Ethnicity",
+    "Referral Destination": "Referral Destination",
+    "Service Category": "Service Category",
+    "Service Modality": "Service Modality",
+    "modality": "Service Modality",
     "Sex": "Sex at Birth",
     "sex": "Sex at Birth",
     "Gender": "Sex at Birth",
     "sex_at_birth": "Sex at Birth",
-    "Race/Ethnicity": "Race/Ethnicity",
-    "Hawaii Resident": "Hawaii Resident",
-    "Hawaii Residency": "Hawaii Resident",
-    "Homeless Status": "Homeless",
-    "Is Homeless": "Homeless",
-    "Homeless Status": "Homeless",
-    "Referral Destination": "Referral Destination",
-    "Service Modality": "Service Modality",
-    "Service Category": "Service Category",
-    "Crisis Line": "Crisis Line",
+    "Substance": "Substance Type",
+    "Substance Type": "Substance Type",
     
 }
 
@@ -739,22 +747,11 @@ def build_summary_count_table(
 
     grouped["count"] = grouped["count"].map(format_count_display)
 
-    labels = {
-        "year": "Calendar Year",
-        "age_group": "Age Group",
-        "age_cat": "Age Group",
-        "county": "County",
-        "sex": "Sex at Birth",
-        "race_ethnicity": "Race/Ethnicity",
-        "hawaii_residency": "Hawaii Resident",
-        "homeless": "Homeless",
-        "discharges": "Discharges",
-        "modality": "Service Modality",
-    }
-    if header_labels:
-        labels.update(header_labels)
+    display_label = get_standard_filter_label(group_col)
+    if header_labels and group_col in header_labels:
+        display_label = header_labels[group_col]
 
-    grouped = grouped.rename(columns={group_col: labels.get(group_col, group_col), "count": count_label})
+    grouped = grouped.rename(columns={group_col: display_label, "count": count_label})
 
     return create_styled_table(grouped)
 
@@ -786,24 +783,12 @@ def build_pre_aggregated_table(
     df[count_col] = df[count_col].map(format_count_display)
 
     # Rename columns for display
-    labels = {
-        "year": "Calendar Year",
-        "age_group": "Age Group",
-        "age_cat": "Age Group",
-        "county": "County",
-        "sex": "Sex at Birth",
-        "gender": "Sex at Birth",
-        "race_ethnicity": "Race/Ethnicity",
-        "hawaii_residency": "Hawaii Resident",
-        "homeless": "Homeless",
-        "discharges": "Discharges",
-        "modality": "Service Modality",
-    }
-    if header_labels:
-        labels.update(header_labels)
+    display_label = get_standard_filter_label(category_col)
+    if header_labels and category_col in header_labels:
+        display_label = header_labels[category_col]
 
     df = df.rename(columns={
-        category_col: labels.get(category_col, category_col),
+        category_col: display_label,
         count_col: count_label
     })
 
