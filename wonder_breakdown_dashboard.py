@@ -241,6 +241,10 @@ def layout_for(
     right_col = make_right_summary_tables_col(
         [
             ("Sex at Birth", "wonder-gender-table"),
+            ("Race/Ethnicity", "wonder-race-table"),
+            ("Age Group", "wonder-age-group-table"),
+            ("Substance", "wonder-substance-table")
+
         ],
         xs=12,
         md=3,
@@ -287,6 +291,9 @@ def reset_all_filters(_n_clicks):
     Output("wonder-race-deaths", "figure"),
     Output("wonder-age-group-deaths", "figure"),
     Output("wonder-gender-table", "children"),
+    Output("wonder-race-table", "children"),
+    Output("wonder-age-group-table", "children"),
+    Output("wonder-substance-table", "children"),
     Input("wonder-breakdown-county-filter", "value"),
     Input("wonder-breakdown-year-filter", "value"),
 )
@@ -416,12 +423,14 @@ def update_dashboard(county, year):
             .sort_values("deaths", ascending=False)
         )
 
+        by_race["race_label"] = by_race["race"].apply(wrap_axis_label)
+
         race_bar = px.bar(
             by_race,
             x="deaths",
-            y="race",
+            y="race_label",
             barmode="stack",
-            labels={"deaths": "Number of Deaths", "race": "Race"},
+            labels={"deaths": "Number of Deaths", "race_label": "Race"},
         )
 
         apply_standard_single_series_bar_trace(race_bar)
@@ -438,24 +447,10 @@ def update_dashboard(county, year):
             .sum()
         )
 
-        def age_group_sort_key(label):
-            text = str(label).strip()
-            lower = text.lower()
-
-            normalized = lower.replace(" ", "")
-            if normalized in {"<1", "under1"}:
-                return -2
-
-            if lower.startswith("under"):
-                return -1
-            if lower == "unknown":
-                return 10**9
-
-            m = re.search(r"\d+", text)
-            return int(m.group()) if m else 10**8
-
-        by_age_group["_age_sort"] = by_age_group["age_group"].apply(age_group_sort_key)
-        by_age_group = by_age_group.sort_values("_age_sort").drop(columns=["_age_sort"])
+        # Use the shared sorter to ensure consistent age group ordering
+        sorted_age_groups = sort_opts(by_age_group["age_group"])
+        by_age_group["age_group"] = pd.Categorical(by_age_group["age_group"], categories=sorted_age_groups, ordered=True)
+        by_age_group = by_age_group.sort_values("age_group")
 
         age_group_bar = px.bar(
             by_age_group,
@@ -467,25 +462,22 @@ def update_dashboard(county, year):
 
         apply_standard_single_series_bar_trace(age_group_bar)
 
-        apply_standard_bar_layout(age_group_bar)
+        apply_standard_bar_layout(age_group_bar, yaxis=dict(autorange="reversed"))
 
     else:
         age_group_bar = px.bar()
 
-    # ---------- Table: Deaths by Gender ----------
-    if "gender" in dff_gender.columns:
-        # The data is already grouped by year and county, so we just need to sum it.
-        by_gender_df = dff_gender.groupby("gender", as_index=False)["deaths"].sum()
 
-        gender_table = build_pre_aggregated_table(
-            frame=by_gender_df,
-            category_col="gender",
+    # ---------- Helper for the summary tables ----------
+    # Use shared build_summary_count_table for summary tables
+    def summary_table(frame, group_col, categories=None):
+        return build_pre_aggregated_table(
+            frame,
+            category_col=group_col,
             count_col="deaths",
             count_label="Deaths",
-            header_labels={"gender": "Sex at Birth"}
+            header_labels=None,
         )
-    else:
-        gender_table = html.Div("No gender data available.", className="text-muted small")
 
     # Return all the updated visuals and tables to Dash
     return (
@@ -493,5 +485,9 @@ def update_dashboard(county, year):
         sub_bar,
         race_bar,
         age_group_bar,
-        gender_table,
+        summary_table(dff_gender[["gender", "deaths"]], "gender"),
+        summary_table(dff_race[["race", "deaths"]], "race"),
+        summary_table(dff_age_group[["age_group", "deaths"]], "age_group"),
+        summary_table(dff_substance[["substance", "deaths"]], "substance"),
+
     )
