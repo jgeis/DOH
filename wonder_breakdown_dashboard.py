@@ -6,6 +6,7 @@ import plotly.express as px
 from theme import register_template
 from dashboard_utils import (
     apply_year_filter,
+    build_pre_aggregated_table,
     make_kpi_card,
     make_left_sidebar,
     make_right_summary_tables_col,
@@ -44,7 +45,6 @@ df_raw_age_group = execute_query(sql_age_group)
 
 sql_gender = load_sql_query("load_wonder_gender")
 df_raw_gender = execute_query(sql_gender)
-print(df_raw_gender)
 
 last_updated_value = max(
     (
@@ -316,7 +316,9 @@ def update_dashboard(county, year):
     def filter_df(df):
         if "year" in df.columns:
             df = apply_year_filter(df, "year", year)
-
+            # Do NOT use apply_county_filter here. The custom logic is correct for the WONDER dashboard's 
+            # unique data structure and the tables would fail if we used the generic county filter. 
+            # See the comments in apply_county_filter for details.
         if "county" in df.columns and county is not None:
             county_text = str(county).strip().lower()
             statewide_text = STATEWIDE_COUNTY.lower()
@@ -328,9 +330,10 @@ def update_dashboard(county, year):
             ]
 
             if county_text == statewide_text:
-                # Statewide: prefer aggregating real county rows so years that
-                # lack a literal "Statewide" row still show data.
-                df = non_statewide_rows if not non_statewide_rows.empty else statewide_rows
+                # Statewide: prefer the literal "Statewide" row when it exists
+                # to get accurate totals. Fall back to aggregating county rows
+                # only for years that lack a "Statewide" row.
+                df = statewide_rows if not statewide_rows.empty else non_statewide_rows
             else:
                 # Specific county: use that county's rows; fall back to the
                 # Statewide rows when the source only provides statewide-level
@@ -343,7 +346,9 @@ def update_dashboard(county, year):
     def kpi_filter_df(df):
         if "year" in df.columns:
             df = apply_year_filter(df, "year", year)
-
+        # Do NOT use apply_county_filter here. The custom logic is correct for the WONDER dashboard's 
+        # unique data structure and the tables would fail if we used the generic county filter. 
+        # See the comments in apply_county_filter for details.
         if "county" in df.columns and county is not None:
             county_text = str(county).strip().lower()
             statewide_text = STATEWIDE_COUNTY.lower()
@@ -382,7 +387,6 @@ def update_dashboard(county, year):
         )
 
         by_sub["substance_label"] = by_sub["substance"].apply(wrap_axis_label)
-
 
         sub_bar = px.bar(
             by_sub,
@@ -470,21 +474,16 @@ def update_dashboard(county, year):
 
     # ---------- Table: Deaths by Gender ----------
     if "gender" in dff_gender.columns:
-        by_gender = (
-            dff_gender.groupby("gender", as_index=False)["deaths"]
-            .sum()
-            .sort_values("deaths", ascending=False)
+        # The data is already grouped by year and county, so we just need to sum it.
+        by_gender_df = dff_gender.groupby("gender", as_index=False)["deaths"].sum()
+
+        gender_table = build_pre_aggregated_table(
+            frame=by_gender_df,
+            category_col="gender",
+            count_col="deaths",
+            count_label="Deaths",
+            header_labels={"gender": "Sex at Birth"}
         )
-        by_gender_table = by_gender.rename(
-            columns={
-                "gender": "Sex at Birth",
-                "deaths": "Deaths",
-            }
-        )
-        by_gender_table["Deaths"] = by_gender_table["Deaths"].apply(
-            format_count_display
-        )
-        gender_table = create_styled_table(by_gender_table)
     else:
         gender_table = html.Div("No gender data available.", className="text-muted small")
 

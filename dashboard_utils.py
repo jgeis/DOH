@@ -759,6 +759,57 @@ def build_summary_count_table(
     return create_styled_table(grouped)
 
 
+def build_pre_aggregated_table(
+    frame: pd.DataFrame,
+    category_col: str,
+    count_col: str,
+    count_label: str = "Count",
+    header_labels: dict | None = None,
+):
+    """
+    Build a standardized table from a pre-aggregated DataFrame.
+
+    This helper handles sorting, count formatting, and styling for data
+    that is already grouped. It does not perform any aggregation.
+    """
+    if frame is None or frame.empty or category_col not in frame.columns or count_col not in frame.columns:
+        return dbc.Alert(f"Required columns not found.", color="warning", className="mb-0")
+
+    df = frame.copy()
+
+    # Sort the data using the standard options sorter
+    sorted_categories = sort_opts(df[category_col])
+    df[category_col] = pd.Categorical(df[category_col], categories=sorted_categories, ordered=True)
+    df = df.sort_values(category_col)
+
+    # Format the count column
+    df[count_col] = df[count_col].map(format_count_display)
+
+    # Rename columns for display
+    labels = {
+        "year": "Calendar Year",
+        "age_group": "Age Group",
+        "age_cat": "Age Group",
+        "county": "County",
+        "sex": "Sex at Birth",
+        "gender": "Sex at Birth",
+        "race_ethnicity": "Race/Ethnicity",
+        "hawaii_residency": "Hawaii Resident",
+        "homeless": "Homeless",
+        "discharges": "Discharges",
+        "modality": "Service Modality",
+    }
+    if header_labels:
+        labels.update(header_labels)
+
+    df = df.rename(columns={
+        category_col: labels.get(category_col, category_col),
+        count_col: count_label
+    })
+
+    return create_styled_table(df)
+
+
 
 """
 Takes an already-prepared DataFrame
