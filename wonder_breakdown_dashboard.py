@@ -19,6 +19,7 @@ from dashboard_utils import (
     create_styled_table,
     wrap_axis_label,
     load_sql_query,
+    sort_opts,
 )
 import re
 
@@ -42,6 +43,7 @@ df_raw_age_group = execute_query(sql_age_group)
 
 sql_gender = load_sql_query("load_wonder_gender")
 df_raw_gender = execute_query(sql_gender)
+print(df_raw_gender)
 
 last_updated_value = max(
     (
@@ -60,17 +62,6 @@ last_updated_value = max(
 
 # Count number of deaths in wonder_gender.csv "deaths" column
 total_unique = df_raw_gender["deaths"].count()
-
-def sort_opts(series):
-    """
-    Turn a column into a sorted list of unique values.
-
-    We also make sure "Unknown" always shows up at the end of the list
-    so the drop-down menus look cleaner.
-    """
-    vals = pd.Series(series.unique()).astype(str)
-    vals = sorted([v for v in vals if v != "Unknown"]) + (["Unknown"] if "Unknown" in vals.values else [])
-    return vals
 
 # Build the lists of choices for each filter only if the column exists.
 # Why: this makes the code more flexible if the data shape changes later.

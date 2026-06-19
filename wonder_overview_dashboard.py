@@ -17,6 +17,7 @@ from dashboard_utils import (
     apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
     load_sql_query,
+    sort_opts,
 )
 import json
 
@@ -67,17 +68,6 @@ last_updated_value = compute_last_updated_value(df_raw)
 
 # Count number of deaths in wonder_overview.csv "deaths" column
 total_unique = df_raw["deaths"].count()
-
-def sort_opts(series):
-    """
-    Turn a column into a sorted list of unique values.
-
-    We also make sure "Unknown" always shows up at the end of the list
-    so the drop-down menus look cleaner.
-    """
-    vals = pd.Series(series.unique()).astype(str)
-    vals = sorted([v for v in vals if v != "Unknown"]) + (["Unknown"] if "Unknown" in vals.values else [])
-    return vals
 
 # Build the lists of choices for each filter only if the column exists.
 # Why: this makes the code more flexible if the data shape changes later.
