@@ -305,7 +305,14 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
             .reset_index(name="count")
         )
 
+        # Exclude "All Drugs" from the line chart to improve visibility of individual substances
+        by_year_substance = by_year_substance[
+            by_year_substance["substance"].astype(str).str.strip().str.lower() != "all drugs"
+        ]
+
         substances = sort_opts(dose_df["substance"]) if "substance" in dose_df.columns else []
+        # Remove "All Drugs" from the category list as well
+        substances = [s for s in substances if str(s).strip().lower() != "all drugs"]
         if substances:
             by_year_substance["substance"] = pd.Categorical(by_year_substance["substance"], categories=substances, ordered=True)
 
