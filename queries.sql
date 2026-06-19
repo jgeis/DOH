@@ -92,7 +92,7 @@ JOIN discharge_data_view_demographics_test m ON m.record_id = dx.record_id;
 WITH dx AS (
   SELECT DISTINCT record_id, TRIM(diagnosis) AS substance
   FROM dose_data
-  WHERE diagnosis IS NOT NULL AND TRIM(diagnosis) <> ''
+  WHERE diagnosis IS NOT NULL AND TRIM(diagnosis) <> '' and diagnosis <> 'All Drugs'
 ),
 poly_ids AS (
   -- polysubstance = ≥2 distinct substances
