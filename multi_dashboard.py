@@ -9,6 +9,7 @@ TAB_PATHS = {
     "/sudors": "SUDORS Overdose Deaths",
     "/sudors-polysubstance": "SUDORS Polysubstance Co-occurrence",
     "/dose": "Drug Overdose Surveillance and Epidemiology (DOSE)",
+    "/dose-polysubstance": "DOSE Polysubstance Co-occurrence",
     "/discharges-su-polysubstance": "Related to Polysubstance Use",
     "/wonder-overview": "CDC WONDER Overdose Deaths Overview",
     "/wonder-breakdown": "WONDER Overdose Deaths Breakdown",
@@ -96,11 +97,23 @@ SUDORS_NAV_GROUPS = {
     ],
 }
 
+DOSE_NAV_GROUPS = {
+    "dose": [
+        ("/dose", "DOSE Discharges"),
+        ("/dose-polysubstance", "DOSE Polysubstance Co-occurrence"),
+    ],
+}
+
 SUDORS_ROUTE_TO_GROUP = {
     "/sudors": "substance",
     "/sudors-polysubstance": "substance",
     "/wonder-overview": "substance",
     "/wonder-breakdown": "substance",
+}
+
+DOSE_ROUTE_TO_GROUP = {
+    "/dose": "dose",
+    "/dose-polysubstance": "dose",
 }
 
 app = Dash(
@@ -147,6 +160,7 @@ def update_active_tab(pathname):
 
     group_name = ROUTE_TO_GROUP.get(pathname)
     sudors_group_name = SUDORS_ROUTE_TO_GROUP.get(pathname)
+    dose_group_name = DOSE_ROUTE_TO_GROUP.get(pathname)
     tabs = []
 
     if group_name in NAV_GROUPS:
@@ -167,6 +181,16 @@ def update_active_tab(pathname):
                 className=("tab tab--selected" if pathname == path else "tab"),
             )
             for path, label in SUDORS_NAV_GROUPS[sudors_group_name]
+        ]
+        nav_style = {}
+    elif dose_group_name in DOSE_NAV_GROUPS:
+        tabs = [
+            html.A(
+                label,
+                href=path,
+                className=("tab tab--selected" if pathname == path else "tab"),
+            )
+            for path, label in DOSE_NAV_GROUPS[dose_group_name]
         ]
         nav_style = {}
     else:

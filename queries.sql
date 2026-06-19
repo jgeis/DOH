@@ -88,6 +88,35 @@ SELECT
 FROM dx
 JOIN discharge_data_view_demographics_test m ON m.record_id = dx.record_id;
 
+-- name: load_dose_polysubstance_data
+WITH dx AS (
+  SELECT DISTINCT record_id, TRIM(diagnosis) AS substance
+  FROM dose_data
+  WHERE diagnosis IS NOT NULL AND TRIM(diagnosis) <> ''
+),
+poly_ids AS (
+  -- polysubstance = ≥2 distinct substances
+  SELECT record_id
+  FROM dx
+  GROUP BY record_id
+  HAVING COUNT(DISTINCT substance) >= 2
+)
+SELECT
+  dx.record_id,
+  dx.substance,
+  m.county,
+  m.city,
+  m.zip,
+  m.hawaii_residency,
+  m.age_group,
+  m.sex,
+  m.race_ethnicity,
+  m.year
+FROM dx
+JOIN poly_ids AS p
+  ON p.record_id = dx.record_id
+JOIN discharge_data_view_demographics_test m 
+  ON m.record_id = dx.record_id;
 
 -- name: load_sudors_data_view_diag_su$
 WITH dx AS (

@@ -59,6 +59,10 @@ SECTION_TEXTS = {
         "This data visual presents the number of emergency discharges related to nonfatal drug overdose by specific substance types (not mutually exclusive), as categorized by the CDC’s Drug Overdose Surveillance and Epidemiology (DOSE) definitions. Data elements include patient demographics (i.e., age, sex at birth), discharge outcomes, and temporal trends by month and year.",
         "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*.",
     ],
+    "dose-polysubstance": [
+        "This section analyzes polysubstance patterns in DOSE (Drug Overdose Surveillance and Epidemiology) emergency discharge data, showing which substances commonly occur together in nonfatal overdose events. Data include substance co-occurrence patterns, demographic breakdowns, and temporal trends.",
+        "* Values less than 10 are suppressed for privacy reasons and are displayed as <10*.",
+    ],    
     "lcrs": [
         "Licensed Crisis Residential Facilities = Licensed Crisis Residential Services (LCRS).",    
     ],
