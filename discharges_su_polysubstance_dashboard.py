@@ -18,6 +18,7 @@ import plotly.io as pio
 from theme import register_template
 from db_utils import execute_query
 from dashboard_utils import (
+    apply_year_filter,
     make_kpi_card,
     make_left_sidebar,
     make_right_summary_tables_col,
@@ -136,13 +137,13 @@ def build_cooccurrence_data(df, age=None, sex=None, county=None, year=None):
     """
     # Apply filters to match sunburst logic
     if "age_group" in df.columns:
-        df = _apply_filter(df, "age_group", age)
+        df = apply_filter(df, "age_group", age)
     if "sex" in df.columns:
-        df = _apply_filter(df, "sex", sex)
+        df = apply_filter(df, "sex", sex)
     if "county" in df.columns:
         df = apply_county_filter(df, county).copy()
     if "year" in df.columns:
-        df = _apply_filter(df, "year", year)
+        df = apply_year_filter(df, "year", year)
 
     results = []
 
@@ -210,7 +211,7 @@ if "year" in df_raw.columns:
 else:
     mask_year = True  # If we don't have a year, don't filter by year
 
-def _is_unknown_age(val):
+def is_unknown_age(val):
     """
     Decide if an age group value is basically "unknown".
 
@@ -220,7 +221,7 @@ def _is_unknown_age(val):
     return s in {"", "unknown", "unk", "n/a", "na"}
 
 # Remove rows with unknown age groups (only if that column exists)
-mask_age = ~df_raw["age_group"].apply(_is_unknown_age) if "age_group" in df_raw.columns else True
+mask_age = ~df_raw["age_group"].apply(is_unknown_age) if "age_group" in df_raw.columns else True
 
 # Keep only rows that pass both filters
 df_raw = df_raw[mask_year & mask_age].copy()
@@ -263,7 +264,7 @@ filters_card = make_filters_card(
 
 
 # ---------- small helpers ----------
-def _apply_filter(frame: pd.DataFrame, col: str, val) -> pd.DataFrame:
+def apply_filter(frame: pd.DataFrame, col: str, val) -> pd.DataFrame:
     """
     Helper to apply a filter to a column.
 
@@ -276,33 +277,12 @@ def _apply_filter(frame: pd.DataFrame, col: str, val) -> pd.DataFrame:
     """
     if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
         return frame.copy()
-
-    if col == "year":
-        selected_year_values = val if isinstance(val, (list, tuple)) else [val]
-        selected_year_text = [str(v).strip() for v in selected_year_values if v is not None]
-
-        selected_years_numeric = (
-            pd.to_numeric(pd.Series(selected_year_text), errors="coerce")
-            .dropna()
-            .astype("Int64")
-            .tolist()
-        )
-
-        year_numeric = pd.to_numeric(frame[col], errors="coerce").astype("Int64")
-        year_mask = year_numeric.isin(selected_years_numeric)
-
-        if any(v.lower() == "unknown" for v in selected_year_text):
-            unknown_mask = frame[col].astype(str).str.strip().str.lower().eq("unknown")
-            year_mask = year_mask | unknown_mask
-
-        return frame[year_mask].copy()
-
     if isinstance(val, (list, tuple)):
         return frame[frame[col].isin(val)].copy()
     return frame[frame[col] == val].copy()
 
 
-def _wrap_label(label: str, max_len: int = 22):
+def wrap_label(label: str, max_len: int = 22):
     """
     Break long labels into two lines so they don't stretch the chart.
 
@@ -317,7 +297,7 @@ def _wrap_label(label: str, max_len: int = 22):
     return s[:cut] + "<br>" + s[cut+1:]
 
 
-def _records_matching_all_selected_substances(frame: pd.DataFrame, selected_values) -> pd.DataFrame:
+def records_matching_all_selected_substances(frame: pd.DataFrame, selected_values) -> pd.DataFrame:
     """
     Return rows from records that contain ALL selected substances.
 
@@ -618,18 +598,18 @@ def update(substance, age, sex, county, year):
     # Base frame for co-occurrence-aware charts: apply non-substance filters only.
     dff_base = df_raw.copy()
     if "age_group" in dff_base.columns:
-        dff_base = _apply_filter(dff_base, "age_group", age)
+        dff_base = apply_filter(dff_base, "age_group", age)
     if "sex" in dff_base.columns:
-        dff_base = _apply_filter(dff_base, "sex", sex)
+        dff_base = apply_filter(dff_base, "sex", sex)
     if "county" in dff_base.columns:
         dff_base = apply_county_filter(dff_base, county).copy()
     if "year" in dff_base.columns:
-        dff_base = _apply_filter(dff_base, "year", year)
+        dff_base = apply_year_filter(dff_base, "year", year)
 
     # Main frame for existing visuals: includes substance filter.
     dff = dff_base.copy()
     if "substance" in dff.columns:
-        dff = _apply_filter(dff, "substance", substance)
+        dff = apply_filter(dff, "substance", substance)
 
     include_statewide_on_line = county_output_should_include_statewide(county)
 
@@ -643,7 +623,7 @@ def update(substance, age, sex, county, year):
     # KPI uses the same record-level AND cohort logic used by co-occurrence visuals.
     kpi_source = dff_base
     if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
-        kpi_source = _records_matching_all_selected_substances(dff_base, selected_substances)
+        kpi_source = records_matching_all_selected_substances(dff_base, selected_substances)
     kpi_value = (
         format_count_display(kpi_source["record_id"].nunique())
         if "record_id" in kpi_source.columns and not kpi_source.empty
@@ -671,7 +651,7 @@ def update(substance, age, sex, county, year):
 
     bar_source = dff
     if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
-        bar_source = _records_matching_all_selected_substances(dff_base, selected_substances)
+        bar_source = records_matching_all_selected_substances(dff_base, selected_substances)
 
     if {"substance", "record_id"}.issubset(bar_source.columns) and not bar_source.empty:
         sub_counts = (
@@ -694,7 +674,7 @@ def update(substance, age, sex, county, year):
             fig_sub.add_annotation(text="No co-substances found for selected filter.", showarrow=False)
             apply_standard_bar_layout(fig_sub)
         else:
-            sub_counts["substance_wrapped"] = sub_counts["substance"].apply(_wrap_label)
+            sub_counts["substance_wrapped"] = sub_counts["substance"].apply(wrap_label)
 
             sub_counts["display_count"] = sub_counts["discharges"].apply(format_count_display)
 
@@ -721,7 +701,7 @@ def update(substance, age, sex, county, year):
     # ---------- Line: Yearly Discharges by Substance ----------
     line_source = dff
     if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
-        line_source = _records_matching_all_selected_substances(dff_base, selected_substances)
+        line_source = records_matching_all_selected_substances(dff_base, selected_substances)
         if not line_source.empty:
             selected_set = {str(v) for v in selected_substances}
             line_source = line_source[~line_source["substance"].astype(str).isin(selected_set)]
@@ -775,7 +755,7 @@ def update(substance, age, sex, county, year):
 
     demographic_source = dff
     if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
-        demographic_source = _records_matching_all_selected_substances(dff_base, selected_substances)
+        demographic_source = records_matching_all_selected_substances(dff_base, selected_substances)
 
     # ---------- Line: Year × County ----------
     if {"year", "county", "record_id"}.issubset(demographic_source.columns) and not demographic_source.empty:
@@ -873,7 +853,7 @@ def update(substance, age, sex, county, year):
     Input("polysubstance-reset-filters-btn", "n_clicks"),
     prevent_initial_call=True
 )
-def _reset_filters(n):
+def reset_filters(n):
     """
     When the user clicks the Reset button, clear every filter.
 
@@ -905,7 +885,7 @@ def update_heatmap(selected_substances, is_mobile):
     )
     if selected_values:
         # Keep records that contain all selected substances.
-        dff = _records_matching_all_selected_substances(dff, selected_values)
+        dff = records_matching_all_selected_substances(dff, selected_values)
         if dff.empty:
             return go.Figure().add_annotation(text="No data for selected substance(s)", showarrow=False)
 
@@ -997,7 +977,7 @@ def update_bar_chart(selected_substances, is_mobile):
 
     # Filter by selected substances from main Substance Type filter.
     if selected_values:
-        matched = _records_matching_all_selected_substances(df_raw, selected_values)
+        matched = records_matching_all_selected_substances(df_raw, selected_values)
         if matched.empty:
             return go.Figure().add_annotation(
                 text=f"No co-occurrence data for selected substance(s): {', '.join(str(v) for v in selected_values)}",
@@ -1229,13 +1209,13 @@ def update_sunburst(selected_substances, age, sex, county, year):
 
     dff = df_raw.copy()
     if "age_group" in dff.columns:
-        dff = _apply_filter(dff, "age_group", age)
+        dff = apply_filter(dff, "age_group", age)
     if "sex" in dff.columns:
-        dff = _apply_filter(dff, "sex", sex)
+        dff = apply_filter(dff, "sex", sex)
     if "county" in dff.columns:
         dff = apply_county_filter(dff, county).copy()
     if "year" in dff.columns:
-        dff = _apply_filter(dff, "year", year)
+        dff = apply_year_filter(dff, "year", year)
 
     selected_values = (
         [v for v in selected_substances if v]
@@ -1244,7 +1224,7 @@ def update_sunburst(selected_substances, age, sex, county, year):
     )
 
     if selected_values and {"record_id", "substance"}.issubset(dff.columns):
-        dff = _records_matching_all_selected_substances(dff, selected_values)
+        dff = records_matching_all_selected_substances(dff, selected_values)
 
     if dff.empty:
         return go.Figure().add_annotation(text="No data matching filters", showarrow=False)

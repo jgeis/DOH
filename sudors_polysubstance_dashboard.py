@@ -10,6 +10,7 @@ from theme import register_template
 from db_utils import execute_query
 import re
 from dashboard_utils import (
+   apply_year_filter,
    load_sql_query,
    sort_opts,
    opts_list,
@@ -455,7 +456,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
    if "sex" in dff_base.columns:            dff_base = apply_filter(dff_base, "sex", sex)
    if "age_cat" in dff_base.columns:        dff_base = apply_filter(dff_base, "age_cat", age)
    if "race_ethnicity" in dff_base.columns: dff_base = apply_filter(dff_base, "race_ethnicity", race)
-   if "year" in dff_base.columns:           dff_base = apply_filter(dff_base, "year", year)
+   if "year" in dff_base.columns:           dff_base = apply_year_filter(dff_base, "year", year)
 
    dff = dff_base.copy()
    if selected_values and {"incident_id", "substance"}.issubset(dff_base.columns):
@@ -464,11 +465,6 @@ def update_dashboard(substance, homeless, sex, age, race, year):
    # Count unique discharges (each record_id represents one discharge).
    # Used to update the total on the KPI card when user selects the filter
    filter_total = dff["incident_id"].nunique()
-
-#    # Always use the full set of age categories from df_raw for summary tables
-#    age_table_order = []
-#    if "age_cat" in df_raw.columns:
-#        age_table_order = sort_opts(df_raw["age_cat"])
 
    # ---------- Helper for the summary tables ----------
    # Use shared build_summary_count_table for summary tables
@@ -591,7 +587,7 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
     if "sex" in dff.columns:            dff = apply_filter(dff, "sex", sex)
     if "age_cat" in dff.columns:        dff = apply_filter(dff, "age_cat", age)
     if "race_ethnicity" in dff.columns: dff = apply_filter(dff, "race_ethnicity", race)
-    if "year" in dff.columns:           dff = apply_filter(dff, "year", year)
+    if "year" in dff.columns:           dff = apply_year_filter(dff, "year", year)
 
     if selected_values and {"incident_id", "substance"}.issubset(dff.columns):
         dff = _records_matching_all_selected_substances(dff, selected_values)

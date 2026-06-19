@@ -7,6 +7,7 @@ from dash import html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
 from dashboard_utils import (
+    apply_year_filter,
     load_sql_query,
     sort_opts,
     opts_list,
@@ -261,27 +262,6 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
         """Small helper for filter logic."""
         if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
             return frame
-
-        if col == "year":
-            selected_year_values = val if isinstance(val, (list, tuple)) else [val]
-            selected_year_text = [str(v).strip() for v in selected_year_values if v is not None]
-
-            selected_years_numeric = (
-                pd.to_numeric(pd.Series(selected_year_text), errors="coerce")
-                .dropna()
-                .astype("Int64")
-                .tolist()
-            )
-
-            year_numeric = pd.to_numeric(frame[col], errors="coerce").astype("Int64")
-            year_mask = year_numeric.isin(selected_years_numeric)
-
-            if any(v.lower() == "unknown" for v in selected_year_text):
-                unknown_mask = frame[col].astype(str).str.strip().str.lower().eq("unknown")
-                year_mask = year_mask | unknown_mask
-
-            return frame[year_mask]
-
         if isinstance(val, (list, tuple)):
             return frame[frame[col].isin(val)]
         return frame[frame[col] == val]
@@ -298,7 +278,7 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
         dff = dff[dff["record_id"].isin(mh_ids_filtered)]
     if "county" in dff.columns:                 dff = apply_county_filter(dff, county)
     if "city" in dff.columns:                   dff = apply_filter(dff, "city", city)
-    if "year" in dff.columns:                   dff = apply_filter(dff, "year", year)
+    if "year" in dff.columns:                   dff = apply_year_filter(dff, "year", year)
     if "age_group" in dff.columns:              dff = apply_filter(dff, "age_group", age)
     if "sex" in dff.columns:                    dff = apply_filter(dff, "sex", sex)
     if "race_ethnicity" in dff.columns:         dff = apply_filter(dff, "race_ethnicity", race_ethnicity)

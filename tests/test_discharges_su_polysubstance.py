@@ -349,12 +349,12 @@ class TestResetFilters:
     
     def test_reset_filters_callback_exists(self):
         """Test that reset filters callback is defined."""
-        assert hasattr(discharges_su_polysubstance_dashboard, '_reset_filters'), "Should have reset_discharges_filters function"
-        assert callable(discharges_su_polysubstance_dashboard._reset_filters), "reset_discharges_filters should be callable"
+        assert hasattr(discharges_su_polysubstance_dashboard, 'reset_filters'), "Should have reset_discharges_filters function"
+        assert callable(discharges_su_polysubstance_dashboard.reset_filters), "reset_discharges_filters should be callable"
     
     def test_reset_filters_returns_none_values(self):
         """Test that reset filters returns None for all filter values."""
-        result = discharges_su_polysubstance_dashboard._reset_filters(1)
+        result = discharges_su_polysubstance_dashboard.reset_filters(1)
         
         # Should return 5 None values (one for each filter)
         assert len(result) == 5, f"Should return 5 values, got {len(result)}"

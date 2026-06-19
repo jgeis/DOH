@@ -13,6 +13,7 @@ from dashboard_utils import (
     opts_list,
     statewide_first,
     apply_county_filter,
+    apply_year_filter,
     county_output_should_include_statewide,
     append_statewide_aggregate_rows,
     graph_block,
@@ -239,44 +240,6 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
         """Small helper for filter logic."""
         if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
             return frame
-        if col == "year":
-            frame_year = pd.to_numeric(frame[col], errors="coerce")
-
-            def normalize_year_value(item):
-                if item is None or pd.isna(item):
-                    return None
-                text = str(item).strip()
-                if not text:
-                    return None
-                if text.lower() == "unknown":
-                    return "Unknown"
-                numeric_item = pd.to_numeric(text, errors="coerce")
-                if pd.notna(numeric_item):
-                    return str(int(numeric_item))
-                return text
-
-            if isinstance(val, (list, tuple)):
-                normalized_values = {
-                    normalized
-                    for normalized in (normalize_year_value(item) for item in val)
-                    if normalized is not None
-                }
-                if not normalized_values:
-                    return frame.iloc[0:0]
-
-                year_as_text = frame_year.apply(
-                    lambda item: str(int(item)) if pd.notna(item) else "Unknown"
-                )
-                return frame[year_as_text.isin(normalized_values)]
-
-            normalized_value = normalize_year_value(val)
-            if normalized_value is None:
-                return frame.iloc[0:0]
-
-            year_as_text = frame_year.apply(
-                lambda item: str(int(item)) if pd.notna(item) else "Unknown"
-            )
-            return frame[year_as_text == normalized_value]
         if col == "city":
             # Normalize both city column and filter value(s) for robust matching
             def norm(s):
@@ -298,7 +261,7 @@ def update_dose_section(substance, county, city, year, hawaii_residency, age, se
     if "substance" in dose_df.columns:          dose_df = apply_filter(dose_df, "substance", substance)
     if "county" in dose_df.columns:             dose_df = apply_county_filter(dose_df, county)
     if "city" in dose_df.columns:               dose_df = apply_filter(dose_df, "city", city)
-    if "year" in dose_df.columns:               dose_df = apply_filter(dose_df, "year", year)
+    if "year" in dose_df.columns:               dose_df = apply_year_filter(dose_df, "year", year)
     if "hawaii_residency" in dose_df.columns:   dose_df = apply_filter(dose_df, "hawaii_residency", hawaii_residency)
     if "age_group" in dose_df.columns:          dose_df = apply_filter(dose_df, "age_group", age)
     if "sex" in dose_df.columns:                dose_df = apply_filter(dose_df, "sex", sex)

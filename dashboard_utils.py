@@ -561,6 +561,68 @@ def apply_county_filter(frame: pd.DataFrame, county_value, county_col: str = "co
     return frame[mask]
 
 
+def apply_year_filter(frame: pd.DataFrame, year_col: str, year_value) -> pd.DataFrame:
+    """
+    Apply year filtering with support for numeric years and "Unknown" text.
+    
+    Handles type coercion between numeric and string year representations,
+    treats "Unknown" as a special category, and supports both single values
+    and lists.
+    
+    Args:
+        frame: DataFrame to filter
+        year_col: Name of the year column
+        year_value: Single year or list of years (numeric, string, or "Unknown")
+    
+    Returns:
+        Filtered DataFrame
+    """
+    if year_col not in frame.columns:
+        return frame
+    
+    if year_value is None or (isinstance(year_value, (list, tuple)) and len(year_value) == 0):
+        return frame
+    
+    # Convert year column to numeric for comparison
+    frame_year = pd.to_numeric(frame[year_col], errors="coerce")
+    
+    def normalize_year_value(item):
+        """Normalize a year value to a consistent string representation."""
+        if item is None or pd.isna(item):
+            return None
+        text = str(item).strip()
+        if not text:
+            return None
+        if text.lower() == "unknown":
+            return "Unknown"
+        numeric_item = pd.to_numeric(text, errors="coerce")
+        if pd.notna(numeric_item):
+            return str(int(numeric_item))
+        return text
+    
+    # Convert DataFrame year column to text for matching
+    year_as_text = frame_year.apply(
+        lambda item: str(int(item)) if pd.notna(item) else "Unknown"
+    )
+    
+    # Handle list of years
+    if isinstance(year_value, (list, tuple)):
+        normalized_values = {
+            normalized
+            for normalized in (normalize_year_value(item) for item in year_value)
+            if normalized is not None
+        }
+        if not normalized_values:
+            return frame.iloc[0:0]
+        return frame[year_as_text.isin(normalized_values)]
+    
+    # Handle single year value
+    normalized_value = normalize_year_value(year_value)
+    if normalized_value is None:
+        return frame.iloc[0:0]
+    return frame[year_as_text == normalized_value]
+
+
 def county_output_should_include_statewide(county_value) -> bool:
     """
     Decide whether county-based outputs should include a synthetic "Statewide" row.

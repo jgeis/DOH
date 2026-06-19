@@ -6,6 +6,7 @@ import plotly.express as px
 from theme import register_template
 import re
 from dashboard_utils import (
+    apply_year_filter,
     load_sql_query,
     sort_opts,
     opts_list,
@@ -238,21 +239,6 @@ def update_dashboard(substance, homeless, sex, age, race, year):
         """
         if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
             return frame
-
-        # Dropdown values are strings; coerce selected years so they match numeric year values.
-        if col == "year":
-            selected = list(val) if isinstance(val, (list, tuple)) else [val]
-            selected_text = pd.Series(selected).astype(str).str.strip().str.lower()
-            include_unknown = (selected_text == "unknown").any()
-
-            selected_years = pd.to_numeric(pd.Series(selected), errors="coerce").dropna().tolist()
-            year_numeric = pd.to_numeric(frame[col], errors="coerce")
-            mask = year_numeric.isin(selected_years)
-
-            if include_unknown:
-                mask = mask | frame[col].astype(str).str.strip().str.lower().eq("unknown")
-            return frame[mask]
-
         if isinstance(val, (list, tuple)):
             return frame[frame[col].isin(val)]
         return frame[frame[col] == val]
@@ -266,7 +252,7 @@ def update_dashboard(substance, homeless, sex, age, race, year):
     if "sex" in dff.columns:            dff = apply_filter(dff, "sex", sex)
     if "age_cat" in dff.columns:        dff = apply_filter(dff, "age_cat", age)
     if "race_ethnicity" in dff.columns: dff = apply_filter(dff, "race_ethnicity", race)
-    if "year" in dff.columns:           dff = apply_filter(dff, "year", year)
+    if "year" in dff.columns:           dff = apply_year_filter(dff, "year", year)
 
     # Count unique discharges (each record_id represents one discharge).
     # Used to update the total on the KPI card when user selects the filter

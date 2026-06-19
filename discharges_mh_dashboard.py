@@ -7,6 +7,7 @@ from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
 from dashboard_utils import (
+    apply_year_filter,
     load_sql_query,
     sort_opts,
     opts_list,
@@ -283,25 +284,7 @@ def update_dashboard(diagnosis, county, city, year, hawaii_residency, age, sex, 
     if "diagnosis" in dff.columns:          dff = apply_filter(dff, "diagnosis", diagnosis)
     if "county" in dff.columns:             dff = apply_county_filter(dff, county)
     if "city" in dff.columns:               dff = apply_filter(dff, "city", city)
-    if "year" in dff.columns and year:
-        selected_year_values = year if isinstance(year, (list, tuple)) else [year]
-        selected_year_text = [str(v).strip() for v in selected_year_values if v is not None]
-
-        selected_years_numeric = (
-            pd.to_numeric(pd.Series(selected_year_text), errors="coerce")
-            .dropna()
-            .astype("Int64")
-            .tolist()
-        )
-        year_numeric = pd.to_numeric(dff["year"], errors="coerce").astype("Int64")
-        year_mask = year_numeric.isin(selected_years_numeric)
-
-        # Preserve the ability to explicitly filter for Unknown year values.
-        if any(v.lower() == "unknown" for v in selected_year_text):
-            unknown_mask = dff["year"].astype(str).str.strip().str.lower().eq("unknown")
-            year_mask = year_mask | unknown_mask
-
-        dff = dff[year_mask]
+    if "year" in dff.columns:               dff = apply_year_filter(dff, "year", year)
     if "hawaii_residency" in dff.columns:   dff = apply_filter(dff, "hawaii_residency", hawaii_residency)
     if "age_group" in dff.columns:          dff = apply_filter(dff, "age_group", age)
     if "sex" in dff.columns:                dff = apply_filter(dff, "sex", sex)
