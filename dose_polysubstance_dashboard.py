@@ -77,6 +77,29 @@ def apply_filter(frame: pd.DataFrame, col: str, val) -> pd.DataFrame:
     return frame[frame[col] == val].copy()
 
 
+def records_matching_selected_substances(frame: pd.DataFrame, selected_values) -> pd.DataFrame:
+    """
+    Return rows from records that contain ANY of the selected substances.
+    This keeps all rows for those records (including co-occurring substances).
+    """
+    if not selected_values:
+        return frame.copy()
+    
+    if not {"record_id", "substance"}.issubset(frame.columns):
+        return frame.iloc[0:0].copy()
+    
+    selected = [str(v).strip() for v in selected_values if str(v).strip()]
+    if not selected:
+        return frame.copy()
+    
+    # Find records that contain any of the selected substances
+    selected_set = set(selected)
+    matched_ids = frame[frame["substance"].astype(str).isin(selected_set)]["record_id"].unique()
+    
+    # Return all rows for those records (including co-occurring substances)
+    return frame[frame["record_id"].isin(matched_ids)].copy()
+
+
 def build_sunburst_cooccurrence_data(df):
     """Build Primary -> Also Found rows for sunburst co-occurrence visualization."""
     results = []
@@ -304,8 +327,14 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
     
     # Apply filters
     df = df_raw.copy()
-    if "substance" in df.columns:
-        df = apply_filter(df, "substance", substance)
+    
+    # For polysubstance dashboard, we need to handle substance filter specially:
+    # Keep all rows for records that contain the selected substance(s)
+    has_substance_filter = substance is not None and len(substance) > 0
+    if has_substance_filter and "substance" in df.columns:
+        df = records_matching_selected_substances(df, substance)
+    
+    # Apply other filters normally
     if "year" in df.columns:
         df = apply_year_filter(df, "year", year)
     if "county" in df.columns:
@@ -328,11 +357,9 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
     kpi_display = format_count_display(filter_total)
     
     # Substance bar chart - show all or co-occurring
-    has_substance_filter = substance is not None and len(substance) > 0
     if has_substance_filter:
-        # Show co-occurring substances when a substance is selected
-        filtered_records = df[df['substance'].isin(substance)]['record_id'].unique()
-        cooccur_df = df[df['record_id'].isin(filtered_records) & ~df['substance'].isin(substance)]
+        # Show co-occurring substances (exclude the selected ones)
+        cooccur_df = df[~df['substance'].isin(substance)]
         by_substance = (
             cooccur_df.groupby("substance")["record_id"].nunique()
             .reset_index(name="count")
@@ -364,9 +391,8 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
     # Year line chart - by polysubstance or co-occurring
     if {"year", "substance"}.issubset(df.columns):
         if has_substance_filter:
-            # Show co-occurring when filtered
-            filtered_records = df[df['substance'].isin(substance)]['record_id'].unique()
-            year_df = df[df['record_id'].isin(filtered_records) & ~df['substance'].isin(substance)]
+            # Show co-occurring substances (exclude the selected ones)
+            year_df = df[~df['substance'].isin(substance)]
         else:
             year_df = df.copy()
         
