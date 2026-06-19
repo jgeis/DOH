@@ -468,7 +468,8 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
     else:
         sunburst_fig = go.Figure()
     
-    # Co-occurrence bar chart
+
+# Co-occurrence bar chart
     if has_substance_filter and len(substance) == 1:
         # Show detailed co-occurrence for single selected substance
         cooccur_data = build_cooccurrence_data(df)
@@ -479,6 +480,8 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
         else:
             cooccur_filtered = pd.DataFrame()
         
+        print(f"[update_dashboard] cooccur_filtered rows={len(cooccur_filtered)} for substance={selected_substance}")
+
         if not cooccur_filtered.empty:
             cooccur_filtered = cooccur_filtered.sort_values("Percentage", ascending=True)
             cooccur_filtered["display_pct"] = cooccur_filtered["Percentage"].apply(lambda x: f"{x:.1f}%")
@@ -488,12 +491,14 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
                 x="Percentage",
                 y="Also Found",
                 text="display_pct",
+                orientation="h",
                 labels={"Percentage": "Co-occurrence %", "Also Found": "Co-occurring Substance"},
             )
             apply_standard_single_series_bar_trace(cooccur_bar)
             apply_standard_bar_layout(cooccur_bar)
         else:
             cooccur_bar = px.bar()
+            
     elif has_substance_filter:
         # Multiple substances selected - show grouped bar
         cooccur_data = build_cooccurrence_data(df)
@@ -510,21 +515,30 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
                 y="Also Found",
                 color="Primary",
                 barmode="group",
+                orientation="h",
                 labels={"Percentage": "Co-occurrence %", "Also Found": "Co-occurring Substance", "Primary": "Primary Substance"},
             )
             apply_standard_bar_layout(cooccur_bar)
         else:
             cooccur_bar = px.bar()
+            
     else:
-        # No substance filter - show empty chart with message
-        cooccur_bar = go.Figure()
-        cooccur_bar.add_annotation(
-            text="Select a substance to view co-occurrence patterns",
-            xref="paper", yref="paper",
-            x=0.5, y=0.5, showarrow=False,
-            font=dict(size=14, color="gray")
-        )
-        apply_standard_non_axis_layout(cooccur_bar)
+        # No substance filter - show grouped bar for ALL substances
+        cooccur_data = build_cooccurrence_data(df)
+        
+        if not cooccur_data.empty and 'Primary' in cooccur_data.columns:
+            cooccur_bar = px.bar(
+                cooccur_data, # Use the full, unfiltered dataframe here
+                x="Percentage",
+                y="Also Found",
+                color="Primary",
+                barmode="group",
+                orientation="h",
+                labels={"Percentage": "Co-occurrence %", "Also Found": "Co-occurring Substance", "Primary": "Primary Substance"},
+            )
+            apply_standard_bar_layout(cooccur_bar)
+        else:
+            cooccur_bar = px.bar()
     
     # Summary tables
     def summary_table(group_col, categories=None):
