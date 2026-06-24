@@ -60,12 +60,24 @@ def execute_query(query):
     Returns:
         pd.DataFrame: Query results as DataFrame
     """
+    # Create a dictionary of 'wrong_value': 'correct_value'
+    substance_corrections = {
+        "Benzodiazepine": "Benzodiazepines",
+    }
+    county_corrections = {
+        "Hawaii": "Hawaiʻi",
+    }
     try:
         with get_connection() as conn:
             print(f"[db_utils] Loading: {query}")
             df = pd.read_sql_query(query, conn)
             db_type = "MSSQL" if USE_MSSQL else "SQLite"
             print(f"[db_utils] Query returned {len(df):,} rows from {db_type}")
+            # Apply the corrections to the dataframe
+            if "substance" in df.columns:
+                df["substance"] = df["substance"].replace(substance_corrections)
+            if "county" in df.columns:
+                df["county"] = df["county"].replace(county_corrections)
             return df
     except Exception as e:
         print(f"[db_utils] Error executing query: {e}")
