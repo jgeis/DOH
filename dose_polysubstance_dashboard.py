@@ -158,18 +158,18 @@ def build_cooccurrence_data(df):
 df_raw = load_df()
 
 # Filter out unknown ages and invalid years
-if "year" in df_raw.columns:
-    mask_year = df_raw["year"].notna()
-else:
-    mask_year = True
+# if "year" in df_raw.columns:
+#     mask_year = df_raw["year"].notna()
+# else:
+#     mask_year = True
 
 def is_unknown_age(val):
     s = (str(val) if val is not None else "").strip().lower()
     return s in {"", "unknown", "unk", "n/a", "na"}
 
-mask_age = ~df_raw["age_group"].apply(is_unknown_age) if "age_group" in df_raw.columns else True
+# mask_age = ~df_raw["age_group"].apply(is_unknown_age) if "age_group" in df_raw.columns else True
 
-df_raw = df_raw[mask_year & mask_age].copy()
+#df_raw = df_raw[mask_year & mask_age].copy()
 last_updated_value = compute_last_updated_value(df_raw)
 
 # Build filter options

@@ -55,6 +55,7 @@ def load_sudors_dataframe_from_db():
   
    # Execute query using db_utils (automatically uses correct database)
    df = execute_query(sql)
+   df['substance'] = df['substance'].str.title()
    print(f"load_sudors_polysubstance_data returned {len(df):,} rows")
 
     # If there is no data, we stop early instead of showing a broken page
