@@ -66,6 +66,15 @@ def execute_query(query):
     }
     county_corrections = {
         "Hawaii": "Hawaiʻi",
+        "East_Hawaii": "East Hawaiʻi",
+        "West_Hawaii": "West Hawaiʻi",
+        "Windward_Oahu": "Windward Oʻahu",
+        "Central_Oahu": "Central Oʻahu",
+        "Kauai": "Kauaʻi",
+        "Molokai": "Molokaʻi",
+        "Lanai": "Lānaʻi",
+        "Niihau": "Niʻihau",
+        "Kahoolawe": "Kahoʻolawe",
     }
     try:
         with get_connection() as conn:
@@ -78,37 +87,14 @@ def execute_query(query):
                 df["substance"] = df["substance"].replace(substance_corrections)
             if "county" in df.columns:
                 df["county"] = df["county"].replace(county_corrections)
+            if "facility" in df.columns:
+                df["facility"] = df["facility"].replace(county_corrections)
             return df
     except Exception as e:
         print(f"[db_utils] Error executing query: {e}")
         print(f"[db_utils] Query: {query[:200]}...")  # Print first 200 chars
         raise
 
-def execute_non_query(query):
-    """
-    Execute a non-query SQL command (INSERT, UPDATE, DELETE, CREATE, etc.).
-    Works with both SQLite and MSSQL.
-    
-    Args:
-        query (str): SQL command to execute
-        
-    Returns:
-        int: Number of rows affected
-    """
-    try:
-        with get_connection() as conn:
-            print(f"[db_utils] Loading: {query}")
-            cursor = conn.cursor()
-            cursor.execute(query)
-            conn.commit()
-            rows_affected = cursor.rowcount
-            db_type = "MSSQL" if USE_MSSQL else "SQLite"
-            print(f"[db_utils] Command executed on {db_type}, {rows_affected} rows affected")
-            return rows_affected
-    except Exception as e:
-        print(f"[db_utils] Error executing command: {e}")
-        print(f"[db_utils] Command: {query[:200]}...")
-        raise
 
 def test_connection():
     """Test database connection and print connection details."""
