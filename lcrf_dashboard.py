@@ -23,21 +23,15 @@ MONTH_NAMES = {
     9: "September", 10: "October", 11: "November", 12: "December",
 }
 
-DATA_PATH = Path(__file__).resolve().parent / "data" / "lcrs.csv"
-
 def _clean_column_name(value) -> str:
     return str(value).strip().strip("'").strip('"').lower()
 
 
 def _load_lcrf_raw():
     sql = load_sql_query("load_lcrf_occupancy")
-    try:
-        df = execute_query(sql)
-        print(f"load_lcrf_occupancy returned {len(df):,} rows")
-    except Exception:
-        df = pd.read_csv(DATA_PATH)
-        print(f"load_lcrf_occupancy fallback csv returned {len(df):,} rows")
-
+    df = execute_query(sql)
+    print(f"load_lcrf_occupancy returned {len(df):,} rows")
+    # If there is no data, we stop early instead of showing a broken page
     if df.empty:
         raise RuntimeError("LCRF query returned 0 rows.")
 
@@ -83,64 +77,69 @@ def _build_period_frame(dff, view):
     return dff, period_title
 
 
-def _line_chart(grouped, period_title, color_col=None, chart_title="Occupancy Rate"):
+def _line_chart(grouped, period_title, chart_title="Occupancy Rate"):
     occupancy_values = pd.to_numeric(grouped["occupancy_rate"], errors="coerce").dropna()
     y_min = float(occupancy_values.min()) if not occupancy_values.empty else 0.0
     y_min = max(0.0, y_min - 0.02)
 
-    if color_col:
-        fig = px.line(
-            grouped,
-            x="period",
-            y="occupancy_rate",
-            color=color_col,
-            markers=True,
-            labels={"period": period_title, "occupancy_rate": "Occupancy Rate", color_col: "Facility"},
-        )
-        fig.update_layout(legend_title_text="Facility")
-        
-        # Simplified template: "x unified" already handles the date and facility name automatically
-        fig.update_traces(hovertemplate="%{y:.1%}<extra></extra>") 
-    else:
-        fig = px.line(
-            grouped,
-            x="period",
-            y="occupancy_rate",
-            markers=True,
-            labels={"period": period_title, "occupancy_rate": "Occupancy Rate"},
-        )
-        fig.update_traces(hovertemplate="%{y:.1%}<extra></extra>")
+    fig = px.line(
+        grouped,
+        x="date",  # Native date column
+        y="occupancy_rate",
+        color="facility",
+        markers=True,
+        labels={"date": period_title, "occupancy_rate": "Occupancy Rate", "facility": "Facility"},
+    )
+    fig.update_layout(legend_title_text="Facility")
+    fig.update_traces(hovertemplate="%{y:.1%}<extra></extra>")
 
-    xaxis_overrides = {}
-    if period_title == "Date of Service":
-        xaxis_overrides = {
-            "type": "date",
-            "tickmode": "linear",
-            "dtick": 5 * 24 * 60 * 60 * 1000,
-            "tickformat": "%Y-%m-%d",
-            "tickangle": -45,
-            "tickfont": {"size": 10},
-        }
-
+    # 1. Apply your company's standard layout FIRST
     apply_standard_line_layout(
         fig,
-        xaxis=xaxis_overrides,
         yaxis=dict(title="Occupancy Rate", tickformat=".0%", range=[y_min, 1.05],
             tickmode="array"
         ),
         legend=dict(x=0.5, xanchor="center"),
     )
 
-    # ADDED: hovermode="x unified" to force the single vertical tooltip
-    fig.update_layout(
-        hovermode="x unified",
-    )
-
+    # 2. Force our X-Axis and Hover settings SECOND (so they can't be overwritten)
     if period_title == "Date of Service":
-        fig.update_layout(
-            margin=dict(b=100),
-            legend=dict(x=0.5, xanchor="center", y=-0.22),
+        fig.update_xaxes(
+            type="date",
+            tickmode="linear",
+            dtick=5 * 24 * 60 * 60 * 1000,
+            tickformat="%Y-%m-%d",
+            tickangle=-45,
+            tickfont={"size": 10},
         )
+        fig.update_layout(margin=dict(b=100), legend=dict(x=0.5, xanchor="center", y=-0.22))
+        
+    elif period_title == "Month of Service":
+        unique_dates = grouped["date"].drop_duplicates().sort_values().tolist()
+        tickvals = []
+        ticktext = []
+        
+        for i, d in enumerate(unique_dates):
+            tickvals.append(d)
+            short_month = d.strftime("%b")
+            year = d.strftime("%Y")
+            
+            if i == 0 or i == len(unique_dates) - 1:
+                ticktext.append(f"{short_month}<br>{year}")
+            else:
+                ticktext.append(f"{short_month}")
+                
+        fig.update_xaxes(
+            type="date",
+            tickmode="array",
+            tickvals=tickvals,
+            ticktext=ticktext,
+            tickangle=0,
+            hoverformat="%B, %Y"
+        )
+
+    # Force the unified hovermode
+    fig.update_layout(hovermode="x unified")
 
     return fig
 
@@ -152,7 +151,7 @@ def build_layout():
     # 2. Process the data and generate the figure
     dff = df_raw.copy()
     facility_grouped, period_title = _build_period_frame(dff, "month")
-    facility_fig = _line_chart(facility_grouped, period_title, color_col="facility")
+    facility_fig = _line_chart(facility_grouped, period_title)
 
     # 3. Build and return the layout, passing the figure directly
     return dbc.Container(
