@@ -503,26 +503,18 @@ from BH808_Crisis_Bed_Occupancy_SICM_view;
 
 
 -- name: load_cares_calls_by_nature_top_10
-SELECT TOP 10
-    Nature_of_Call,
-    CAST((COUNT(*) * 100.0) / SUM(COUNT(*)) OVER() AS DECIMAL(5,2)) AS percentage_of_total
-FROM dbo.cares_calls_inbound 
--- get last 6 months that actually have data
-WHERE Date >= DATEADD(month, -6, (SELECT MAX(Date) FROM dbo.cares_calls_inbound))
-GROUP BY Nature_of_Call 
-ORDER BY percentage_of_total desc;
-
-
+select TOP 10
+	CallNature as Nature_of_Call,
+	(proportion * 100) as percentage_of_total
+from BH808_Overview_Call_Nature 
+order by percentage_of_total desc;
 
 -- name: load_cares_calls_by_nature_top_10_sqlite
-SELECT 
-    Nature_of_Call,
-    ROUND((COUNT(*) * 100.0) / SUM(COUNT(*)) OVER(), 2) AS percentage_of_total
-FROM cares_calls_inbound 
--- get last 6 months that actually have data
-WHERE Date >= date((SELECT MAX(Date) FROM cares_calls_inbound), '-6 months')
-GROUP BY Nature_of_Call 
-ORDER BY percentage_of_total DESC
+select 
+	CallNature as Nature_of_Call,
+	(proportion * 100) as percentage_of_total
+from BH808_Overview_Call_Nature 
+order by percentage_of_total desc
 LIMIT 10;
 
 
@@ -604,60 +596,8 @@ ORDER BY
 
 
 -- name: load_crisis_mobile_outreach_6_months
-WITH LatestRecord AS (
-    -- 1. Find the newest date in the table
-    SELECT MAX(DispatchDate) AS MaxDate 
-    FROM dbo.AMHD_Crisis_Mobile_Outreach
-),
-DateBoundaries AS (
-    -- 2. Calculate the exact 1st of the month for our boundaries
-    SELECT 
-        -- Start of the most recent month (used as the cut-off to drop the partial month)
-        DATEFROMPARTS(YEAR(MaxDate), MONTH(MaxDate), 1) AS CutoffDate,
-        
-        -- Exactly 6 months before that
-        DATEADD(month, -6, DATEFROMPARTS(YEAR(MaxDate), MONTH(MaxDate), 1)) AS StartDate
-    FROM LatestRecord
-)
-SELECT
-    FORMAT(O.DispatchDate, 'yyyy-MM') AS Date,
-    COUNT(*) AS num_calls 
-FROM dbo.AMHD_Crisis_Mobile_Outreach O
-CROSS JOIN DateBoundaries B
--- 3. Filter using our perfect first-of-the-month boundaries
-WHERE O.DispatchDate >= B.StartDate 
-  AND O.DispatchDate < B.CutoffDate
-GROUP BY 
-    FORMAT(O.DispatchDate, 'yyyy-MM')
-ORDER BY 
-    Date DESC;
-
-
--- name: load_crisis_mobile_outreach_6_months_sqlite
-WITH LatestRecord AS (
-    -- 1. Find the newest date in the table
-    SELECT MAX(DispatchDate) AS MaxDate 
-    FROM AMHD_Crisis_Mobile_Outreach
-),
-DateBoundaries AS (
-    -- 2. Calculate the exact 1st of the month for our boundaries
-    SELECT 
-        -- Start of the most recent month (used as the cut-off to drop the partial month)
-        date(MaxDate, 'start of month') AS CutoffDate,
-        
-        -- Exactly 7 months before that
-        date(MaxDate, 'start of month', '-6 months') AS StartDate
-    FROM LatestRecord
-)
-SELECT
-    strftime('%Y-%m', O.DispatchDate) AS Date,
-    COUNT(*) AS num_calls 
-FROM AMHD_Crisis_Mobile_Outreach O
-CROSS JOIN DateBoundaries B
--- 3. Filter using our perfect first-of-the-month boundaries
-WHERE O.DispatchDate >= B.StartDate 
-  AND O.DispatchDate < B.CutoffDate
-GROUP BY 
-    strftime('%Y-%m', O.DispatchDate)
-ORDER BY 
-    Date DESC;
+SELECT 
+	Month_Year as Date,
+	Approved_visits as num_calls
+FROM BH808_Overview_CMO_Dispatches
+Order by Date;

@@ -131,16 +131,16 @@ def _load_calls_line_chart():
         ticktext = [_compact_tick_label(v) for v in tickvals]
         fig.update_yaxes(tickmode="array", tickvals=tickvals, ticktext=ticktext)
 
-    fig.update_traces(hovertemplate="%{fullData.name}<br>%{x}: %{y:,}<extra></extra>")
+    fig.update_traces(hovertemplate="%{fullData.name}: %{y:,}<extra></extra>")
+    fig.update_layout(hovermode="x unified", hoversort="value descending")
+
     return fig
 
 
 def _load_cmo_bar_chart():
-    sql = load_sql_query(_query_name("load_crisis_mobile_outreach_6_months"))
+    sql = load_sql_query("load_crisis_mobile_outreach_6_months")
     df = execute_query(sql)
-
-    # SQL output: Date (yyyy-MM), num_calls
-    df["Date"] = pd.to_datetime(df["Date"], format="%Y-%m", errors="coerce")
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     df = df[df["Date"].notna()].copy()
     df = df.sort_values("Date")
     df["Month"] = df["Date"].dt.strftime("%b")
@@ -159,13 +159,11 @@ def _load_cmo_bar_chart():
         fig,
         yaxis=dict(title="# of CMOs"),
         xaxis=dict(title="Month"),
-        height=compute_adaptive_horizontal_bar_height(
-            len(df),
-        ),
     )
     apply_standard_single_series_bar_trace(
         fig, 
-        hovertemplate="%{x}: %{y:,}<extra></extra>")
+        hovertemplate="%{x}: %{y:,}<extra></extra>"
+    )
     return fig
 
 from section_texts import SECTION_TEXTS
