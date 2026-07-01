@@ -36,7 +36,7 @@ def _load_sicm_raw():
         raise RuntimeError("SICM query returned 0 rows.")
 
     df.columns = [_clean_column_name(c) for c in df.columns]
-    print(f"sicm data: {df}")
+    #print(f"sicm data: {df}")
 
     required_cols = ["date", "facility", "occupancy_rate"]
     missing = [col for col in required_cols if col not in df.columns]

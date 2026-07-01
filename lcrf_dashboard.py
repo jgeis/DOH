@@ -35,7 +35,6 @@ def _load_lcrf_raw():
     if df.empty:
         raise RuntimeError("LCRF query returned 0 rows.")
 
-    print(f"Data: {df}")
     df.columns = [_clean_column_name(c) for c in df.columns]
     #print(f"Columns after cleaning: {df.columns.tolist()}")
 
@@ -67,7 +66,6 @@ def _load_lcrf_dataframe_cached():
 def load_lcrf_dataframe():
     return _load_lcrf_dataframe_cached().copy()
 
-
 def _build_period_frame(dff, view):
     # Data is already monthly, just need to create the period label
     dff = dff.copy()
@@ -75,7 +73,6 @@ def _build_period_frame(dff, view):
     dff = dff.sort_values(["year", "month_num", "facility"])
     period_title = "Month of Service"
     return dff, period_title
-
 
 def _line_chart(grouped, period_title, chart_title="Occupancy Rate"):
     occupancy_values = pd.to_numeric(grouped["occupancy_rate"], errors="coerce").dropna()
