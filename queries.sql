@@ -217,7 +217,7 @@ FROM wonder_gender
 WHERE year IS NOT NULL and year < 2023;
 
 
--- name: load_cares_calls
+-- name: load_cares_call_volume
 SELECT
     CASE 
         WHEN Line = 'NSPL Text Chat' THEN 'NSPL/988 Text'

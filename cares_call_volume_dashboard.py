@@ -36,18 +36,18 @@ MONTH_NAMES = {
 # ----------------------------
 
 def load_cares_dataframe():
-    sql = load_sql_query("load_cares_calls")
+    sql = load_sql_query("load_cares_call_volume")
     df = execute_query(sql)
-    print(f"load_cares_calls returned {len(df):,} rows")
+    print(f"load_cares_call_volume returned {len(df):,} rows")
     if df.empty:
-        raise RuntimeError("cares_calls query returned 0 rows.")
+        raise RuntimeError("load_cares_call_volume query returned 0 rows.")
 
     # Normalize column names so the dashboard works with either raw or pre-aggregated SQL.
     col_lookup = {c.lower(): c for c in df.columns}
 
     date_col = col_lookup.get("day") or col_lookup.get("date")
     if not date_col:
-        raise RuntimeError("load_cares_calls must return a Date/day column.")
+        raise RuntimeError("load_cares_call_volume must return a Date/day column.")
     if date_col != "day":
         df = df.rename(columns={date_col: "day"})
 
