@@ -39,18 +39,47 @@ def _compact_tick_label(value):
     return f"{int(v)}"
 
 
+# ---------------------------------------------------------
+# NEW: Data Loader for KPI Cards
+# ---------------------------------------------------------
+def _load_top_box_data():
+    sql = load_sql_query("load_cares_statistics_top_box")
+    df = execute_query(sql)
+    
+    if df.empty:
+        return {}
+    
+    # Convert the first row into a case-insensitive dictionary
+    # so we don't have to worry about SQL casing quirks
+    row_dict = df.iloc[0].to_dict()
+    return {k.lower(): v for k, v in row_dict.items()}
+
+
+# ---------------------------------------------------------
+# NEW: KPI Card UI Helper
+# ---------------------------------------------------------
+def _make_kpi_card(title, value):
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.H6(title, className="card-title text-muted text-center mb-1", style={"fontSize": "0.85rem"}),
+                html.H4(str(value), className="card-text text-center fw-bold mb-0 text-primary"),
+            ]
+        ),
+        className="shadow-sm h-100",
+    )
+
+
 def _load_top_10_reasons_table():
     sql = load_sql_query(_query_name("load_cares_calls_by_nature_top_10"))
     df = execute_query(sql)
 
-    # Column casing can differ by backend (e.g., Nature_of_Call vs nature_of_call).
     col_lookup = {c.lower(): c for c in df.columns}
     if "nature_of_call" in col_lookup and col_lookup["nature_of_call"] != "Nature_of_Call":
         df = df.rename(columns={col_lookup["nature_of_call"]: "Nature_of_Call"})
     if "percentage_of_total" in col_lookup and col_lookup["percentage_of_total"] != "percentage_of_total":
         df = df.rename(columns={col_lookup["percentage_of_total"]: "percentage_of_total"})
 
-    # SQL output: Nature_of_Call, percentage_of_total
     if "Nature_of_Call" in df.columns:
         df = df.rename(columns={"Nature_of_Call": "Category"})
     if "percentage_of_total" in df.columns:
@@ -80,7 +109,6 @@ def _load_calls_line_chart():
     sql = load_sql_query("load_cares_calls_by_line_6_months")
     df = execute_query(sql)
 
-    # Column casing can differ by backend (e.g., Line vs line).
     col_lookup = {c.lower(): c for c in df.columns}
     if "line" in col_lookup and col_lookup["line"] != "Line":
         df = df.rename(columns={col_lookup["line"]: "Line"})
@@ -89,8 +117,6 @@ def _load_calls_line_chart():
     if "num_calls" in col_lookup and col_lookup["num_calls"] != "num_calls":
         df = df.rename(columns={col_lookup["num_calls"]: "num_calls"})
 
-    # 1. FIXED: Reference the capitalized "Date" column
-    # 2. FIXED: Removed format="%Y-%m" so it can parse the full timestamp
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     df = df[df["Date"].notna()].copy()
     df = df.sort_values("Date")
@@ -111,7 +137,6 @@ def _load_calls_line_chart():
         },
     )
     
-    # Force Plotly to respect the chronological sorting of the months
     fig.update_xaxes(categoryorder="array", categoryarray=df["Month"])
 
     apply_standard_line_layout(
@@ -171,11 +196,14 @@ def _load_cmo_bar_chart():
     )
     return fig
 
+
 from section_texts import SECTION_TEXTS
 cares_statistics_sidebar_text = make_sidebar_helper_text(SECTION_TEXTS.get("cares-statistics", []))
 
 def layout():
     try:
+        # Load all data
+        top_box_data = _load_top_box_data()
         top_10_df = _load_top_10_reasons_table()
         last_updated_value = _load_last_updated_value()
         calls_line_fig = _load_calls_line_chart()
@@ -190,52 +218,90 @@ def layout():
             fluid=True,
         )
 
+    # Safe getter for KPI data (case-insensitive)
+    def get_val(key):
+        val = top_box_data.get(key.lower(), "N/A")
+        # Optional: Add formatting logic here if needed (e.g. adding '%' to rates)
+        return val
+
+    # 1. Build the list of KPI cards
+    kpi_cards = [
+        # Top Row (Calls)
+        _make_kpi_card("Call Volume", get_val("CallVolume")),
+        _make_kpi_card("Call Answer Rate", get_val("CallAnswer")),
+        _make_kpi_card("Call Answer Speed (secs)", get_val("CallSpeed")),
+        _make_kpi_card("Call Stabilization Rate", get_val("CallStab")),
+        
+        # Middle Row (Chats)
+        _make_kpi_card("Chat Volume", get_val("ChatVol")),
+        _make_kpi_card("Chat Answer Rate", get_val("ChatAnswer")),
+        _make_kpi_card("Chat Answer Speed (secs)", get_val("ChatSpeed")),
+        _make_kpi_card("Chat Stabilization Rate", get_val("ChatStab")),
+        
+        # Bottom Row (Texts)
+        _make_kpi_card("Text Volume", get_val("TextVol")),
+        _make_kpi_card("Text Answer Rate", get_val("TextAnswer")),
+        _make_kpi_card("Text Answer Speed (secs)", get_val("TextSpeed")),
+        _make_kpi_card("Text Stabilization Rate", get_val("TextStab")),
+    ]
+
+    # 2. Wrap them in columns (md=3 ensures 4 items per row on desktop)
+    kpi_grid_cols = [dbc.Col(card, xs=6, sm=4, md=3, className="mb-3") for card in kpi_cards]
+
     table_component = create_styled_table(top_10_df)
 
     return dbc.Container(
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        html.H5("Top 10 reasons for contacting Hawai'i CARES 988", className="plot-card-header mb-2"),
-                        html.Div(table_component, style={"overflowX": "auto"}),
-                        cares_statistics_sidebar_text,
-                        html.Div(make_last_updated_block(last_updated_value), className="mt-2"),
-                    ],
-                    xs=12,
-                    md=4,
-                    className="mb-3",
-                ),
-                dbc.Col(
-                    [
-                        html.H5("Phone Call, Chat, & Text Volumes", className="plot-card-header mb-2"),
-                        dcc.Graph(
-                            id="cares-statistics-calls-line-chart",
-                            figure=calls_line_fig,
-                            config={"displayModeBar": True, "displaylogo": False},
-                            style={"width": "100%", "height": "450px"},
-                        ),
-                    ],
-                    xs=12,
-                    md=4,
-                    className="mb-3",
-                ),
-                dbc.Col(
-                    [
-                        html.H5("Crisis Mobile Outreach (CMO)", className="plot-card-header mb-2"),
-                        dcc.Graph(
-                            id="cares-statistics-cmo-bar-chart",
-                            figure=cmo_bar_fig,
-                            config={"displayModeBar": True, "displaylogo": False},
-                            style={"width": "100%", "height": "450px"},
-                        ),
-                    ],
-                    xs=12,
-                    md=4,
-                    className="mb-3",
-                ),
-            ],
-            className="g-3",
-        ),
+        [
+            # ROW 1: KPI Grid
+            dbc.Row(kpi_grid_cols, className="g-2 mb-4"),
+            
+            html.Hr(className="mb-4"), # Visual divider between KPIs and Charts
+            
+            # ROW 2: Existing Charts & Tables
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.H5("Top 10 reasons for contacting Hawai'i CARES 988", className="plot-card-header mb-2"),
+                            html.Div(table_component, style={"overflowX": "auto"}),
+                            cares_statistics_sidebar_text,
+                            html.Div(make_last_updated_block(last_updated_value), className="mt-2"),
+                        ],
+                        xs=12,
+                        md=4,
+                        className="mb-3",
+                    ),
+                    dbc.Col(
+                        [
+                            html.H5("Phone Call, Chat, & Text Volumes", className="plot-card-header mb-2"),
+                            dcc.Graph(
+                                id="cares-statistics-calls-line-chart",
+                                figure=calls_line_fig,
+                                config={"displayModeBar": True, "displaylogo": False},
+                                style={"width": "100%", "height": "450px"},
+                            ),
+                        ],
+                        xs=12,
+                        md=4,
+                        className="mb-3",
+                    ),
+                    dbc.Col(
+                        [
+                            html.H5("Crisis Mobile Outreach (CMO)", className="plot-card-header mb-2"),
+                            dcc.Graph(
+                                id="cares-statistics-cmo-bar-chart",
+                                figure=cmo_bar_fig,
+                                config={"displayModeBar": True, "displaylogo": False},
+                                style={"width": "100%", "height": "450px"},
+                            ),
+                        ],
+                        xs=12,
+                        md=4,
+                        className="mb-3",
+                    ),
+                ],
+                className="g-3",
+            )
+        ],
         fluid=True,
     )

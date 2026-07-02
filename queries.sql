@@ -537,6 +537,24 @@ SELECT
 FROM BH808_Overview_Crisis_Volume_View;
 
 
+-- name: load_cares_statistics_top_box
+Select 
+  CallVolume, 
+  CallAnswer, 
+  CallSpeed, 
+  CallStab, 
+  ChatVol, 
+  ChatAnswer, 
+  ChatSpeed, 
+  ChatStab, 
+  TextVol, 
+  TextAnswer, 
+  TextSpeed,
+  TextStab 
+from BH808_Overview_Top_Box;
+
+
+
 -- name: load_crisis_mobile_outreach_6_months
 SELECT 
 	Month_Year as Date,
