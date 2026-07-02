@@ -1,6 +1,6 @@
 from dash import register_page
 
-import cares_dashboard
+import cares_call_volume_dashboard
 
 register_page(
     __name__,
@@ -9,4 +9,4 @@ register_page(
     title="Hawaiʻi CARES Crisis Center Volume",
 )
 
-layout = cares_dashboard.layout
+layout = cares_call_volume_dashboard.layout
