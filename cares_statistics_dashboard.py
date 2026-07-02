@@ -56,17 +56,45 @@ def _load_top_box_data():
 
 
 # ---------------------------------------------------------
-# NEW: KPI Card UI Helper
+# KPI Card UI Helper
 # ---------------------------------------------------------
-def _make_kpi_card(title, value):
+def _make_kpi_card(title, value, bg_color):
     return dbc.Card(
         dbc.CardBody(
             [
-                html.H6(title, className="card-title text-muted text-center mb-1", style={"fontSize": "0.85rem"}),
-                html.H4(str(value), className="card-text text-center fw-bold mb-0 text-primary"),
+                # Changed text colors to white/light-gray to contrast with the dark backgrounds
+                html.H6(title, className="card-title text-center mb-1", style={"fontSize": "0.85rem", "color": "#f8f9fa"}),
+                html.H4(str(value), className="card-text text-center fw-bold mb-0", style={"color": "white"}),
             ]
         ),
         className="shadow-sm h-100",
+        style={"backgroundColor": bg_color, "border": "none"}
+    )
+
+# ---------------------------------------------------------
+# NEW: Vertical Banner UI Helper
+# ---------------------------------------------------------
+def _make_vertical_banner(text):
+    return html.Div(
+        # 1. The inner text element (Rotated, but isolated so it can't stretch)
+        html.Span(
+            text,
+            style={
+                "writingMode": "vertical-rl",
+                "transform": "rotate(180deg)",
+                "letterSpacing": "0.1rem",
+                "textTransform": "uppercase",
+                "whiteSpace": "nowrap", # Forces text to stay on one line
+            }
+        ),
+        # 2. The outer background box (Behaves normally, fills the column height)
+        className="d-flex align-items-center justify-content-center fw-bold text-muted h-100",
+        style={
+            "backgroundColor": "#e9ecef",
+            "borderRadius": "0.25rem",
+            "padding": "15px", # Slightly wider padding to give the text breathing room
+            "minWidth": "50px", # Prevents the column from squishing too much
+        }
     )
 
 
@@ -202,7 +230,6 @@ cares_statistics_sidebar_text = make_sidebar_helper_text(SECTION_TEXTS.get("care
 
 def layout():
     try:
-        # Load all data
         top_box_data = _load_top_box_data()
         top_10_df = _load_top_10_reasons_table()
         last_updated_value = _load_last_updated_value()
@@ -218,89 +245,98 @@ def layout():
             fluid=True,
         )
 
-    # Safe getter for KPI data (case-insensitive)
     def get_val(key):
-        val = top_box_data.get(key.lower(), "N/A")
-        # Optional: Add formatting logic here if needed (e.g. adding '%' to rates)
-        return val
+        return top_box_data.get(key.lower(), "N/A")
 
-    # 1. Build the list of KPI cards
+    # Define our row colors
+    color_calls = "rgb(42, 97, 53)"
+    color_chats = "rgb(101, 63, 17)"
+    color_texts = "rgb(60, 116, 123)"
+
     kpi_cards = [
         # Top Row (Calls)
-        _make_kpi_card("Call Volume", get_val("CallVolume")),
-        _make_kpi_card("Call Answer Rate", get_val("CallAnswer")),
-        _make_kpi_card("Call Answer Speed (secs)", get_val("CallSpeed")),
-        _make_kpi_card("Call Stabilization Rate", get_val("CallStab")),
+        _make_kpi_card("Call Volume", get_val("CallVolume"), color_calls),
+        _make_kpi_card("Call Answer Rate", get_val("CallAnswer"), color_calls),
+        _make_kpi_card("Call Answer Speed (secs)", get_val("CallSpeed"), color_calls),
+        _make_kpi_card("Call Stabilization Rate", get_val("CallStab"), color_calls),
         
         # Middle Row (Chats)
-        _make_kpi_card("Chat Volume", get_val("ChatVol")),
-        _make_kpi_card("Chat Answer Rate", get_val("ChatAnswer")),
-        _make_kpi_card("Chat Answer Speed (secs)", get_val("ChatSpeed")),
-        _make_kpi_card("Chat Stabilization Rate", get_val("ChatStab")),
+        _make_kpi_card("Chat Volume", get_val("ChatVol"), color_chats),
+        _make_kpi_card("Chat Answer Rate", get_val("ChatAnswer"), color_chats),
+        _make_kpi_card("Chat Answer Speed (secs)", get_val("ChatSpeed"), color_chats),
+        _make_kpi_card("Chat Stabilization Rate", get_val("ChatStab"), color_chats),
         
         # Bottom Row (Texts)
-        _make_kpi_card("Text Volume", get_val("TextVol")),
-        _make_kpi_card("Text Answer Rate", get_val("TextAnswer")),
-        _make_kpi_card("Text Answer Speed (secs)", get_val("TextSpeed")),
-        _make_kpi_card("Text Stabilization Rate", get_val("TextStab")),
+        _make_kpi_card("Text Volume", get_val("TextVol"), color_texts),
+        _make_kpi_card("Text Answer Rate", get_val("TextAnswer"), color_texts),
+        _make_kpi_card("Text Answer Speed (secs)", get_val("TextSpeed"), color_texts),
+        _make_kpi_card("Text Stabilization Rate", get_val("TextStab"), color_texts),
     ]
 
-    # 2. Wrap them in columns (md=3 ensures 4 items per row on desktop)
-    kpi_grid_cols = [dbc.Col(card, xs=6, sm=4, md=3, className="mb-3") for card in kpi_cards]
+    kpi_grid_cols = [dbc.Col(card, xs=6, sm=4, md=3) for card in kpi_cards]
 
     table_component = create_styled_table(top_10_df)
 
     return dbc.Container(
         [
-            # ROW 1: KPI Grid
-            dbc.Row(kpi_grid_cols, className="g-2 mb-4"),
-            
-            html.Hr(className="mb-4"), # Visual divider between KPIs and Charts
-            
-            # ROW 2: Existing Charts & Tables
+            # ROW 1: KPI Grid with Banner
             dbc.Row(
                 [
-                    dbc.Col(
-                        [
-                            html.H5("Top 10 reasons for contacting Hawai'i CARES 988", className="plot-card-header mb-2"),
-                            html.Div(table_component, style={"overflowX": "auto"}),
-                            cares_statistics_sidebar_text,
-                            html.Div(make_last_updated_block(last_updated_value), className="mt-2"),
-                        ],
-                        xs=12,
-                        md=4,
-                        className="mb-3",
-                    ),
-                    dbc.Col(
-                        [
-                            html.H5("Phone Call, Chat, & Text Volumes", className="plot-card-header mb-2"),
-                            dcc.Graph(
-                                id="cares-statistics-calls-line-chart",
-                                figure=calls_line_fig,
-                                config={"displayModeBar": True, "displaylogo": False},
-                                style={"width": "100%", "height": "450px"},
-                            ),
-                        ],
-                        xs=12,
-                        md=4,
-                        className="mb-3",
-                    ),
-                    dbc.Col(
-                        [
-                            html.H5("Crisis Mobile Outreach (CMO)", className="plot-card-header mb-2"),
-                            dcc.Graph(
-                                id="cares-statistics-cmo-bar-chart",
-                                figure=cmo_bar_fig,
-                                config={"displayModeBar": True, "displaylogo": False},
-                                style={"width": "100%", "height": "450px"},
-                            ),
-                        ],
-                        xs=12,
-                        md=4,
-                        className="mb-3",
-                    ),
+                    dbc.Col(_make_vertical_banner("Past Month"), width="auto"),
+                    dbc.Col(dbc.Row(kpi_grid_cols, className="g-3"), width=True)
                 ],
-                className="g-3",
+                className="g-3 mb-4 align-items-stretch" 
+            ),
+            
+            html.Hr(className="mb-4"),
+            
+            # ROW 2: Charts & Tables with Banner
+            dbc.Row(
+                [
+                    dbc.Col(_make_vertical_banner("Past 6 Months"), width="auto"),
+                    dbc.Col(
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.H5("Top 10 reasons for contacting Hawai'i CARES 988", className="plot-card-header mb-2"),
+                                        html.Div(table_component, style={"overflowX": "auto"}),
+                                        cares_statistics_sidebar_text,
+                                        html.Div(make_last_updated_block(last_updated_value), className="mt-2"),
+                                    ],
+                                    xs=12, md=4,
+                                ),
+                                dbc.Col(
+                                    [
+                                        html.H5("Phone Call, Chat, & Text Volumes", className="plot-card-header mb-2"),
+                                        dcc.Graph(
+                                            id="cares-statistics-calls-line-chart",
+                                            figure=calls_line_fig,
+                                            config={"displayModeBar": True, "displaylogo": False},
+                                            style={"width": "100%", "height": "450px"},
+                                        ),
+                                    ],
+                                    xs=12, md=4,
+                                ),
+                                dbc.Col(
+                                    [
+                                        html.H5("Crisis Mobile Outreach (CMO)", className="plot-card-header mb-2"),
+                                        dcc.Graph(
+                                            id="cares-statistics-cmo-bar-chart",
+                                            figure=cmo_bar_fig,
+                                            config={"displayModeBar": True, "displaylogo": False},
+                                            style={"width": "100%", "height": "450px"},
+                                        ),
+                                    ],
+                                    xs=12, md=4,
+                                ),
+                            ],
+                            className="g-3",
+                        ),
+                        width=True
+                    )
+                ],
+                className="g-3 align-items-stretch"
             )
         ],
         fluid=True,
