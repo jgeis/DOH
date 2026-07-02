@@ -77,23 +77,26 @@ def _load_last_updated_value():
 
 
 def _load_calls_line_chart():
-    sql = load_sql_query(_query_name("load_cares_calls_by_line_6_months"))
+    sql = load_sql_query("load_cares_calls_by_line_6_months")
     df = execute_query(sql)
 
     # Column casing can differ by backend (e.g., Line vs line).
     col_lookup = {c.lower(): c for c in df.columns}
     if "line" in col_lookup and col_lookup["line"] != "Line":
         df = df.rename(columns={col_lookup["line"]: "Line"})
-    if "date_month" in col_lookup and col_lookup["date_month"] != "Date_Month":
-        df = df.rename(columns={col_lookup["date_month"]: "Date_Month"})
+    if "date" in col_lookup and col_lookup["date"] != "Date":
+        df = df.rename(columns={col_lookup["date"]: "Date"})
     if "num_calls" in col_lookup and col_lookup["num_calls"] != "num_calls":
         df = df.rename(columns={col_lookup["num_calls"]: "num_calls"})
 
-    # SQL output: Line, Date_Month (yyyy-MM), num_calls
-    df["Date_Month"] = pd.to_datetime(df["Date_Month"], format="%Y-%m", errors="coerce")
-    df = df[df["Date_Month"].notna()].copy()
-    df = df.sort_values("Date_Month")
-    df["Month"] = df["Date_Month"].dt.strftime("%b")
+    # 1. FIXED: Reference the capitalized "Date" column
+    # 2. FIXED: Removed format="%Y-%m" so it can parse the full timestamp
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+    df = df[df["Date"].notna()].copy()
+    df = df.sort_values("Date")
+    df["Month"] = df["Date"].dt.strftime("%b")
+
+    df["Line"] = df["Line"].replace({"All_Phones": "Phone Calls"})
 
     fig = px.line(
         df,
@@ -107,10 +110,12 @@ def _load_calls_line_chart():
             "Line": "Contact Type",
         },
     )
+    
+    # Force Plotly to respect the chronological sorting of the months
+    fig.update_xaxes(categoryorder="array", categoryarray=df["Month"])
 
     apply_standard_line_layout(
         fig,
-        #xaxis=dict(dtick=5),
         yaxis=dict(rangemode="tozero", title="# of calls/chats/texts"),
         xaxis=dict(title="Month"),
         title=None,

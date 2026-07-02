@@ -530,69 +530,11 @@ FROM cares_calls_inbound;
 
 
 -- name: load_cares_calls_by_line_6_months
-WITH LatestRecord AS (
-    -- 1. Find the newest date in the table
-    SELECT MAX(Date) AS MaxDate 
-    FROM dbo.cares_calls_inbound
-),
-DateBoundaries AS (
-    -- 2. Calculate the exact 1st of the month boundaries
-    SELECT 
-        -- Start of the most recent month (used as the cut-off to drop the partial month)
-        DATEFROMPARTS(YEAR(MaxDate), MONTH(MaxDate), 1) AS CutoffDate,
-        -- Exactly 6 months before that
-        DATEADD(month, -6, DATEFROMPARTS(YEAR(MaxDate), MONTH(MaxDate), 1)) AS StartDate
-    FROM LatestRecord
-)
-SELECT
-    C.Line,
-    FORMAT(C.Date, 'yyyy-MM') AS Date_Month,
-    COUNT(*) AS num_calls 
-FROM dbo.cares_calls_inbound C
-CROSS JOIN DateBoundaries B
--- 3. Filter using our first-of-the-month boundaries
-WHERE C.Date >= B.StartDate 
-  AND C.Date < B.CutoffDate
-GROUP BY 
-    C.Line,
-    FORMAT(C.Date, 'yyyy-MM')
-ORDER BY 
-    Date_Month DESC,
-    num_calls DESC;
-
-
--- name: load_cares_calls_by_line_6_months_sqlite
-WITH LatestRecord AS (
-    -- 1. Find the newest date in the table
-    SELECT MAX(Date) AS MaxDate 
-    FROM cares_calls_inbound
-),
-DateBoundaries AS (
-    -- 2. Calculate the exact 1st of the month boundaries
-    SELECT 
-        -- Start of the most recent month (used as the cut-off to drop the partial month)
-        date(MaxDate, 'start of month') AS CutoffDate,
-        
-        -- Exactly 6 months before that
-        date(MaxDate, 'start of month', '-6 months') AS StartDate
-    FROM LatestRecord
-)
-SELECT
-    C.Line,
-    strftime('%Y-%m', C.Date) AS Date_Month,
-    COUNT(*) AS num_calls 
-FROM cares_calls_inbound C
-CROSS JOIN DateBoundaries B
--- 3. Filter using our first-of-the-month boundaries
-WHERE C.Date >= B.StartDate 
-  AND C.Date < B.CutoffDate
-GROUP BY 
-    C.Line,
-    strftime('%Y-%m', C.Date)
-ORDER BY 
-    Date_Month DESC,
-    num_calls DESC;
-
+SELECT 
+  date, 
+  line, 
+  num_calls 
+FROM BH808_Overview_Crisis_Volume_View;
 
 
 -- name: load_crisis_mobile_outreach_6_months
