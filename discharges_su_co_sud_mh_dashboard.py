@@ -251,11 +251,10 @@ def reset_discharges_filters(_n_clicks):
     Input("su-primary-race-ethnicity-filter", "value"),
     Input("su-primary-hawaii-residency-filter", "value"),
 )
-
 def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawaii_residency):
     """
     This function runs every time the user changes a filter.
-    It updates all the discharge visualizations and tables.
+    It updates all the discharge visualizations and tables with corrected logic.
     """
 
     def apply_filter(frame, col, val):
@@ -269,10 +268,24 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
     # Start from the full dataset each time.
     dff = df_raw.copy()
 
-    # Only apply filters for columns that actually exist.
+    # --- CORRECTED FILTERING LOGIC ---
+    # If a substance filter is applied, it defines the primary cohort for the analysis.
     if su:
-        su_ids_filtered = set(dff.loc[(dff["diagnosis_type"] == "su") & (dff["diagnosis"].isin(su)), "record_id"])
-        dff = dff[dff["record_id"].isin(su_ids_filtered)]
+        # Step 1: Identify the CORRECT patient cohort.
+        # Find record_ids where the diagnosis is the selected substance AND it is the primary diagnosis.
+        # The check is now for the STRING '1' to match the data loading process.
+        primary_su_ids_cohort = set(dff.loc[
+            (dff["diagnosis_type"] == "su") & 
+            (dff["diagnosis"].isin(su)) & 
+            (dff["is_primary"] == '1'), # This is the critical fix
+            "record_id"
+        ])
+        
+        # Step 2: Filter the main dataframe to include ONLY records from that correct cohort.
+        # This ensures we are only analyzing patients whose primary diagnosis matches the filter.
+        dff = dff[dff["record_id"].isin(primary_su_ids_cohort)]
+    
+    # The rest of the filters are applied sequentially to the now-correctly-scoped dataframe.
     if mh:
         mh_ids_filtered = set(dff.loc[(dff["diagnosis_type"] == "mh") & (dff["diagnosis"].isin(mh)), "record_id"])
         dff = dff[dff["record_id"].isin(mh_ids_filtered)]
@@ -284,7 +297,10 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
     if "race_ethnicity" in dff.columns:         dff = apply_filter(dff, "race_ethnicity", race_ethnicity)
     if "hawaii_residency" in dff.columns:       dff = apply_filter(dff, "hawaii_residency", hawaii_residency)
 
-    primary_su_ids = set(dff.loc[(dff["diagnosis_type"] == "su") & (dff["is_primary"] == 1), "record_id"])
+    # The rest of the function remains the same as your original code.
+    # It will now operate on the correctly filtered dataframe 'dff'.
+
+    primary_su_ids = set(dff.loc[(dff["diagnosis_type"] == "su") & (dff["is_primary"] == '1'), "record_id"])
     all_mh_ids = set(dff.loc[dff["diagnosis_type"] == "mh", "record_id"])
 
     cooccuring_ids = all_mh_ids.intersection(primary_su_ids)
@@ -297,7 +313,11 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
     # ---------- Bar chart: Discharges by Substance ----------
     if {"record_id", "diagnosis", "diagnosis_type"}.issubset(dff.columns):
         
-        su_df = dff[dff["diagnosis_type"] == "su"]
+        # To show co-occurring diagnoses, we filter out the primary substance that defined the cohort.
+        if su:
+            su_df = dff[(dff["diagnosis_type"] == "su") & (~dff["diagnosis"].isin(su))]
+        else:
+            su_df = dff[dff["diagnosis_type"] == "su"]
 
         by_sub = (
             su_df.groupby("diagnosis")["record_id"]
@@ -418,6 +438,15 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
     # ---------- Helper for the summary tables ----------
     # Use shared build_summary_count_table for summary tables
     def summary_table(group_col, categories=None):
+        # Check if dff is empty to avoid errors in the utility function
+        if dff.empty:
+            return build_summary_count_table(
+                pd.DataFrame(columns=df_raw.columns), # Pass a dataframe with correct columns
+                group_col=group_col,
+                id_col="record_id",
+                categories=categories,
+                include_statewide_county=(group_col == "county" and include_statewide_county_outputs),
+            )
         return build_summary_count_table(
             dff,
             group_col=group_col,
