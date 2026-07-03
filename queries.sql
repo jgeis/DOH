@@ -307,31 +307,11 @@ WHERE LOWER(COALESCE(NULLIF(TRIM(demo.age_group), ''), 'unknown')) <> 'unknown';
 
 -- name: load_crisis_mobile_outreach
 SELECT 
-    PATID,
-    CASE 
-        WHEN CMOReferralTo_Value IN ('Castle ER', 'Other ER', 'Queens ER') THEN 'Emergency Rooms'
-        WHEN CMOReferralTo_Value = 'BHCC' THEN 'Behavioral Health Crisis Center'
-        WHEN CMOReferralTo_Value = 'CSM' THEN 'Crisis Support Management'
-        WHEN CMOReferralTo_Value = 'Family / Friends' THEN 'Parents/Family/Friends'
-        WHEN CMOReferralTo_Value IN ('LCRS', 'Stabilization Bed') THEN 'Licensed Crisis Residential Services and Stabilization Beds'
-        ELSE CMOReferralTo_Value 
-    END AS referral_destination,
-    CASE 
-        WHEN Age < 15 THEN '<15'
-        WHEN Age >= 15 and Age <= 24 THEN '15-24'
-        WHEN Age >= 25 and Age <= 34 THEN '25-34'
-        WHEN Age >= 35 and Age <= 44 THEN '35-44'
-        WHEN Age >= 45 and Age <= 54 THEN '45-54'
-        WHEN Age >= 55 and Age <= 64 THEN '55-64'
-        WHEN Age >= 65 THEN '65+'
-    END AS age_group,
-    patient_sex_value as sex,
-    program_city,
-    program_county_value as program_county,
-    Homeless_Value as is_homeless,
-    DispatchDate as date
-FROM AMHD_Crisis_Mobile_Outreach
-WHERE DispatchDate IS NOT NULL;
+  ReferralTo as referral_destination, 
+  cnt, 
+  Percent as pct
+FROM BH808_CMO_Referral_Destinations
+where pct >= 1;
 
 -- name: load_crisis_mobile_outreach_last_updated
 SELECT CAST(MAX(DispatchDate) AS date) AS last_updated

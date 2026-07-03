@@ -5,6 +5,7 @@ __pycache__/
 .ipynb_checkpoints/
 *.pyc
 jens_changes/
+screenshots/
 .env
 
 DOH_AMHD_NO_PII.db
