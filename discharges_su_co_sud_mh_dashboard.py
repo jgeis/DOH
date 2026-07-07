@@ -7,6 +7,7 @@ from dash import html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
 from dashboard_utils import (
+    apply_filter,
     apply_year_filter,
     load_sql_query,
     sort_opts,
@@ -257,14 +258,6 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
     It updates all the discharge visualizations and tables with corrected logic.
     """
 
-    def apply_filter(frame, col, val):
-        """Small helper for filter logic."""
-        if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
-            return frame
-        if isinstance(val, (list, tuple)):
-            return frame[frame[col].isin(val)]
-        return frame[frame[col] == val]
-
     # Start from the full dataset each time.
     dff = df_raw.copy()
 
@@ -296,14 +289,8 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
     # ---------- Bar chart: Discharges by Substance ----------
     if {"record_id", "diagnosis", "diagnosis_type"}.issubset(dff.columns):
         
-        # --- MODIFIED LOGIC BLOCK ---
-        if su:
-            # If a substance IS selected, show co-occurring substances by excluding the primary one.
-            su_df = dff[(dff["diagnosis_type"] == "su") & (~dff["diagnosis"].isin(su))]
-        else:
-            # If NO substance is selected, show only PRIMARY substances for the filtered group.
-            su_df = dff[(dff["diagnosis_type"] == "su") & (dff["is_primary"] == '1')]
-        # --- END OF MODIFICATION ---
+        # Show all substances in the filtered data
+        su_df = dff[dff["diagnosis_type"] == "su"]
 
         by_sub = (
             su_df.groupby("diagnosis")["record_id"]
