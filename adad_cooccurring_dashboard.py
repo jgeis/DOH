@@ -289,7 +289,7 @@ def reset_adad_cooccurring_filters(_n_clicks):
     Input("adad-cooccurring-start-date", "value"),
     Input("adad-cooccurring-end-date", "value"),
 )
-def update_adad_cooccurring(view, sel_years, sel_months, sel_modalities, sel_counties, start_date, end_date):
+def update_dashboard(view, sel_years, sel_months, sel_modalities, sel_counties, start_date, end_date):
     dff = df_raw.copy()
 
     if sel_years:

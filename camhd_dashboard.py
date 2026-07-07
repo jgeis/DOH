@@ -203,7 +203,7 @@ def reset_camhd_filters(_n_clicks):
     Input("camhd-start-date", "value"),
     Input("camhd-end-date", "value"),
 )
-def update_camhd(view, sel_years, start_date, end_date):
+def update_dashboard(view, sel_years, start_date, end_date):
     dff = df_raw.copy()
 
     if sel_years:

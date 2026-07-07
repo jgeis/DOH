@@ -230,7 +230,7 @@ def reset_dose_filters(_n_clicks):
     Input("dose-race-ethnicity-filter", "value"),
 )
 
-def update_dose_section(substance, county, city, year, hawaii_residency, age, sex, race_ethnicity):
+def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, race_ethnicity):
     """
     This function runs every time the user changes a DOSE filter.
     It updates all the DOSE visualizations and tables.

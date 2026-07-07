@@ -122,7 +122,7 @@ def layout():
 @callback(
     Output("cmo-referral-bar", "figure"),
 )
-def update_cmo_dashboard():
+def update_dashboard():
     """
     Simplified callback that generates the bar chart from pre-aggregated data,
     using the new column names from the query (referral_destination, cnt, pct).

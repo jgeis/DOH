@@ -236,7 +236,7 @@ def reset_cares_filters(_n_clicks):
     Input("cares-month-filter", "value"),
     Input("cares-crisis-line-filter", "value"),
 )
-def update_cares(view, sel_years, sel_months, sel_crisis):
+def update_dashboard(view, sel_years, sel_months, sel_crisis):
     dff = df_raw.copy()
 
     # Apply filters (None / empty → show all)

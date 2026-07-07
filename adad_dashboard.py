@@ -294,7 +294,7 @@ def reset_adad_filters(_n_clicks):
     Input("adad-start-date", "value"),
     Input("adad-end-date", "value"),
 )
-def update_adad(view, sel_years, sel_months, sel_modalities, sel_counties, start_date, end_date):
+def update_dashboard(view, sel_years, sel_months, sel_modalities, sel_counties, start_date, end_date):
     dff = df_raw.copy()
 
     start_day = pd.to_datetime(start_date, errors="coerce").date() if start_date else None
