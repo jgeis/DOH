@@ -232,7 +232,7 @@ WHERE Date IS NOT NULL;
 WITH diag AS (
  SELECT DISTINCT
    record_id,
-   TRIM(diagnosis) AS diagnosis,
+   REPLACE(TRIM(diagnosis), 'Dissacociative', 'Dissociative') AS diagnosis,
    diagnosis_type,
    is_primary
  FROM discharge_data_view_diagnosis
@@ -270,7 +270,7 @@ WHERE LOWER(COALESCE(NULLIF(TRIM(demo.age_group), ''), 'unknown')) <> 'unknown';
 WITH diag AS (
  SELECT DISTINCT
    record_id,
-   TRIM(diagnosis) AS diagnosis,
+   REPLACE(TRIM(diagnosis), 'Dissacociative', 'Dissociative') AS diagnosis,
    diagnosis_type,
    is_primary
  FROM discharge_data_view_diagnosis
