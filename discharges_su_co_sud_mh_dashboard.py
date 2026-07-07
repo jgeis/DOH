@@ -268,24 +268,17 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
     # Start from the full dataset each time.
     dff = df_raw.copy()
 
-    # --- CORRECTED FILTERING LOGIC ---
     # If a substance filter is applied, it defines the primary cohort for the analysis.
     if su:
-        # Step 1: Identify the CORRECT patient cohort.
-        # Find record_ids where the diagnosis is the selected substance AND it is the primary diagnosis.
-        # The check is now for the STRING '1' to match the data loading process.
         primary_su_ids_cohort = set(dff.loc[
             (dff["diagnosis_type"] == "su") & 
             (dff["diagnosis"].isin(su)) & 
-            (dff["is_primary"] == '1'), # This is the critical fix
+            (dff["is_primary"] == '1'),
             "record_id"
         ])
-        
-        # Step 2: Filter the main dataframe to include ONLY records from that correct cohort.
-        # This ensures we are only analyzing patients whose primary diagnosis matches the filter.
         dff = dff[dff["record_id"].isin(primary_su_ids_cohort)]
     
-    # The rest of the filters are applied sequentially to the now-correctly-scoped dataframe.
+    # The rest of the filters are applied sequentially.
     if mh:
         mh_ids_filtered = set(dff.loc[(dff["diagnosis_type"] == "mh") & (dff["diagnosis"].isin(mh)), "record_id"])
         dff = dff[dff["record_id"].isin(mh_ids_filtered)]
@@ -296,28 +289,21 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
     if "sex" in dff.columns:                    dff = apply_filter(dff, "sex", sex)
     if "race_ethnicity" in dff.columns:         dff = apply_filter(dff, "race_ethnicity", race_ethnicity)
     if "hawaii_residency" in dff.columns:       dff = apply_filter(dff, "hawaii_residency", hawaii_residency)
-
-    # The rest of the function remains the same as your original code.
-    # It will now operate on the correctly filtered dataframe 'dff'.
-
-    primary_su_ids = set(dff.loc[(dff["diagnosis_type"] == "su") & (dff["is_primary"] == '1'), "record_id"])
-    all_mh_ids = set(dff.loc[dff["diagnosis_type"] == "mh", "record_id"])
-
-    cooccuring_ids = all_mh_ids.intersection(primary_su_ids)
-
     include_statewide_county_outputs = county_output_should_include_statewide(county)
 
     filter_total = dff["record_id"].nunique()
 
-
     # ---------- Bar chart: Discharges by Substance ----------
     if {"record_id", "diagnosis", "diagnosis_type"}.issubset(dff.columns):
         
-        # To show co-occurring diagnoses, we filter out the primary substance that defined the cohort.
+        # --- MODIFIED LOGIC BLOCK ---
         if su:
+            # If a substance IS selected, show co-occurring substances by excluding the primary one.
             su_df = dff[(dff["diagnosis_type"] == "su") & (~dff["diagnosis"].isin(su))]
         else:
-            su_df = dff[dff["diagnosis_type"] == "su"]
+            # If NO substance is selected, show only PRIMARY substances for the filtered group.
+            su_df = dff[(dff["diagnosis_type"] == "su") & (dff["is_primary"] == '1')]
+        # --- END OF MODIFICATION ---
 
         by_sub = (
             su_df.groupby("diagnosis")["record_id"]
@@ -349,6 +335,10 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
         sub_bar = px.bar()
 
 
+    # (The rest of the function for the other charts and tables remains the same)
+    # ...
+    # [The rest of your function code would go here, unchanged]
+    # ...
     # ---------- Bar chart: Discharges by Mental Health Diagnosis ----------
     if {"record_id", "diagnosis", "diagnosis_type"}.issubset(dff.columns):
         
@@ -395,7 +385,6 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
 
         by_ysub["display_count"] = by_ysub["count"].apply(format_count_display)
 
-        # Order substances in a consistent way for the legend
         substances = sort_opts(dff["diagnosis"]) if "diagnosis" in dff.columns else []
         if substances:
             by_ysub["diagnosis"] = pd.Categorical(by_ysub["diagnosis"], categories=substances, ordered=True)
@@ -435,13 +424,10 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
 
     county_categories = sort_opts(county_opts) if county_opts else None
 
-    # ---------- Helper for the summary tables ----------
-    # Use shared build_summary_count_table for summary tables
     def summary_table(group_col, categories=None):
-        # Check if dff is empty to avoid errors in the utility function
         if dff.empty:
             return build_summary_count_table(
-                pd.DataFrame(columns=df_raw.columns), # Pass a dataframe with correct columns
+                pd.DataFrame(columns=df_raw.columns),
                 group_col=group_col,
                 id_col="record_id",
                 categories=categories,
@@ -455,7 +441,6 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
             include_statewide_county=(group_col == "county" and include_statewide_county_outputs),
         )
 
-    # Return all the updated visuals and tables to Dash
     return (
         format_count_display(filter_total),
         sub_bar,
