@@ -241,19 +241,32 @@ def load_sql_query(name, path="queries.sql"):
 
 
 # In dashboard_utils.py
-def load_and_clean_dataframe(query_name, date_col='service_date', text_cols=['county', 'modality']):
+def load_and_clean_dataframe(query_name, date_col='service_date', text_cols_to_clean=None, date_col_rename=None):
+    """
+    Loads data from a named SQL query, cleans it, and returns a pandas DataFrame.
+    """
     sql = load_sql_query(query_name)
     df = execute_query(sql)
+    
     if df.empty:
-        raise RuntimeError(f"{query_name} returned 0 rows.")
+        raise RuntimeError(f"Query '{query_name}' returned 0 rows.")
+
+    if date_col_rename and date_col_rename in df.columns:
+        df = df.rename(columns={date_col_rename: date_col})
+
+    if date_col in df.columns:
+        df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
+        df = df[df[date_col].notna()].copy()
+    else:
+        print(f"Warning: Specified date column '{date_col}' not found.")
+
+    if text_cols_to_clean:
+        for col in text_cols_to_clean:
+            if col in df.columns:
+                df[col] = df[col].fillna("Unknown").astype(str).str.strip()
     
-    df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
-    df = df[df[date_col].notna()].copy()
-    
-    for col in text_cols:
-        if col in df.columns:
-            df[col] = df[col].fillna("Unknown").astype(str)
-    
+    df["month"] = df["month_num"].map(MONTH_NAMES)
+
     return df
 
 
@@ -565,6 +578,17 @@ def statewide_first(values) -> list[str]:
         return unique
     non_statewide = [v for v in unique if v.lower() != STATEWIDE_COUNTY.lower()]
     return [STATEWIDE_COUNTY] + non_statewide
+
+
+def apply_filter(frame, col, val):
+    """
+    Applies a filter to a dataframe column. Handles single or multi-select values.
+    """
+    if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
+        return frame
+    if isinstance(val, (list, tuple)):
+        return frame[frame[col].isin(val)]
+    return frame[frame[col] == val]
 
 
 def apply_county_filter(frame: pd.DataFrame, county_value, county_col: str = "county") -> pd.DataFrame:
