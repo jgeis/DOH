@@ -10,6 +10,7 @@ from time import perf_counter
 from config import USE_MSSQL
 from theme import register_template
 from dashboard_utils import (
+    MONTH_NAMES,
     load_sql_query,
     make_kpi_card,
     make_left_sidebar,
@@ -27,13 +28,6 @@ from dashboard_utils import (
 )
 
 register_template()
-
-MONTH_NAMES = {
-    1: "January", 2: "February", 3: "March", 4: "April",
-    5: "May", 6: "June", 7: "July", 8: "August",
-    9: "September", 10: "October", 11: "November", 12: "December",
-}
-
 
 def _sql_quote(text):
     return "'" + str(text).replace("'", "''") + "'"

@@ -7,6 +7,7 @@ from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
 from dashboard_utils import (
+    MONTH_NAMES,
     load_sql_query,
     make_kpi_card,
     make_left_sidebar,
@@ -24,22 +25,6 @@ from dashboard_utils import (
 )
 
 register_template()
-
-MONTH_NAMES = {
-    1: "January",
-    2: "February",
-    3: "March",
-    4: "April",
-    5: "May",
-    6: "June",
-    7: "July",
-    8: "August",
-    9: "September",
-    10: "October",
-    11: "November",
-    12: "December",
-}
-
 
 def _load_amhd_series(query_name):
     df = execute_query(load_sql_query(query_name))

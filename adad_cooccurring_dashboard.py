@@ -6,7 +6,9 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
 from theme import register_template
+from section_texts import SECTION_TEXTS
 from dashboard_utils import (
+    MONTH_NAMES,
     build_summary_count_table,
     load_sql_query,
     make_kpi_card,
@@ -23,17 +25,6 @@ from dashboard_utils import (
     apply_standard_single_series_bar_trace,
     apply_standard_line_layout,
 )
-
-
-# Import centralized section text
-from section_texts import SECTION_TEXTS
-
-MONTH_NAMES = {
-    1: "January", 2: "February", 3: "March", 4: "April",
-    5: "May", 6: "June", 7: "July", 8: "August",
-    9: "September", 10: "October", 11: "November", 12: "December",
-}
-
 
 def load_adad_cooccurring_dataframe():
     sql = load_sql_query("load_adad_cooccurring")

@@ -1,3 +1,5 @@
+from db_utils import execute_query
+
 # Mapping from code/column names to canonical filter display labels
 FILTER_LABELS = {
 "Age Group": "Age Group",
@@ -35,6 +37,12 @@ FILTER_LABELS = {
     "Substance": "Substance Type",
     "Substance Type": "Substance Type",
     
+}
+
+MONTH_NAMES = {
+    1: "January", 2: "February", 3: "March", 4: "April",
+    5: "May", 6: "June", 7: "July", 8: "August",
+    9: "September", 10: "October", 11: "November", 12: "December",
 }
 
 def get_standard_filter_label(label: str) -> str:
@@ -230,6 +238,23 @@ def load_sql_query(name, path="queries.sql"):
     if name not in m:
         raise KeyError(f"Named query '{name}' not found in {path}.")
     return m[name]
+
+
+# In dashboard_utils.py
+def load_and_clean_dataframe(query_name, date_col='service_date', text_cols=['county', 'modality']):
+    sql = load_sql_query(query_name)
+    df = execute_query(sql)
+    if df.empty:
+        raise RuntimeError(f"{query_name} returned 0 rows.")
+    
+    df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
+    df = df[df[date_col].notna()].copy()
+    
+    for col in text_cols:
+        if col in df.columns:
+            df[col] = df[col].fillna("Unknown").astype(str)
+    
+    return df
 
 
 def sort_opts(series):
