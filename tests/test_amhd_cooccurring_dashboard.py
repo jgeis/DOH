@@ -1,7 +1,7 @@
-import unittest
-from unittest.mock import patch, MagicMock
+import pytest
 import pandas as pd
 import plotly.graph_objects as go
+import amhd_cooccurring_dashboard
 from datetime import date
 
 # Helper function to parse the dbc.Table component for easier testing
@@ -22,129 +22,146 @@ def parse_table_from_layout(table_layout):
     return data
 
 
-class TestAMHDCooccurringDashboard(unittest.TestCase):
+@pytest.mark.integration
+class TestAMHDCooccurringDashboard:
+    """
+    Integration tests for amhd_cooccurring_dashboard.py.
+    These tests use REAL DATA loaded from the database to verify functionality.
+    """
 
-    @patch('amhd_cooccurring_dashboard.load_sql_query')
-    @patch('amhd_cooccurring_dashboard.execute_query')
-    def setUp(self, mock_execute_query, mock_load_sql_query):
-        """Set up mock dataframes to simulate loading pre-aggregated data."""
+    def test_page_and_module_structure(self):
+        """Test that the page is registered and the module has the necessary components."""
+        from dash import page_registry
+        import multi_dashboard  # Ensures pages are registered
+        
+        paths = [page['path'] for page in page_registry.values()]
+        assert '/amhd-cooccurring' in paths, "/amhd-cooccurring page should be registered"
+        
+        from pages import amhd_cooccurring
+        assert hasattr(amhd_cooccurring, 'layout'), "Page module should have a layout"
+        
+        assert hasattr(amhd_cooccurring_dashboard, 'layout'), "Dashboard module should have a layout"
+        assert hasattr(amhd_cooccurring_dashboard, 'update_dashboard'), "Dashboard module should have an update_dashboard callback"
 
-        # --- Fixture Data ---
-        self.mock_unfiltered_total = pd.DataFrame({'consumer_count': [15000]})
-        self.mock_year_total = pd.DataFrame({'total_consumers': [2168]})
-        self.mock_year_view_all_cats = pd.DataFrame({'service_date': [date(2024, 1, 1)], 'service_category': ['All'], 'consumer_count': [2168]})
-        self.mock_year_categories = pd.DataFrame({
-            'service_date': [date(2024, 1, 1)] * 3,
-            'service_category': ['Contracted Providers', 'Community Mental Health Centers', 'Hawaii State Hospital'],
-            'consumer_count': [1119, 1071, 685]
-        })
-        month_dates_all = pd.to_datetime([f'2024-{m}-01' for m in range(1, 13)])
-        month_counts_all = [1624] + [1000]*10 + [1656]
-        self.mock_month_all = pd.DataFrame({'service_date': month_dates_all, 'service_category': ['All'] * 12, 'consumer_count': month_counts_all})
-        self.mock_year_total_filtered = pd.DataFrame({'total_consumers': [1119]})
-        self.mock_year_view_filtered = pd.DataFrame({'service_date': [date(2024, 1, 1)], 'service_category': ['Contracted Providers'], 'consumer_count': [1119]})
-        month_dates_cat = pd.to_datetime([f'2024-{m}-01' for m in range(1, 13)])
-        month_counts_cat = [633] + [500]*10 + [630]
-        self.mock_month_categories = pd.DataFrame({'service_date': month_dates_cat, 'service_category': ['Contracted Providers'] * 12, 'consumer_count': month_counts_cat})
-        day_dates = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
-        day_counts = [100] * 366
-        day_counts[0] = 353
-        day_counts[-1] = 341
-        self.mock_day_categories = pd.DataFrame({'service_date': day_dates, 'service_category': ['Contracted Providers'] * 366, 'consumer_count': day_counts})
-        self.mock_kpi_total_df = pd.DataFrame({'consumer_count': [20000]})
-        self.mock_kpi_category_df = self.mock_year_categories.copy()
+    def test_data_loading_and_quality(self):
+        """Test that the initial dataframes are loaded correctly and are not empty."""
+        from amhd_cooccurring_dashboard import df_year_all, df_month_all, df_day_all, df_year_categories, df_month_categories, df_day_categories
+        
+        assert not df_year_all.empty, "df_year_all should not be empty"
+        assert not df_month_all.empty, "df_month_all should not be empty"
+        assert not df_day_all.empty, "df_day_all should not be empty"
+        assert not df_year_categories.empty, "df_year_categories should not be empty"
+        assert not df_month_categories.empty, "df_month_categories should not be empty"
+        assert not df_day_categories.empty, "df_day_categories should not be empty"
 
-        # --- Configure Mocks ---
-        def execute_side_effect(sql):
-            if "year_all" in sql: return self.mock_year_all.copy()
-            if "month_all" in sql: return self.mock_month_all.copy()
-            if "day_all" in sql: return pd.DataFrame()
-            if "year_categories" in sql: return self.mock_year_categories.copy()
-            if "month_categories" in sql: return self.mock_month_categories.copy()
-            if "day_categories" in sql: return self.mock_day_categories.copy()
-            if "kpi_total" in sql: return self.mock_kpi_total_df.copy()
-            return pd.DataFrame()
-
-        mock_execute_query.side_effect = execute_side_effect
-        mock_load_sql_query.side_effect = lambda name: name
-
-        # --- Import the dashboard module AFTER patching ---
-        # Import the simple reset function first
-        from amhd_cooccurring_dashboard import reset_amhd_cooccurring_filters
-        self.reset_amhd_cooccurring_filters = reset_amhd_cooccurring_filters
-
-        # Then, patch the KPI total and import the main update function
-        with patch('amhd_cooccurring_dashboard.amhd_cooccurring_kpi_total', 20000):
-            from amhd_cooccurring_dashboard import update_dashboard
-            self.update_dashboard = update_dashboard
+        # Check for essential columns in one of the dataframes
+        required_cols = ['service_date', 'service_category', 'consumer_count', 'year']
+        for col in required_cols:
+            assert col in df_year_all.columns, f"Column '{col}' should exist in the dataframe"
 
     def test_year_view_2024_no_category(self):
-        kpi, bar_fig, table = self.update_dashboard(view='year', sel_years=[2024], sel_service_categories=None)
-        self.assertEqual(kpi, "2,168")
-        self.assertEqual(len(bar_fig.data[0].y), 1)
+        """- When year view is displayed, and the year 2024 is selected..."""
+        kpi, bar_fig, table = amhd_cooccurring_dashboard.update_dashboard(
+            view='year',
+            sel_years=[2024],
+            sel_service_categories=None
+        )
+        assert kpi == "2,168"
+        assert len(bar_fig.data[0].y) == 1
+        assert bar_fig.data[0].y[0] == '2024'
+        assert bar_fig.data[0].x[0] == 2168
         table_data = parse_table_from_layout(table)
-        self.assertEqual(len(table_data), 3)
-        self.assertEqual(table_data.get('Contracted Providers'), '1,119')
+        assert len(table_data) == 3
+        assert table_data.get('Contracted Providers') == '1,119'
+        assert table_data.get('Community Mental Health Centers') == '1,071'
+        assert table_data.get('Hawaii State Hospital') == '685'
 
     def test_month_view_2024_no_category(self):
-        kpi, bar_fig, table = self.update_dashboard(view='month', sel_years=[2024], sel_service_categories=None)
-        self.assertEqual(len(bar_fig.data[0].y), 12)
+        """- When displayed in "Month View" with the year 2024 selected..."""
+        kpi, bar_fig, table = amhd_cooccurring_dashboard.update_dashboard(
+            view='month',
+            sel_years=[2024],
+            sel_service_categories=None
+        )
+        assert len(bar_fig.data[0].y) == 12
         chart_df = pd.DataFrame({'period': bar_fig.data[0].y, 'value': bar_fig.data[0].x})
-        self.assertEqual(chart_df[chart_df['period'] == '2024, January']['value'].iloc[0], 1624)
+        assert chart_df[chart_df['period'] == '2024, January']['value'].iloc[0] == 1624
+        assert chart_df[chart_df['period'] == '2024, December']['value'].iloc[0] == 1656
 
     def test_year_view_2024_with_category(self):
-        kpi, bar_fig, table = self.update_dashboard(view='year', sel_years=[2024], sel_service_categories=['Contracted Providers'])
-        self.assertEqual(kpi, "1,119")
-        self.assertEqual(len(bar_fig.data[0].y), 1)
+        """- When displayed in "Year View" with the year 2024 and "Contracted Providers"..."""
+        kpi, bar_fig, table = amhd_cooccurring_dashboard.update_dashboard(
+            view='year',
+            sel_years=[2024],
+            sel_service_categories=['Contracted Providers']
+        )
+        assert kpi == "1,119"
+        assert len(bar_fig.data[0].y) == 1
+        assert bar_fig.data[0].x[0] == 1119
         table_data = parse_table_from_layout(table)
-        self.assertEqual(table_data.get('Contracted Providers'), '1,119')
+        assert len(table_data) == 3
+        assert table_data.get('Contracted Providers') == '1,119'
 
     def test_month_view_2024_with_category(self):
-        kpi, bar_fig, table = self.update_dashboard(view='month', sel_years=[2024], sel_service_categories=['Contracted Providers'])
-        self.assertEqual(len(bar_fig.data[0].y), 12)
+        """- When displayed in "Month View" with year 2024 and "Contracted Providers"..."""
+        kpi, bar_fig, table = amhd_cooccurring_dashboard.update_dashboard(
+            view='month',
+            sel_years=[2024],
+            sel_service_categories=['Contracted Providers']
+        )
+        assert len(bar_fig.data[0].y) == 12
         chart_df = pd.DataFrame({'period': bar_fig.data[0].y, 'value': bar_fig.data[0].x})
-        self.assertEqual(chart_df[chart_df['period'] == '2024, January']['value'].iloc[0], 633)
+        assert chart_df[chart_df['period'] == '2024, January']['value'].iloc[0] == 633
+        assert chart_df[chart_df['period'] == '2024, December']['value'].iloc[0] == 630
 
     def test_day_view_2024_with_category(self):
-        kpi, bar_fig, table = self.update_dashboard(view='day', sel_years=[2024], sel_service_categories=['Contracted Providers'])
-        self.assertEqual(len(bar_fig.data[0].y), 366)
+        """- When displayed in "Day View" with year 2024 and "Contracted Providers"..."""
+        kpi, bar_fig, table = amhd_cooccurring_dashboard.update_dashboard(
+            view='day',
+            sel_years=[2024],
+            sel_service_categories=['Contracted Providers']
+        )
+        assert len(bar_fig.data[0].y) == 366
         chart_df = pd.DataFrame({'period': bar_fig.data[0].y, 'value': bar_fig.data[0].x})
-        self.assertEqual(chart_df[chart_df['period'] == '2024-01-01']['value'].iloc[0], 353)
+        assert chart_df[chart_df['period'] == '2024-01-01']['value'].iloc[0] == 353
+        assert chart_df[chart_df['period'] == '2024-12-31']['value'].iloc[0] == 341
 
     def test_kpi_and_table_consistency_across_views(self):
-        kpi_year, _, table_year_layout = self.update_dashboard(view='year', sel_years=[2024], sel_service_categories=['Contracted Providers'])
+        """- The KPI and table values should not change when we display by month or day view."""
+        kpi_year, _, table_year_layout = amhd_cooccurring_dashboard.update_dashboard(view='year', sel_years=[2024], sel_service_categories=['Contracted Providers'])
         table_year_data = parse_table_from_layout(table_year_layout)
-        kpi_month, _, table_month_layout = self.update_dashboard(view='month', sel_years=[2024], sel_service_categories=['Contracted Providers'])
+        
+        kpi_month, _, table_month_layout = amhd_cooccurring_dashboard.update_dashboard(view='month', sel_years=[2024], sel_service_categories=['Contracted Providers'])
         table_month_data = parse_table_from_layout(table_month_layout)
-        self.assertEqual(kpi_year, kpi_month)
-        self.assertDictEqual(table_year_data, table_month_data)
+        
+        kpi_day, _, table_day_layout = amhd_cooccurring_dashboard.update_dashboard(view='day', sel_years=[2024], sel_service_categories=['Contracted Providers'])
+        table_day_data = parse_table_from_layout(table_day_layout)
 
-    def test_reset_filters_returns_correct_values(self):
-        """Test that the reset button callback returns None for all filters."""
-        result = self.reset_amhd_cooccurring_filters(1)
-        self.assertEqual(result, (None, None), "Reset callback should return (None, None)")
+        assert kpi_year == kpi_month, "KPI should be consistent between Year and Month view"
+        assert kpi_year == kpi_day, "KPI should be consistent between Year and Day view"
+        assert table_year_data == table_month_data, "Table data should be consistent between Year and Month view"
+        assert table_year_data == table_day_data, "Table data should be consistent between Year and Day view"
 
     def test_reset_filters_workflow(self):
-        """Test that applying filters and then resetting returns to a larger, unfiltered state."""
-        # 1. Arrange: Apply a filter and confirm the state changes.
-        kpi_filtered, _, _ = self.update_dashboard(view='year', sel_years=[2024], sel_service_categories=None)
-        self.assertEqual(kpi_filtered, "2,168")
+        """Test that applying filters and then resetting returns to the initial, unfiltered state."""
+        # 1. Get the initial unfiltered KPI value
+        kpi_initial, _, _ = amhd_cooccurring_dashboard.update_dashboard(view='year', sel_years=None, sel_service_categories=None)
+        initial_value = int(kpi_initial.replace(',', ''))
+
+        # 2. Apply a filter and confirm the state changes
+        kpi_filtered, _, _ = amhd_cooccurring_dashboard.update_dashboard(view='year', sel_years=[2024], sel_service_categories=None)
+        assert kpi_filtered == "2,168"
         filtered_value = int(kpi_filtered.replace(',', ''))
+        assert initial_value > filtered_value
 
-        # 2. Act: Simulate the reset button click.
-        year_reset, category_reset = self.reset_amhd_cooccurring_filters(1)
+        # 3. Get the reset values from the reset callback
+        year_reset, category_reset = amhd_cooccurring_dashboard.reset_amhd_cooccurring_filters(1)
+        assert year_reset is None
+        assert category_reset is None
+
+        # 4. Apply the reset values to the main callback
+        kpi_after_reset, _, _ = amhd_cooccurring_dashboard.update_dashboard(view='year', sel_years=year_reset, sel_service_categories=category_reset)
         
-        # 3. Assert: Check that the reset values are correct.
-        self.assertIsNone(year_reset)
-        self.assertIsNone(category_reset)
+        # 5. Confirm the state has returned to the initial, unfiltered state
+        assert kpi_after_reset == kpi_initial, "KPI should return to initial state after reset"
 
-        # 4. Act: Apply the reset values to the main callback to get the unfiltered state.
-        kpi_after_reset, _, _ = self.update_dashboard(view='year', sel_years=year_reset, sel_service_categories=category_reset)
-        
-        # 5. Assert: Confirm the state has returned to a larger, unfiltered value.
-        unfiltered_value = int(kpi_after_reset.replace(',', ''))
-        self.assertGreater(unfiltered_value, filtered_value, "Unfiltered KPI should be greater than the filtered KPI")
-
-
-if __name__ == '__main__':
-    unittest.main(argv=['first-arg-is-ignored'], exit=False)
