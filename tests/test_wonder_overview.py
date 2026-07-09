@@ -380,10 +380,14 @@ class TestWonderOverviewRegressionScenarios:
     
     def test_real_data_hawaii_county_2019(self):
         """Regression: Verify Hawaii county 2019 data from real CSV (16 deaths)."""
+        # Use the correct county name with the ʻokina
         kpi, line_fig, bar_fig = wonder_overview_dashboard.update_dashboard(
-            county=['Hawaii'],
+            county=['Hawaiʻi'],
             year=[2019]
         )
+        
+        # Check that the bar figure is not empty before trying to access its data
+        assert bar_fig.data, "Bar chart should have data for Hawaiʻi county"
         
         bar_data = bar_fig.data[0]
         assert bar_data.x[0] == 16.0, f"Hawaii county 2019 should have 16 deaths, got {bar_data.x[0]}"
