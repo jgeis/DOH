@@ -1,13 +1,10 @@
-# amhd_cooccurring_dashboard.py — AMHD Co-Occurring Clients Served page
+# amhd_cooccurring_dashboard.py — AMHD Co-Occurring Consumers Served page
 
 from db_utils import execute_query
 import pandas as pd
 import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
-from functools import lru_cache
-from time import perf_counter
-from config import USE_MSSQL
 from theme import register_template
 from dashboard_utils import (
     MONTH_NAMES,
@@ -29,248 +26,136 @@ from dashboard_utils import (
 
 register_template()
 
-def _sql_quote(text):
-    return "'" + str(text).replace("'", "''") + "'"
-
-
-def _year_date_range_clauses(years_key):
-    """Build SARGable service_date range predicates for selected years."""
-    clauses = []
-    for year_value in years_key:
-        start_date = f"{int(year_value)}-01-01"
-        next_year = f"{int(year_value) + 1}-01-01"
-        clauses.append(f"(service_date >= {_sql_quote(start_date)} AND service_date < {_sql_quote(next_year)})")
-    return clauses
-
-
-@lru_cache(maxsize=512)
-def _amhd_cooccurring_query_context_cached(
-    years_key,
-    service_categories_key,
-    start_date,
-    end_date,
-):
-    """Build the named-query substitution context for the current AMHD filters."""
-    year_expr = "CAST(service_year AS INTEGER)"
-    month_period_expr = "DATEFROMPARTS(YEAR(service_date), MONTH(service_date), 1)" if USE_MSSQL else "DATE(service_date, 'start of month')"
-    day_period_expr = "CAST(service_date AS date)" if USE_MSSQL else "DATE(service_date)"
-    service_category_expr = "LTRIM(RTRIM(service_category))" if USE_MSSQL else "TRIM(service_category)"
-    where_parts = []
-
-    if years_key:
-        year_ranges = _year_date_range_clauses(years_key)
-        where_parts.append("(" + " OR ".join(year_ranges) + ")")
-
-    if service_categories_key:
-        cats_sql = ",".join(_sql_quote(v) for v in service_categories_key)
-        where_parts.append(f"{service_category_expr} IN ({cats_sql})")
-
-    if start_date:
-        where_parts.append(f"service_date >= {_sql_quote(start_date)}")
-
-    if end_date:
-        where_parts.append(f"service_date <= {_sql_quote(end_date)}")
-
-    where_filters = ("\nAND " + "\nAND ".join(where_parts)) if where_parts else ""
-    return {
-        "year_expr": year_expr,
-        "month_period_expr": month_period_expr,
-        "day_period_expr": day_period_expr,
-        "service_category_expr": service_category_expr,
-        "where_filters": where_filters,
-    }
-
-
-@lru_cache(maxsize=256)
-def _run_named_amhd_cooccurring_query_cached(query_name, context_items):
-    sql = load_sql_query(query_name)
-    query_context = dict(context_items)
-    return execute_query(sql.format(**query_context))
-
-
-def _run_named_amhd_cooccurring_query(query_name, query_context):
-    started = perf_counter()
-    result = _run_named_amhd_cooccurring_query_cached(query_name, tuple(sorted(query_context.items()))).copy()
-    elapsed_ms = (perf_counter() - started) * 1000
-    print(f"[amhd_cooccurring_dashboard] {query_name} took {elapsed_ms:.1f} ms")
-    return result
-
-
-def _count_distinct_consumers_cached(
-    years_key,
-    service_categories_key,
-    start_date,
-    end_date,
-):
-    query_context = _amhd_cooccurring_query_context_cached(
-        years_key,
-        service_categories_key,
-        start_date,
-        end_date,
-    )
-    result_df = _run_named_amhd_cooccurring_query("load_amhd_cooccurring_consumers_total", query_context)
-    if result_df.empty or "total_consumers" not in result_df.columns:
-        return 0
-    return int(result_df.iloc[0]["total_consumers"])
-
-
-def get_true_consumer_count(sel_years, sel_service_categories, start_date, end_date):
-    years_key = tuple(sorted(int(y) for y in (sel_years or [])))
-    service_categories_key = tuple(sorted(str(v) for v in (sel_service_categories or [])))
-    return _count_distinct_consumers_cached(
-        years_key,
-        service_categories_key,
-        str(start_date) if start_date else "",
-        str(end_date) if end_date else "",
-    )
-
-
-def load_amhd_cooccurring_dataframe():
-    sql = load_sql_query("load_amhd_cooccurring_day")
-    df = execute_query(sql)
-    print(f"load_amhd_cooccurring_day returned {len(df):,} rows")
+def _load_amhd_cooccurring_series(query_name):
+    """Loads and cleans a pre-aggregated data series from the database."""
+    df = execute_query(load_sql_query(query_name))
+    print(f"{query_name} returned {len(df):,} rows")
 
     if df.empty:
-        raise RuntimeError("AMHD co-occurring query returned 0 rows.")
+        return pd.DataFrame(columns=["service_date", "service_category", "consumer_count", "year", "month_num", "month"])
 
-    # Normalize source column names across SQL backends/casing.
     df.columns = [str(c).strip().lower() for c in df.columns]
 
-    required_cols = {
-        "service_category",
-        "service_date",
-    }
+    # --- START OF FIX ---
+    # Standardize the count column name
+    col_lookup = {c.lower(): c for c in df.columns}
+    count_col = col_lookup.get("consumer_count") or col_lookup.get("client_count")
+    if count_col and count_col != "consumer_count":
+        df = df.rename(columns={count_col: "consumer_count"})
+    # --- END OF FIX ---
+
+    if "date" in df.columns and "service_date" not in df.columns:
+        df = df.rename(columns={"date": "service_date"})
+
+    required_cols = {"service_date", "service_category", "consumer_count"}
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
-        raise RuntimeError(f"AMHD co-occurring query missing required columns: {missing}")
+        raise RuntimeError(f"{query_name} missing required columns: {missing}")
 
     df["service_date"] = pd.to_datetime(df["service_date"], errors="coerce")
     df = df[df["service_date"].notna()].copy()
 
-    if "service_year" not in df.columns:
-        df["service_year"] = df["service_date"].dt.year
-    if "service_month" not in df.columns:
-        df["service_month"] = df["service_date"].dt.month
-    if "service_day" not in df.columns:
-        df["service_day"] = df["service_date"].dt.day
+    df["consumer_count"] = pd.to_numeric(df["consumer_count"], errors="coerce").fillna(0)
+    df["service_category"] = df["service_category"].fillna("Unknown").astype(str).str.strip()
 
-    df["year"] = pd.to_numeric(df["service_year"], errors="coerce").astype("Int64")
-    df["month_num"] = pd.to_numeric(df["service_month"], errors="coerce").astype("Int64")
+    df["year"] = df["service_date"].dt.year.astype("Int64")
+    df["month_num"] = df["service_date"].dt.month.astype("Int64")
     df["month"] = df["month_num"].map(MONTH_NAMES)
 
-    for col in ["service_category", "co_category"]:
-        if col in df.columns:
-            df[col] = df[col].fillna("Unknown").astype(str).str.strip()
     return df
 
 
-df_day = load_amhd_cooccurring_dataframe()
+def _load_amhd_cooccurring_kpi_data():
+    """Loads the main KPI value and top-level category breakdown."""
+    fallback_total = int(pd.to_numeric(df_day_all["consumer_count"], errors="coerce").fillna(0).sum())
 
-# Use day-level data as the superset for option lists.
-df_raw = df_day
-last_updated_value = compute_last_updated_value(df_raw)
+    try:
+        df = execute_query(load_sql_query("load_amhd_cooccurring_kpi_total"))
+        print(f"load_amhd_cooccurring_kpi_total returned {len(df):,} rows")
+        if df.empty:
+            return fallback_total, pd.DataFrame(columns=["service_category", "consumer_count"])
 
-year_opts = sort_opts(df_raw["year"])
-service_category_opts = sort_opts(df_raw["service_category"])
+        df.columns = [str(c).strip().lower() for c in df.columns]
 
-min_date = df_day["service_date"].min().date()
-max_date = df_day["service_date"].max().date()
+        # --- START OF FIX ---
+        col_lookup = {c.lower(): c for c in df.columns}
+        count_col = col_lookup.get("consumer_count") or col_lookup.get("client_count")
+        if count_col and count_col != "consumer_count":
+            df = df.rename(columns={count_col: "consumer_count"})
+        # --- END OF FIX ---
+
+        if "consumer_count" in df.columns:
+            df["consumer_count"] = pd.to_numeric(df["consumer_count"], errors="coerce").fillna(0)
+
+        if {"service_category", "consumer_count"}.issubset(df.columns):
+            service_category_raw = df["service_category"]
+            all_rows = df[
+                service_category_raw.isna()
+                | (service_category_raw.astype(str).str.strip() == "")
+                | (service_category_raw.astype(str).str.strip().str.lower() == "all")
+            ]
+            total = int(all_rows.iloc[0]["consumer_count"] if not all_rows.empty else df["consumer_count"].sum())
+
+            df["service_category"] = service_category_raw.fillna("Unknown").astype(str).str.strip()
+
+            category_rows = (
+                df[~df["service_category"].str.lower().isin(["all", "unknown"])][['service_category', 'consumer_count']]
+                .copy()
+                .sort_values("consumer_count", ascending=False)
+            )
+            return total, category_rows
+
+        value = pd.to_numeric(df.iloc[0, 0], errors="coerce")
+        if pd.isna(value):
+            return fallback_total, pd.DataFrame(columns=["service_category", "consumer_count"])
+        return int(value), pd.DataFrame(columns=["service_category", "consumer_count"])
+
+    except Exception as exc:
+        print(f"load_amhd_cooccurring_kpi_total failed; falling back to day-all aggregate sum. Details: {exc}")
+        return fallback_total, pd.DataFrame(columns=["service_category", "consumer_count"])
 
 
-reset_button = dbc.Button(
-    "Reset All Filters",
-    id="amhd-cooccurring-reset-btn",
-    color="secondary",
-    outline=True,
-    className="w-100 mb-3",
-    n_clicks=0,
-)
+# Load all pre-aggregated dataframes at startup
+df_year_all = _load_amhd_cooccurring_series("load_amhd_cooccurring_year_all")
+df_month_all = _load_amhd_cooccurring_series("load_amhd_cooccurring_month_all")
+df_day_all = _load_amhd_cooccurring_series("load_amhd_cooccurring_day_all")
+df_year_categories = _load_amhd_cooccurring_series("load_amhd_cooccurring_year_categories")
+df_month_categories = _load_amhd_cooccurring_series("load_amhd_cooccurring_month_categories")
+df_day_categories = _load_amhd_cooccurring_series("load_amhd_cooccurring_day_categories")
 
-kpi_card = make_kpi_card(
-    label="Number of AMHD Co-Occurring Consumers",
-    count_id="amhd-cooccurring-kpi-total",
-)
+amhd_cooccurring_kpi_total, amhd_cooccurring_kpi_category_rows = _load_amhd_cooccurring_kpi_data()
 
-view_toggle_card = dbc.Card(
-    dbc.CardBody(
-        [
-            html.H5("View By", className="mb-2 text-center"),
-            dbc.RadioItems(
-                id="amhd-cooccurring-view-toggle",
-                options=[
-                    {"label": "Year View", "value": "year"},
-                    {"label": "Month View", "value": "month"},
-                    {"label": "Day View", "value": "day"},
-                ],
-                value="year",
-                class_name="spaced-radio-buttons d-flex justify-content-center gap-3",
-                input_class_name="btn-check",
-                label_class_name="btn btn-outline-success",
-                label_checked_class_name="btn-success text-white active",
-            ),
-        ]
+last_updated_value = compute_last_updated_value(df_day_all)
+year_opts = sort_opts(df_year_all["year"])
+service_category_opts = sort_opts(df_year_categories["service_category"])
+
+
+# --- UI Components ---
+reset_button = dbc.Button("Reset All Filters", id="amhd-cooccurring-reset-btn", color="secondary", outline=True, className="w-100 mb-3")
+kpi_card = make_kpi_card(label="Number of AMHD Co-Occurring Consumers", count_id="amhd-cooccurring-kpi-total")
+view_toggle_card = dbc.Card(dbc.CardBody([
+    html.H5("View By", className="mb-2 text-center"),
+    dbc.RadioItems(
+        id="amhd-cooccurring-view-toggle",
+        options=[
+            {"label": "Year View", "value": "year"},
+            {"label": "Month View", "value": "month"},
+            {"label": "Day View", "value": "day"},
+        ],
+        value="year",
+        className="spaced-radio-buttons d-flex justify-content-center gap-3",
+        input_class_name="btn-check",
+        label_class_name="btn btn-outline-success",
+        label_checked_class_name="btn-success text-white active",
     ),
-    className="mb-3",
-)
+]), className="mb-3")
 
 filters_card = make_filters_card(
     card_id="amhd-cooccurring-filters",
     title="Filter Data",
     filters=[
-        dropdown_filter(
-            "Year",
-            "amhd-cooccurring-year-filter",
-            options=opts_list(year_opts),
-            multi=True,
-            placeholder="All",
-            value=None,
-        ),
-        dropdown_filter(
-            "Service Category",
-            "amhd-cooccurring-service-category-filter",
-            options=opts_list(service_category_opts),
-            multi=True,
-            placeholder="All",
-            value=None,
-        ),
-        (
-            "Custom Date Range",
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.Label("Start Date", className="form-label mb-1 text-muted small"),
-                            dbc.Input(
-                                id="amhd-cooccurring-start-date",
-                                type="date",
-                                value=min_date,
-                                min=min_date,
-                                max=max_date,
-                                persistence=True,
-                                persistence_type="session",
-                            ),
-                        ],
-                        width=6,
-                    ),
-                    dbc.Col(
-                        [
-                            html.Label("End Date", className="form-label mb-1 text-muted small"),
-                            dbc.Input(
-                                id="amhd-cooccurring-end-date",
-                                type="date",
-                                value=max_date,
-                                min=min_date,
-                                max=max_date,
-                                persistence=True,
-                                persistence_type="session",
-                            ),
-                        ],
-                        width=6,
-                    ),
-                ],
-                className="g-2",
-            ),
-        ),
+        dropdown_filter("Year", "amhd-cooccurring-year-filter", options=opts_list(year_opts), multi=True, placeholder="All"),
+        dropdown_filter("Service Category", "amhd-cooccurring-service-category-filter", options=opts_list(service_category_opts), multi=True, placeholder="All"),
     ],
 )
 
@@ -278,185 +163,107 @@ from section_texts import SECTION_TEXTS
 amhd_sidebar_text = SECTION_TEXTS.get("amhd-cooccurring", [])
 
 
+# --- Layout ---
 def layout():
-    left_col = make_left_sidebar(
-        kpi_card,
-        reset_button,
-        filters_card,
-        helper_text=amhd_sidebar_text,
-        last_updated_value=last_updated_value,
-        xs=12,
-        md=3,
-    )
-
+    left_col = make_left_sidebar(kpi_card, reset_button, filters_card, helper_text=amhd_sidebar_text, last_updated_value=last_updated_value, xs=12, md=3)
     left_col.children.insert(2, view_toggle_card)
-
-    center_col = dbc.Col(
-        [
-            html.Div(
-                [
-                    html.H5("Number of AMHD Co-Occurring Consumers", id="amhd-cooccurring-bar-chart-title", className="plot-card-header mb-2"),
-                    dcc.Graph(
-                        id="amhd-cooccurring-bar-chart",
-                        style={"width": "100%"},
-                        config={"displayModeBar": True, "displaylogo": False},
-                    ),
-                ],
-                className="mb-4",
-                style={"overflow": "visible"},
-            ),
-        ],
-        xs=12,
-        md=6,
-    )
-
-    right_col = make_right_summary_tables_col(
-        [
-            ("Service Category", "amhd-cooccurring-service-category-table"),
-        ],
-        xs=12,
-        md=3,
-    )
-
-    return dbc.Container(
-        dbc.Row([left_col, center_col, right_col], className="g-3"),
-        fluid=True,
-    )
-
+    center_col = dbc.Col([
+        html.Div([
+            html.H5("Number of AMHD Co-Occurring Consumers", id="amhd-cooccurring-bar-chart-title", className="plot-card-header mb-2"),
+            dcc.Graph(id="amhd-cooccurring-bar-chart", style={"width": "100%"}, config={"displayModeBar": True, "displaylogo": False}),
+        ], className="mb-4", style={"overflow": "visible"}),
+    ], xs=12, md=6)
+    right_col = make_right_summary_tables_col([("Service Category", "amhd-cooccurring-service-category-table")], xs=12, md=3)
+    return dbc.Container(dbc.Row([left_col, center_col, right_col], className="g-3"), fluid=True)
 
 layout = layout()
+
+
+# --- Callbacks ---
+def _select_amhd_cooccurring_frames(view):
+    if view == "year":
+        return df_year_all.copy(), df_year_categories.copy(), "Calendar Year of Service"
+    if view == "month":
+        return df_month_all.copy(), df_month_categories.copy(), "Month of Service"
+    return df_day_all.copy(), df_day_categories.copy(), "Date of Service"
+
+
+def _filter_amhd_cooccurring_series(df, sel_years, sel_service_categories=None):
+    dff = df.copy()
+    if sel_years:
+        dff = dff[dff["year"].isin([int(y) for y in sel_years])]
+    if sel_service_categories:
+        dff = dff[dff["service_category"].isin(sel_service_categories)]
+    return dff
 
 
 @callback(
     Output("amhd-cooccurring-year-filter", "value"),
     Output("amhd-cooccurring-service-category-filter", "value"),
-    Output("amhd-cooccurring-start-date", "value"),
-    Output("amhd-cooccurring-end-date", "value"),
     Input("amhd-cooccurring-reset-btn", "n_clicks"),
     prevent_initial_call=True,
 )
-def reset_amhd_filters(_n_clicks):
-    return None, None, str(min_date), str(max_date)
+def reset_amhd_cooccurring_filters(_n_clicks):
+    return None, None
 
 
 @callback(
     Output("amhd-cooccurring-kpi-total", "children"),
-    Input("amhd-cooccurring-year-filter", "value"),
-    Input("amhd-cooccurring-service-category-filter", "value"),
-    Input("amhd-cooccurring-start-date", "value"),
-    Input("amhd-cooccurring-end-date", "value"),
-)
-def update_amhd_kpi(sel_years, sel_service_categories, start_date, end_date):
-    total_consumers = get_true_consumer_count(
-        sel_years,
-        sel_service_categories,
-        start_date,
-        end_date,
-    )
-    return format_count_display(total_consumers)
-
-
-def _build_amhd_query_context(sel_years, sel_service_categories, start_date, end_date):
-    return _amhd_cooccurring_query_context_cached(
-        tuple(sorted(int(y) for y in (sel_years or []))),
-        tuple(sorted(str(v) for v in (sel_service_categories or []))),
-        str(start_date) if start_date else "",
-        str(end_date) if end_date else "",
-    )
-
-
-def _build_amhd_figures(view, query_context):
-    if view == "year":
-        bar_grouped = _run_named_amhd_cooccurring_query("load_amhd_cooccurring_consumers_by_year", query_context)
-        bar_grouped["period"] = bar_grouped["year"].astype(int).astype(str)
-        period_title = "Calendar Year of Service"
-    elif view == "month":
-        bar_grouped = _run_named_amhd_cooccurring_query("load_amhd_cooccurring_consumers_by_month", query_context)
-        bar_grouped["period_date"] = pd.to_datetime(bar_grouped["period_date"], errors="coerce")
-        bar_grouped["year"] = bar_grouped["period_date"].dt.year
-        bar_grouped["month_num"] = bar_grouped["period_date"].dt.month
-        bar_grouped["month"] = bar_grouped["month_num"].map(MONTH_NAMES)
-        bar_grouped["period"] = bar_grouped["year"].astype(int).astype(str) + ", " + bar_grouped["month"]
-        period_title = "Month of Service"
-    else:
-        bar_grouped = _run_named_amhd_cooccurring_query("load_amhd_cooccurring_consumers_by_date", query_context)
-        bar_grouped["service_date"] = pd.to_datetime(bar_grouped["service_date"], errors="coerce")
-        bar_grouped["period"] = bar_grouped["service_date"].dt.strftime("%Y-%m-%d")
-        period_title = "Date of Service"
-
-    bar_grouped["label"] = bar_grouped["consumer_count"].apply(format_count_display)
-    bar_height = compute_adaptive_horizontal_bar_height(
-        len(bar_grouped),
-    )
-    y_order = bar_grouped["period"].tolist()
-
-    bar_fig = px.bar(
-        bar_grouped,
-        x="consumer_count",
-        y="period",
-        orientation="h",
-        text="label",
-        labels={"consumer_count": "Number of AMHD Co-Occurring Consumers", "period": period_title},
-    )
-    apply_standard_bar_layout(
-        bar_fig,
-        xaxis=dict(title="Number of AMHD Co-Occurring Consumers"),
-        yaxis=dict(
-            title=period_title,
-            type="category",
-            categoryorder="array",
-            categoryarray=y_order,
-            autorange=True,
-        ),
-        height=bar_height,
-    )
-    apply_standard_single_series_bar_trace(bar_fig)
-    bar_fig.update_traces(hovertemplate="%{y}: %{text}<extra></extra>")
-
-    return bar_fig
-
-
-def _build_amhd_tables(query_context):
-    service_category_tbl = _run_named_amhd_cooccurring_query("load_amhd_cooccurring_consumers_by_service_category", query_context)
-    service_category_tbl = service_category_tbl.rename(columns={"service_category": "Service Category", "consumer_count": "Number of AMHD Co-Occurring Consumers"})
-
-    service_category_tbl["Number of AMHD Co-Occurring Consumers"] = service_category_tbl["Number of AMHD Co-Occurring Consumers"].apply(format_count_display)
-
-    service_category_table = create_styled_table(service_category_tbl)
-
-    return service_category_table
-
-
-@callback(
     Output("amhd-cooccurring-bar-chart", "figure"),
+    Output("amhd-cooccurring-service-category-table", "children"),
     Input("amhd-cooccurring-view-toggle", "value"),
     Input("amhd-cooccurring-year-filter", "value"),
     Input("amhd-cooccurring-service-category-filter", "value"),
-    Input("amhd-cooccurring-start-date", "value"),
-    Input("amhd-cooccurring-end-date", "value"),
 )
-def update_amhd_figures(view, sel_years, sel_service_categories, start_date, end_date):
-    query_context = _build_amhd_query_context(
-        sel_years,
-        sel_service_categories,
-        start_date,
-        end_date,
-    )
-    return _build_amhd_figures(view, query_context)
+def update_dashboard(view, sel_years, sel_service_categories):
+    """Single callback to update all components on the dashboard."""
+    
+    # --- 1. Data Filtering ---
+    df_all_view, df_categories_view, period_title = _select_amhd_cooccurring_frames(view)
+    if sel_service_categories:
+        dff_for_bar_chart = _filter_amhd_cooccurring_series(df_categories_view, sel_years, sel_service_categories)
+    else:
+        dff_for_bar_chart = _filter_amhd_cooccurring_series(df_all_view, sel_years)
 
+    # --- 2. KPI Calculation ---
+    no_filters = not sel_years and not sel_service_categories
+    if no_filters:
+        kpi_value = format_count_display(amhd_cooccurring_kpi_total)
+    else:
+        kpi_source_df = _filter_amhd_cooccurring_series(df_year_categories if sel_service_categories else df_year_all, sel_years, sel_service_categories)
+        kpi_value = format_count_display(int(kpi_source_df["consumer_count"].sum()))
 
-@callback(
-    Output("amhd-cooccurring-service-category-table", "children"),
-    Input("amhd-cooccurring-year-filter", "value"),
-    Input("amhd-cooccurring-service-category-filter", "value"),
-    Input("amhd-cooccurring-start-date", "value"),
-    Input("amhd-cooccurring-end-date", "value"),
-)
-def update_amhd_tables(sel_years, sel_service_categories, start_date, end_date):
-    query_context = _build_amhd_query_context(
-        sel_years,
-        sel_service_categories,
-        start_date,
-        end_date,
-    )
-    return _build_amhd_tables(query_context)
+    # --- 3. Bar Chart Figure Generation ---
+    if sel_service_categories:
+        bar_grouped = dff_for_bar_chart.groupby("service_date", as_index=False)["consumer_count"].sum().sort_values("service_date")
+    else:
+        bar_grouped = dff_for_bar_chart.sort_values("service_date")
+
+    if view == "year":
+        bar_grouped["period"] = bar_grouped["service_date"].dt.year.astype("Int64").astype(str)
+    elif view == "month":
+        bar_grouped["period"] = bar_grouped["service_date"].dt.year.astype("Int64").astype(str) + ", " + bar_grouped["service_date"].dt.month.map(MONTH_NAMES)
+    else:
+        bar_grouped["period"] = bar_grouped["service_date"].dt.strftime("%Y-%m-%d")
+
+    bar_grouped["label"] = bar_grouped["consumer_count"].apply(format_count_display)
+    bar_height = compute_adaptive_horizontal_bar_height(len(bar_grouped))
+    y_order = bar_grouped["period"].tolist()
+
+    bar_fig = px.bar(bar_grouped, x="consumer_count", y="period", orientation="h", text="label", labels={"consumer_count": "Number of AMHD Co-Occurring Consumers", "period": period_title})
+    apply_standard_bar_layout(bar_fig, xaxis=dict(title="Number of AMHD Co-Occurring Consumers"), yaxis=dict(title=period_title, type="category", categoryorder="array", categoryarray=y_order, autorange=True), height=bar_height)
+    apply_standard_single_series_bar_trace(bar_fig)
+    bar_fig.update_traces(hovertemplate="%{y}: %{text}<extra></extra>")
+
+    # --- 4. Summary Table Generation ---
+    if no_filters and not amhd_cooccurring_kpi_category_rows.empty:
+        table_df = amhd_cooccurring_kpi_category_rows.rename(columns={"service_category": "Service Category", "consumer_count": "Number of AMHD Co-Occurring Consumers"}).copy()
+    else:
+        dff_for_table = _filter_amhd_cooccurring_series(df_year_categories, sel_years, None)
+        table_df = dff_for_table.groupby("service_category", as_index=False)["consumer_count"].sum().rename(columns={"service_category": "Service Category", "consumer_count": "Number of AMHD Co-Occurring Consumers"}).sort_values("Number of AMHD Co-Occurring Consumers", ascending=False)
+
+    table_df["Number of AMHD Co-Occurring Consumers"] = table_df["Number of AMHD Co-Occurring Consumers"].apply(format_count_display)
+    service_category_table = create_styled_table(table_df)
+
+    # --- 5. Return All Outputs ---
+    return kpi_value, bar_fig, service_category_table

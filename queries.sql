@@ -385,71 +385,21 @@ select * from amhd_aggregate_reporting where date_type = 'Day' and service_categ
 -- name: load_amhd_kpi_total
 select * from amhd_aggregate_reporting where date_type = 'All';
 
--- name: load_amhd_cooccurring_day
-SELECT DISTINCT
-  f.service_date,
-  f.service_category
-FROM amhd_dashboard_fact f
-INNER JOIN AMHD_service_category_CO_patid co
-  ON co.PATID = f.PATID
-WHERE f.service_date IS NOT NULL;
+-- name: load_amhd_cooccurring_year_all
+select * from amhd_cooccurring_aggregate_reporting where date_type = 'Year' and service_category = 'All' order by date;
+-- name: load_amhd_cooccurring_month_all
+select * from amhd_cooccurring_aggregate_reporting where date_type = 'Month' and service_category = 'All' order by date;
+-- name: load_amhd_cooccurring_day_all
+select * from amhd_cooccurring_aggregate_reporting where date_type = 'Day' and service_category = 'All' order by date;
+-- name: load_amhd_cooccurring_year_categories
+select * from amhd_cooccurring_aggregate_reporting where date_type = 'Year' and service_category <> 'All' order by date;
+-- name: load_amhd_cooccurring_month_categories
+select * from amhd_cooccurring_aggregate_reporting where date_type = 'Month' and service_category <> 'All' order by date;
+-- name: load_amhd_cooccurring_day_categories
+select * from amhd_cooccurring_aggregate_reporting where date_type = 'Day' and service_category <> 'All' order by date;
+-- name: load_amhd_cooccurring_kpi_total
+select * from amhd_cooccurring_aggregate_reporting where date_type = 'All';
 
--- name: load_amhd_cooccurring_consumers_total
-SELECT
-  COUNT(DISTINCT f.PATID) AS total_consumers
-FROM amhd_dashboard_fact f
-INNER JOIN AMHD_service_category_CO_patid co
-  ON co.PATID = f.PATID
-WHERE 1=1
-{where_filters};
-
--- name: load_amhd_cooccurring_consumers_by_year
-SELECT 
-  {year_expr} AS year,
-  COUNT(DISTINCT f.PATID) AS consumer_count
-FROM amhd_dashboard_fact f
-INNER JOIN AMHD_service_category_CO_patid co
-  ON co.PATID = f.PATID
-WHERE 1=1
-{where_filters}
-GROUP BY {year_expr}
-ORDER BY year DESC;
-
--- name: load_amhd_cooccurring_consumers_by_month
-SELECT
-  {month_period_expr} AS period_date,
-  COUNT(DISTINCT f.PATID) AS consumer_count
-FROM amhd_dashboard_fact f
-INNER JOIN AMHD_service_category_CO_patid co
-  ON co.PATID = f.PATID
-WHERE 1=1
-{where_filters}
-GROUP BY {month_period_expr}
-ORDER BY period_date;
-
--- name: load_amhd_cooccurring_consumers_by_service_category
-SELECT 
-  {service_category_expr} AS service_category,
-  COUNT(DISTINCT f.PATID) AS consumer_count
-FROM amhd_dashboard_fact f
-INNER JOIN AMHD_service_category_CO_patid co
-  ON co.PATID = f.PATID
-WHERE 1=1
-{where_filters}
-GROUP BY {service_category_expr}
-ORDER BY consumer_count DESC;
-
--- name: load_amhd_cooccurring_consumers_by_date
-SELECT 
-  {day_period_expr} AS service_date,
-  COUNT(DISTINCT f.PATID) AS consumer_count
-FROM amhd_dashboard_fact f
-INNER JOIN AMHD_service_category_CO_patid co
-  ON co.PATID = f.PATID
-WHERE 1=1
-{where_filters}
-GROUP BY {day_period_expr}
-ORDER BY service_date;
 
 -- name: load_camhd_clients_served
 SELECT
