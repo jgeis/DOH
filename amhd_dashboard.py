@@ -271,56 +271,47 @@ def reset_amhd_filters(_n_clicks):
 
 @callback(
     Output("amhd-kpi-total", "children"),
-    Input("amhd-view-toggle", "value"),
-    Input("amhd-year-filter", "value"),
-    Input("amhd-service-category-filter", "value"),
-)
-def update_amhd_kpi(view, sel_years, sel_service_categories):
-    # Use the dedicated KPI total when no filters are active.
-    if not sel_years and not sel_service_categories:
-        return format_count_display(amhd_kpi_total)
-
-    if sel_years and not sel_service_categories:
-        dff_year = _filter_amhd_series(df_year_all, sel_years)
-        return format_count_display(int(dff_year["client_count"].sum()))
-
-    df_all_view, df_categories_view, _period_title = _select_amhd_frames(view)
-    if sel_service_categories:
-        dff = _filter_amhd_series(
-            df_categories_view,
-            sel_years,
-            sel_service_categories,
-        )
-    else:
-        dff = _filter_amhd_series(df_all_view, sel_years)
-
-    return format_count_display(int(dff["client_count"].sum()))
-
-
-@callback(
     Output("amhd-bar-chart", "figure"),
+    Output("amhd-service-category-table", "children"),
     Input("amhd-view-toggle", "value"),
     Input("amhd-year-filter", "value"),
     Input("amhd-service-category-filter", "value"),
 )
-def update_amhd_figures(view, sel_years, sel_service_categories):
+def update_dashboard(view, sel_years, sel_service_categories):
+    """
+    This single callback updates all components on the AMHD dashboard.
+    It ensures the KPI and Table are consistent regardless of the time view.
+    """
+    # --- 1. Data Filtering ---
+    # Bar chart data depends on the view (Year, Month, Day)
     df_all_view, df_categories_view, period_title = _select_amhd_frames(view)
-
     if sel_service_categories:
-        dff = _filter_amhd_series(
-            df_categories_view,
-            sel_years,
-            sel_service_categories,
-        )
+        dff_for_bar_chart = _filter_amhd_series(df_categories_view, sel_years, sel_service_categories)
+    else:
+        dff_for_bar_chart = _filter_amhd_series(df_all_view, sel_years)
+
+    # --- 2. KPI Calculation (Independent of View) ---
+    no_filters = not sel_years and not sel_service_categories
+    if no_filters:
+        kpi_value = format_count_display(amhd_kpi_total)
+    else:
+        # Always use the yearly data for a stable total, regardless of view
+        if sel_service_categories:
+            kpi_source_df = _filter_amhd_series(df_year_categories, sel_years, sel_service_categories)
+        else:
+            kpi_source_df = _filter_amhd_series(df_year_all, sel_years)
+        kpi_value = format_count_display(int(kpi_source_df["client_count"].sum()))
+
+    # --- 3. Bar Chart Figure Generation ---
+    if sel_service_categories:
         bar_grouped = (
-            dff.groupby("service_date", as_index=False)["client_count"]
+            dff_for_bar_chart.groupby("service_date", as_index=False)["client_count"]
             .sum()
             .sort_values("service_date")
             .rename(columns={"client_count": "consumer_count"})
         )
     else:
-        dff = _filter_amhd_series(df_all_view, sel_years)
-        bar_grouped = dff.rename(columns={"client_count": "consumer_count"}).sort_values("service_date")
+        bar_grouped = dff_for_bar_chart.rename(columns={"client_count": "consumer_count"}).sort_values("service_date")
 
     if view == "year":
         bar_grouped["period"] = bar_grouped["service_date"].dt.year.astype("Int64").astype(str)
@@ -360,49 +351,30 @@ def update_amhd_figures(view, sel_years, sel_service_categories):
     apply_standard_single_series_bar_trace(bar_fig)
     bar_fig.update_traces(hovertemplate="%{y}: %{text}<extra></extra>")
 
-    return bar_fig
-
-
-@callback(
-    Output("amhd-service-category-table", "children"),
-    Input("amhd-view-toggle", "value"),
-    Input("amhd-year-filter", "value"),
-    Input("amhd-service-category-filter", "value"),
-)
-def update_amhd_tables(view, sel_years, sel_service_categories):
-    if sel_years:
-        df_categories_view = df_year_categories
-    else:
-        _df_all_view, df_categories_view, _period_title = _select_amhd_frames(view)
-
-    dff = _filter_amhd_series(
-        df_categories_view,
-        sel_years,
-        None,
-    )
-
-    service_category_tbl = (
-        dff.groupby("service_category", as_index=False)["client_count"]
-        .sum()
-        .rename(columns={
-            "service_category": "Service Category",
-            "client_count": "Number of AMHD Consumers",
-        })
-        .sort_values("Number of AMHD Consumers", ascending=False)
-    )
-    no_filters_selected = (
-        not sel_years
-        and not sel_service_categories
-    )
-
-    if no_filters_selected and not amhd_kpi_category_rows.empty:
-        service_category_tbl = amhd_kpi_category_rows.rename(
+    # --- 4. Summary Table Generation (Independent of View) ---
+    if no_filters and not amhd_kpi_category_rows.empty:
+        table_df = amhd_kpi_category_rows.rename(
             columns={
                 "service_category": "Service Category",
                 "client_count": "Number of AMHD Consumers",
             }
         ).copy()
+    else:
+        # Always use the yearly aggregated data for the table to ensure consistency
+        dff_for_table = _filter_amhd_series(df_year_categories, sel_years, None)
+        
+        table_df = (
+            dff_for_table.groupby("service_category", as_index=False)["client_count"]
+            .sum()
+            .rename(columns={
+                "service_category": "Service Category",
+                "client_count": "Number of AMHD Consumers",
+            })
+            .sort_values("Number of AMHD Consumers", ascending=False)
+        )
 
-    service_category_tbl["Number of AMHD Consumers"] = service_category_tbl["Number of AMHD Consumers"].apply(format_count_display)
+    table_df["Number of AMHD Consumers"] = table_df["Number of AMHD Consumers"].apply(format_count_display)
+    service_category_table = create_styled_table(table_df)
 
-    return create_styled_table(service_category_tbl)
+    # --- 5. Return All Outputs ---
+    return kpi_value, bar_fig, service_category_table
