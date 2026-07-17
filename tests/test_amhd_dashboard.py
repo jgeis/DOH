@@ -1,3 +1,15 @@
+"""
+test_amhd_dashboard.py
+
+This is the AI prompt I used:
+Using the existing test files as examples, create tests for 'amhd_dashboard.py'.  Here are some numbers you can use:
+- When year view is displayed, and the year 2024 is selected, the KPI card should have the number 9,430.  There should only be one bar on the bar chart and it should be for the year 2024 with the value 9,430.  The table should have 3 rows with the following values `Contracted Providers=5,201, Community Mental Health Centers=4,506, and Hawaii State Hospital=801.
+- The KPI card number and the values on the table should not change when we display by month or day view.  Whatever values are shown on the kpi card or the table for given year and category filters in year view should be the same when views in month or day view (the code will currently fail these tests, I'll be fixing that shortly).
+- When displayed in "Month View" with the year 2024 selected, the bar chart should show 12 bars.  The bar for '2024, January' should have a value of 5,004 and the bar for '2024, December' should have a value of 5,794.
+- When displayed in "Year View" with the year 2024 selected and the filter for "Service Category" set to "Contracted Providers", the KPI card should have the number 5,201. There should only be one bar on the bar chart and it should be for the year 2024 with the value 5,201. The table should have 3 rows with the following values Contracted Providers=5,201, Community Mental Health Centers=4,506, and Hawaii State Hospital=801.
+- When displayed in "Month View" with the year 2024 selected and the filter for "Service Category" set to "Contracted Providers", the bar chart should show 12 bars. The bar for '2024, January' should have a value of 1,862 and the bar for '2024, December' should have a value of 1,817.
+- When displayed in "Day View" with the year 2024 selected and the filter for "Service Category" set to "Contracted Providers", the bar chart should show 365 bars. The bar for '2024-01-01' should have a value of 685 and the bar for '2024-12-31' should have a value of 679.
+"""
 import pytest
 import pandas as pd
 import plotly.graph_objects as go

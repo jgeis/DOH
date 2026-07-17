@@ -1,3 +1,16 @@
+"""
+test_amhd_cooccurring_dashboard.py
+
+This is the AI prompt I used:
+Write tests for amhd_cooccurring_dashboard.py.  Here are some numbers you can use: 
+* `When year view is displayed, and the year 2024 is selected, the KPI card should have the number `2,168`. There should only be one bar on the bar chart and it should be for the year 2024 with the value `2,168`. The table should have 3 rows with the following values `Contracted Providers=1,119, Community Mental Health Centers=1,071, and Hawaii State Hospital=685.
+* The KPI card number and the values on the table should not change when we display by month or day view. Whatever values are shown on the kpi card or the table for given year and category filters in year view should be the same when views in month or day view.
+* When displayed in "Month View" with the year 2024 selected, the bar chart should show 12 bars. The bar for '2024, January' should have a value of 1,624 and the bar for '2024, December' should have a value of 1,656.
+* When displayed in "Year View" with the year 2024 selected and the filter for "Service Category" set to "Contracted Providers"`, the KPI card should have the number 1,119. There should only be one bar on the bar chart and it should be for the year 2024 with the value 1,119. The table should have 3 rows with the following values `Contracted Providers=1,119, Community Mental Health Centers=1,071, and Hawaii State Hospital=685.
+* When displayed in "Month View" with the year 2024 selected and the filter for "Service Category" set to "Contracted Providers", the bar chart should show 12 bars. The bar for '2024, January' should have a value of 633 and the bar for '2024, December' should have a value of 630.
+* When displayed in "Day View" with the year 2024 selected and the filter for "Service Category" set to "Contracted Providers", the bar chart should show 365 bars. The bar for '2024-01-01' should have a value of 353 and the bar for '2024-12-31' should have a value of 341.
+"""
+
 import pytest
 import pandas as pd
 import plotly.graph_objects as go
