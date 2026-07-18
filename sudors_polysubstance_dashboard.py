@@ -477,11 +477,11 @@ def update_dashboard(substance, homeless, sex, age, race, year):
             categories=categories,
             count_label="Deaths",
         )
-   table_race = summary_table("race_ethnicity", categories=race_opts if not race else None)
-   table_sex = summary_table("sex", categories=sex_opts if not sex else None)
-   table_homeless = summary_table("homeless", categories=homeless_opts if not homeless else None)
-   table_year = summary_table("year", categories=year_opts if not year else None)
-   table_age = summary_table("age_cat", categories=age_opts if not age else None)
+   table_race = summary_table("race_ethnicity", categories=race_opts)
+   table_sex = summary_table("sex", categories=sex_opts)
+   table_homeless = summary_table("homeless", categories=homeless_opts)
+   table_year = summary_table("year", categories=year_opts)
+   table_age = summary_table("age_cat", categories=age_opts)
 
    # ---------- Bar chart: Deaths by Substance ----------
    if {"substance"}.issubset(dff.columns):
@@ -505,10 +505,10 @@ def update_dashboard(substance, homeless, sex, age, race, year):
                format_count_display(filter_total),
                sud_bar,
                table_race,
-               table_year,
-               table_age,
                table_sex,
                table_homeless,
+               table_year,
+               table_age,
            )
 
        def ellipsize(text, max_len=25):
