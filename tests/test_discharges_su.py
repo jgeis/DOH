@@ -1,5 +1,5 @@
 """
-Tests for discharges_su_dashboard.py and /discharges-su page.
+test_discharges_su.py - Tests for discharges_su_dashboard.py and /discharges-su page.
 
 Tests cover:
 - Page loading and initialization
