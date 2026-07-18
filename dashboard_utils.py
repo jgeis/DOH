@@ -2,8 +2,9 @@ from db_utils import execute_query
 
 # Mapping from code/column names to canonical filter display labels
 FILTER_LABELS = {
-"Age Group": "Age Group",
     "Age_cat": "Age Group",
+    "age_cat": "Age Group",
+    "Age Group": "Age Group",
     "age_group": "Age Group",
     "Year": "Calendar Year",
     "year": "Calendar Year",
@@ -761,12 +762,19 @@ def build_summary_count_table(
 ):
     """
     Build a standardized summary table of distinct counts for a grouping column.
-
-    This helper centralizes category completion, statewide county aggregation,
-    suppression-safe count formatting, and table rendering.
     """
+    # Check if the dataframe is empty or missing the necessary columns
     if frame is None or frame.empty or group_col not in frame.columns or id_col not in frame.columns:
-        return dbc.Alert(f"Column '{group_col}' not found.", color="warning", className="mb-0")
+        # If we have the categories, synthesize an empty dataframe so the table 
+        # still renders with zero-counts / suppressed values instead of breaking.
+        if categories is not None:
+            frame = pd.DataFrame({
+                group_col: categories,
+                id_col: [None] * len(categories)
+            })
+        else:
+            # If we don't have categories to build the table with, fall back to the alert
+            return dbc.Alert(f"Column '{group_col}' not found.", color="warning", className="mb-0")
 
     grouped = frame.groupby(group_col)[id_col].nunique().reset_index(name="count")
 

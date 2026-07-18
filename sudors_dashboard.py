@@ -342,10 +342,10 @@ def update_dashboard(substance, homeless, sex, age, race, year):
     return (
         format_count_display(filter_total),
         sud_bar,
-        summary_table("race_ethnicity", categories=race_opts if not race else None),
-        summary_table("sex", categories=sex_opts if not sex else None),
-        summary_table("homeless", categories=homeless_opts if not homeless else None),
-        summary_table("year", categories=year_opts if not year else None),
-        summary_table("age_cat", categories=age_opts if not age else None),
+        summary_table("race_ethnicity", categories=race_opts),
+        summary_table("sex", categories=sex_opts),
+        summary_table("homeless", categories=homeless_opts),
+        summary_table("year", categories=year_opts),
+        summary_table("age_cat", categories=age_opts),
         line_fig,
     )
