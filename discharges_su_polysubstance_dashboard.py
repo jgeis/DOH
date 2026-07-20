@@ -868,531 +868,304 @@ def reset_filters(n):
 
 @callback(
     Output("polysubstance-cooccurrence-heatmap", "figure"),
-    Input("polysubstance-substance-filter", "value"),
-    Input("polysubstance-cooccurrence-is-mobile", "data"),
-)
-def update_heatmap(selected_substances, is_mobile):
-    """Create a heatmap showing correlation between substances, filtered by selected substance(s)."""
-    if df_raw.empty or 'substance' not in df_raw.columns:
-        return go.Figure().add_annotation(text="No data available", showarrow=False)
-
-    # Filter the dataframe by selected substances if any are selected
-    dff = df_raw.copy()
-    selected_values = (
-        [v for v in selected_substances if v]
-        if isinstance(selected_substances, (list, tuple, set))
-        else ([selected_substances] if selected_substances else [])
-    )
-    if selected_values:
-        # Keep records that contain all selected substances.
-        dff = records_matching_all_selected_substances(dff, selected_values)
-        if dff.empty:
-            return go.Figure().add_annotation(text="No data for selected substance(s)", showarrow=False)
-
-    # Build correlation matrix on filtered data
-    corr_matrix = build_correlation_matrix(dff)
-    if corr_matrix.empty:
-        return go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
-
-    # Adjust parameters based on mobile state
-    if is_mobile:
-        text_size = 9
-        height = 700  # Taller to accommodate all rows
-        width = 800   # Wide enough to not compress
-        margin_left = 120
-        margin_right = 80  # Space for colorbar
-        margin_top = 80
-        margin_bottom = 120
-        title_text = "Substance Correlations"
-        title_size = 14
-    else:
-        text_size = 10
-        height = 600
-        width = None  # Auto width for desktop
-        margin_left = 150
-        margin_right = 50
-        margin_top = 80
-        margin_bottom = 150
-        title_text = "Substance Co-occurrence Correlation Matrix"
-        title_size = 16
-
-    # Create heatmap
-    subtitle = ""
-    if selected_values and len(selected_values) > 1:
-        subtitle = f" (records containing all of: {format_display_list(selected_values)})"
-
-    fig = go.Figure(data=go.Heatmap(
-        z=corr_matrix.values,
-        x=corr_matrix.columns,
-        y=corr_matrix.index,
-        colorscale='RdYlGn',
-        zmid=0,
-        text=corr_matrix.values,
-        texttemplate='%{text:.2f}',
-        textfont={"size": text_size},
-        colorbar=dict(title="Correlation")
-    ))
-
-    fig.update_layout(
-        title=dict(text=title_text + subtitle, font=dict(size=title_size)),
-        xaxis=dict(side='bottom', tickangle=45, tickfont=dict(size=text_size)),
-        yaxis=dict(autorange='reversed', tickfont=dict(size=text_size)),
-        height=height,
-        width=width,
-        autosize=False if is_mobile else True
-    )
-
-    apply_standard_heatmap_layout(fig)
-
-    return fig
-
-
-@callback(
     Output("polysubstance-cooccurrence-bar-chart", "figure"),
     Output("polysubstance-cooccurrence-bar-caption", "children"),
+    Output("sunburst-cooccurrence", "figure"),
+    Output("polysubstance-cooccurrence-network", "figure"),
+    Output("polysubstance-cooccurrence-sankey", "figure"),
     Input("polysubstance-substance-filter", "value"),
     Input("polysubstance-cooccurrence-is-mobile", "data"),
-)
-def update_bar_chart(selected_substances, is_mobile):
-    """Create grouped bar chart showing co-occurrence percentages."""
-    
-    if df_raw.empty or 'substance' not in df_raw.columns:
-        return go.Figure().add_annotation(text="No data available", showarrow=False)
-    
-    # Build co-occurrence data
-    co_data = build_cooccurrence_data(df_raw)
-    
-    if co_data.empty:
-        return go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
-    
-    # Keep a wider figure on mobile so users can horizontally scroll crowded categories.
-    plot_width = 900 if is_mobile else None
-    
-    selected_values = (
-        [v for v in selected_substances if v]
-        if isinstance(selected_substances, (list, tuple, set))
-        else ([selected_substances] if selected_substances else [])
-    )
-    bar_caption = ""
-
-    # Filter by selected substances from main Substance Type filter.
-    if selected_values:
-        matched = records_matching_all_selected_substances(df_raw, selected_values)
-        if matched.empty:
-            return go.Figure().add_annotation(
-                text=f"No co-occurrence data for selected substance(s): {', '.join(str(v) for v in selected_values)}",
-                showarrow=False
-            )
-
-        total_records = matched["record_id"].nunique()
-        selected_set = {str(v) for v in selected_values}
-        co_data = (
-            matched.groupby("substance")["record_id"]
-            .nunique()
-            .reset_index(name="Count")
-        )
-        co_data = co_data[~co_data["substance"].astype(str).isin(selected_set)]
-        if co_data.empty:
-            return go.Figure().add_annotation(
-                text="No additional co-substances found with all selected substances.",
-                showarrow=False
-            )
-
-        co_data = co_data.rename(columns={"substance": "Also Found"})
-        co_data["Total"] = total_records
-        co_data["Percentage"] = (co_data["Count"] / total_records) * 100
-        
-        # Sort by percentage descending (highest to lowest) for both mobile and desktop
-        co_data = co_data.sort_values('Percentage', ascending=False)
-        
-        # Create formatted hover text (suppresses counts < 10)
-        co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
-        co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
-        co_data['Plot_Percentage'], co_data['Percentage_display'], _ = build_suppressed_percentage_columns(
-            co_data['Percentage'],
-            count_display_values=co_data['Count_formatted'],
-            decimals=1,
-        )
-        co_data['Cooccurrence_line'] = co_data['Percentage_display'].apply(
-            lambda pct: (
-                f"Co-occurrence: {pct}"
-                if pd.notna(pct) and str(pct).strip()
-                else "Co-occurrence: Suppressed"
-            )
-        )
-
-        # Create custom text with percentage and suppressed count
-        co_data['label'] = co_data.apply(
-            lambda row: (
-                f"{row['Percentage_display']} (n={row['Count_formatted']})"
-                if pd.notna(row['Percentage_display']) and str(row['Percentage_display']).strip()
-                else row['Count_formatted']
-            ),
-            axis=1
-        )
-        
-        # Mobile: vertical bars (x=substance, y=percentage), Desktop: horizontal bars (x=percentage, y=substance)
-        if len(selected_values) == 1:
-            selected_label = str(selected_values[0])
-            title_text = f"When {selected_label} is present, % with other substances"
-        else:
-            title_text = (
-                f"When all of: {format_display_list(selected_values)} are present, % with other substances"
-            )
-        bar_caption = title_text
-
-        if is_mobile:
-            fig = px.bar(
-                co_data,
-                x='Also Found',
-                y='Plot_Percentage',
-                orientation='v',
-                labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
-                text='label',
-                hover_data={
-                    'Count': False, 
-                    'Total': False, 
-                    'label': False,
-                },
-                custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line']
-            )
-            
-            apply_standard_single_series_bar_trace(
-                fig,
-                textangle=0,
-                hovertemplate='<b>%{x}</b><br>' +
-                             '%{customdata[2]}<br>' +
-                             'Count: %{customdata[0]}<br>' +
-                             'Total: %{customdata[1]}<extra></extra>',
-            )
-            max_pct = float(co_data['Plot_Percentage'].max()) if not co_data.empty else 0.0
-            fig.update_yaxes(range=[0, max_pct * 1.15 if max_pct else 1])
-            # Keep visual order explicitly descending left-to-right.
-            fig.update_xaxes(
-                categoryorder='array',
-                categoryarray=co_data['Also Found'].tolist()
-            )
-        else:
-            fig = px.bar(
-                co_data,
-                x='Plot_Percentage',
-                y='Also Found',
-                orientation='h',
-                labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
-                text='label',
-                hover_data={
-                    'Count': False, 
-                    'Total': False, 
-                    'label': False,
-                },
-                custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line', 'Also Found']
-            )
-            
-            apply_standard_single_series_bar_trace(
-                fig,
-                hovertemplate='<b>%{y}</b><br>' +
-                             '%{customdata[2]}<br>' +
-                             'Count: %{customdata[0]}<br>' +
-                             'Total: %{customdata[1]}<extra></extra>',
-            )
-            max_pct = float(co_data['Plot_Percentage'].max()) if not co_data.empty else 0.0
-            fig.update_xaxes(range=[0, max_pct * 1.15 if max_pct else 1])
-            # Horizontal bars render categories bottom-to-top; reverse for descending top-to-bottom.
-            fig.update_yaxes(
-                categoryorder='array',
-                categoryarray=co_data['Also Found'].tolist()[::-1]
-            )
-        
-    else:
-        # Show all primary substances
-        # Add custom text label with percentage and count
-        # Create formatted hover text (suppresses counts < 10)
-        co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
-        co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
-        co_data['Plot_Percentage'], co_data['Percentage_display'], _ = build_suppressed_percentage_columns(
-            co_data['Percentage'],
-            count_display_values=co_data['Count_formatted'],
-            decimals=1,
-        )
-        co_data['Cooccurrence_line'] = co_data['Percentage_display'].apply(
-            lambda pct: (
-                f"Co-occurrence: {pct}"
-                if pd.notna(pct) and str(pct).strip()
-                else "Co-occurrence: Suppressed"
-            )
-        )
-
-        co_data['label'] = co_data.apply(
-            lambda row: (
-                f"{row['Percentage_display']} (n={row['Count_formatted']})"
-                if pd.notna(row['Percentage_display']) and str(row['Percentage_display']).strip()
-                else row['Count_formatted']
-            ) if not is_mobile else (
-                row['Percentage_display']
-                if pd.notna(row['Percentage_display']) and str(row['Percentage_display']).strip()
-                else ""
-            ),
-            axis=1
-        )
-        
-        fig = px.bar(
-            co_data,
-            x='Primary',
-            y='Plot_Percentage',
-            color='Also Found',
-            barmode='group',
-            labels={'Percentage': 'Co-occurrence %', 'Primary': 'Primary Substance'},
-            hover_data={
-                'Count': False, 
-                'Total': False, 
-                'label': False,
-            },
-            custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line', 'Also Found']
-        )
-        
-        fig.update_traces(
-            # Grouped view has many traces; outside labels can clip and leave artifacts.
-            textposition='none',
-            text=None,
-            textangle=0,
-            hovertemplate='<b>%{customdata[3]}</b><br>' +
-                         'Primary: %{x}<br>' +
-                         '%{customdata[2]}<br>' +
-                         'Count: %{customdata[0]}<br>' +
-                         'Total: %{customdata[1]}<extra></extra>',
-            cliponaxis=False
-        )
-    
-    # Apply mobile-responsive layout
-    # X-axis angle: 45° for grouped view (substance names), 45° for mobile filtered (substance names), 0° for desktop filtered (percentages)
-    x_angle = 45 if not selected_values else (45 if is_mobile else 0)
-
-    fig.update_layout(
-        width=plot_width,
-        autosize=False if is_mobile else True,
-    )
-    fig.update_xaxes(tickangle=x_angle)
-
-    if not selected_values:
-        fig.update_layout(
-            legend=dict(
-                orientation="h",  # Horizontal legend
-                yanchor="bottom",
-                y=1.02,  # Position above plot area
-                xanchor="center",
-                x=0.5  # Center horizontally
-            )
-        )
-
-    chart_height = compute_adaptive_horizontal_bar_height(
-        len(co_data),
-        min_height=260,
-        max_height=500,
-    )
-    apply_standard_bar_layout(fig, height=chart_height)
-    
-    return fig, bar_caption
-
-
-@callback(
-    Output("sunburst-cooccurrence", "figure"),
-    Input("polysubstance-substance-filter", "value"),
     Input("polysubstance-age-filter", "value"),
     Input("polysubstance-sex-filter", "value"),
     Input("polysubstance-county-filter", "value"),
     Input("polysubstance-year-filter", "value"),
 )
-def update_sunburst(selected_substances, age, sex, county, year):
-    """Create a sunburst chart showing Primary -> Also Found co-occurrences."""
-    if df_raw.empty or not {"record_id", "substance"}.issubset(df_raw.columns):
-        return go.Figure().add_annotation(text="No data available", showarrow=False)
+def update_dashboard(selected_substances, is_mobile, age, sex, county, year):
+    """
+    Unified callback that updates the heatmap, grouped bar chart, sunburst, 
+    network graph, and sankey diagram simultaneously.
+    """
+    empty_fig = go.Figure().add_annotation(text="No data available", showarrow=False)
+    bar_caption = ""
+    
+    # If the raw data is completely missing, return empty states for everything
+    if df_raw.empty or 'substance' not in df_raw.columns:
+        return empty_fig, empty_fig, bar_caption, empty_fig, empty_fig, empty_fig
 
-    dff = df_raw.copy()
-    if "age_group" in dff.columns:
-        dff = apply_filter(dff, "age_group", age)
-    if "sex" in dff.columns:
-        dff = apply_filter(dff, "sex", sex)
-    if "county" in dff.columns:
-        dff = apply_county_filter(dff, county).copy()
-    if "year" in dff.columns:
-        dff = apply_year_filter(dff, "year", year)
-
+    # Parse selected substances once
     selected_values = (
         [v for v in selected_substances if v]
         if isinstance(selected_substances, (list, tuple, set))
         else ([selected_substances] if selected_substances else [])
     )
 
-    if selected_values and {"record_id", "substance"}.issubset(dff.columns):
-        dff = records_matching_all_selected_substances(dff, selected_values)
-
-    if dff.empty:
-        return go.Figure().add_annotation(text="No data matching filters", showarrow=False)
-
+    # ---------------------------------------------------------
+    # 1. Heatmap Generation
+    # ---------------------------------------------------------
+    dff_heat = df_raw.copy()
     if selected_values:
-        selected_label = selected_values[0] if len(selected_values) == 1 else format_display_list(selected_values)
-        selected_label_wrapped = wrap_axis_label(selected_label, max_len=28)
-        selected_set = {str(v) for v in selected_values}
+        dff_heat = records_matching_all_selected_substances(dff_heat, selected_values)
+        
+    if dff_heat.empty:
+        heatmap_fig = go.Figure().add_annotation(text="No data for selected substance(s)", showarrow=False)
+    else:
+        corr_matrix = build_correlation_matrix(dff_heat)
+        if corr_matrix.empty:
+            heatmap_fig = go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
+        else:
+            if is_mobile:
+                text_size, height, width = 9, 700, 800
+                title_text, title_size = "Substance Correlations", 14
+            else:
+                text_size, height, width = 10, 600, None
+                title_text, title_size = "Substance Co-occurrence Correlation Matrix", 16
 
-        cohort_records = dff.drop_duplicates(subset=["record_id", "substance"])
-        outer_counts = (
-            cohort_records.groupby("substance")["record_id"]
-            .nunique()
-            .sort_values(ascending=False)
-        )
-        outer_counts = outer_counts[~outer_counts.index.astype(str).isin(selected_set)]
+            subtitle = f" (records containing all of: {format_display_list(selected_values)})" if (selected_values and len(selected_values) > 1) else ""
 
-        if outer_counts.empty:
-            return go.Figure().add_annotation(
-                text="No co-occurrence data available",
-                showarrow=False,
+            heatmap_fig = go.Figure(data=go.Heatmap(
+                z=corr_matrix.values,
+                x=corr_matrix.columns,
+                y=corr_matrix.index,
+                colorscale='RdYlGn',
+                zmid=0,
+                text=corr_matrix.values,
+                texttemplate='%{text:.2f}',
+                textfont={"size": text_size},
+                colorbar=dict(title="Correlation")
+            ))
+
+            heatmap_fig.update_layout(
+                title=dict(text=title_text + subtitle, font=dict(size=title_size)),
+                xaxis=dict(side='bottom', tickangle=45, tickfont=dict(size=text_size)),
+                yaxis=dict(autorange='reversed', tickfont=dict(size=text_size)),
+                height=height,
+                width=width,
+                autosize=False if is_mobile else True
             )
+            apply_standard_heatmap_layout(heatmap_fig)
 
-        root_value = float(outer_counts.sum())
-        if root_value <= 0:
-            return go.Figure().add_annotation(
-                text="No co-occurrence data available",
-                showarrow=False,
+
+    # ---------------------------------------------------------
+    # 2. Grouped Bar Chart Generation
+    # ---------------------------------------------------------
+    co_data = build_cooccurrence_data(df_raw)
+    
+    if co_data.empty:
+        bar_fig = go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
+    else:
+        plot_width = 900 if is_mobile else None
+        
+        if selected_values:
+            matched = records_matching_all_selected_substances(df_raw, selected_values)
+            if matched.empty:
+                bar_fig = go.Figure().add_annotation(
+                    text=f"No co-occurrence data for selected substance(s): {', '.join(str(v) for v in selected_values)}",
+                    showarrow=False
+                )
+            else:
+                total_records = matched["record_id"].nunique()
+                selected_set = {str(v) for v in selected_values}
+                co_data = matched.groupby("substance")["record_id"].nunique().reset_index(name="Count")
+                co_data = co_data[~co_data["substance"].astype(str).isin(selected_set)]
+                
+                if co_data.empty:
+                    bar_fig = go.Figure().add_annotation(text="No additional co-substances found with all selected substances.", showarrow=False)
+                else:
+                    co_data = co_data.rename(columns={"substance": "Also Found"})
+                    co_data["Total"] = total_records
+                    co_data["Percentage"] = (co_data["Count"] / total_records) * 100
+                    co_data = co_data.sort_values('Percentage', ascending=False)
+                    
+                    co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
+                    co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
+                    co_data['Plot_Percentage'], co_data['Percentage_display'], _ = build_suppressed_percentage_columns(
+                        co_data['Percentage'], count_display_values=co_data['Count_formatted'], decimals=1
+                    )
+                    co_data['Cooccurrence_line'] = co_data['Percentage_display'].apply(
+                        lambda pct: f"Co-occurrence: {pct}" if pd.notna(pct) and str(pct).strip() else "Co-occurrence: Suppressed"
+                    )
+                    co_data['label'] = co_data.apply(
+                        lambda row: f"{row['Percentage_display']} (n={row['Count_formatted']})" if pd.notna(row['Percentage_display']) and str(row['Percentage_display']).strip() else row['Count_formatted'],
+                        axis=1
+                    )
+                    
+                    if len(selected_values) == 1:
+                        bar_caption = f"When {selected_values[0]} is present, % with other substances"
+                    else:
+                        bar_caption = f"When all of: {format_display_list(selected_values)} are present, % with other substances"
+
+                    if is_mobile:
+                        bar_fig = px.bar(
+                            co_data, x='Also Found', y='Plot_Percentage', orientation='v',
+                            labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
+                            text='label', hover_data={'Count': False, 'Total': False, 'label': False},
+                            custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line']
+                        )
+                        apply_standard_single_series_bar_trace(
+                            bar_fig, textangle=0,
+                            hovertemplate='<b>%{x}</b><br>%{customdata[2]}<br>Count: %{customdata[0]}<br>Total: %{customdata[1]}<extra></extra>',
+                        )
+                        max_pct = float(co_data['Plot_Percentage'].max()) if not co_data.empty else 0.0
+                        bar_fig.update_yaxes(range=[0, max_pct * 1.15 if max_pct else 1])
+                        bar_fig.update_xaxes(categoryorder='array', categoryarray=co_data['Also Found'].tolist())
+                    else:
+                        bar_fig = px.bar(
+                            co_data, x='Plot_Percentage', y='Also Found', orientation='h',
+                            labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
+                            text='label', hover_data={'Count': False, 'Total': False, 'label': False},
+                            custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line', 'Also Found']
+                        )
+                        apply_standard_single_series_bar_trace(
+                            bar_fig,
+                            hovertemplate='<b>%{y}</b><br>%{customdata[2]}<br>Count: %{customdata[0]}<br>Total: %{customdata[1]}<extra></extra>',
+                        )
+                        max_pct = float(co_data['Plot_Percentage'].max()) if not co_data.empty else 0.0
+                        bar_fig.update_xaxes(range=[0, max_pct * 1.15 if max_pct else 1])
+                        bar_fig.update_yaxes(categoryorder='array', categoryarray=co_data['Also Found'].tolist()[::-1])
+        else:
+            co_data['Count_formatted'] = co_data['Count'].apply(format_count_display)
+            co_data['Total_formatted'] = co_data['Total'].apply(format_count_display)
+            co_data['Plot_Percentage'], co_data['Percentage_display'], _ = build_suppressed_percentage_columns(
+                co_data['Percentage'], count_display_values=co_data['Count_formatted'], decimals=1
             )
+            co_data['Cooccurrence_line'] = co_data['Percentage_display'].apply(
+                lambda pct: f"Co-occurrence: {pct}" if pd.notna(pct) and str(pct).strip() else "Co-occurrence: Suppressed"
+            )
+            co_data['label'] = co_data.apply(
+                lambda row: f"{row['Percentage_display']} (n={row['Count_formatted']})" if pd.notna(row['Percentage_display']) and str(row['Percentage_display']).strip() else row['Count_formatted'] if not is_mobile else (row['Percentage_display'] if pd.notna(row['Percentage_display']) and str(row['Percentage_display']).strip() else ""),
+                axis=1
+            )
+            
+            bar_fig = px.bar(
+                co_data, x='Primary', y='Plot_Percentage', color='Also Found', barmode='group',
+                labels={'Percentage': 'Co-occurrence %', 'Primary': 'Primary Substance'},
+                hover_data={'Count': False, 'Total': False, 'label': False},
+                custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line', 'Also Found']
+            )
+            bar_fig.update_traces(
+                textposition='none', text=None, textangle=0,
+                hovertemplate='<b>%{customdata[3]}</b><br>Primary: %{x}<br>%{customdata[2]}<br>Count: %{customdata[0]}<br>Total: %{customdata[1]}<extra></extra>',
+                cliponaxis=False
+            )
+        
+        x_angle = 45 if not selected_values else (45 if is_mobile else 0)
+        bar_fig.update_layout(width=plot_width, autosize=False if is_mobile else True)
+        bar_fig.update_xaxes(tickangle=x_angle)
 
-        ids = ["root"]
-        labels = [selected_label_wrapped]
-        parents = [""]
-        values = [root_value]
-        customdata = [[int(dff["record_id"].nunique()), selected_label, selected_label]]
+        if not selected_values:
+            bar_fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5))
 
-        min_label_share = 0.04
-
-        def compact_label(value: str, max_chars: int = 12) -> str:
-            text = str(value).strip()
-            if len(text) <= max_chars:
-                return text
-            return text[: max_chars - 3].rstrip() + "..."
-
-        for substance, raw_count in outer_counts.items():
-            scaled_value = float(raw_count)
-            ids.append(f"sub::{substance}")
-            show_label = (scaled_value / root_value) >= min_label_share if root_value else False
-            label_text = substance if show_label else compact_label(substance)
-            labels.append(wrap_axis_label(label_text, max_len=20))
-            parents.append("root")
-            values.append(scaled_value)
-            customdata.append([int(raw_count), selected_label, str(substance)])
-
-        fig = go.Figure(go.Sunburst(
-            ids=ids,
-            labels=labels,
-            parents=parents,
-            values=values,
-            customdata=customdata,
-            branchvalues="total",
-            insidetextorientation="horizontal",
-            hovertemplate=(
-                "<b>%{customdata[2]}</b><br>"
-                "Raw Count: %{customdata[0]:,}<br>"
-                "Cohort: %{customdata[1]}<extra></extra>"
-            ),
-        ))
-        #apply_standard_non_axis_layout(fig, title="Substance Co-occurrence Sunburst")
-        apply_standard_non_axis_layout(fig)
-        fig.update_layout(uniformtext_minsize=8, uniformtext_mode="show")
-        return fig
-
-    sunburst_data = build_sunburst_cooccurrence_data(dff)
-    if sunburst_data.empty:
-        return go.Figure().add_annotation(
-            text="No co-occurrence data available",
-            showarrow=False,
-        )
-
-    # Count unique records per (Primary, Also Found) pair
-    pair_counts = sunburst_data.groupby(["Primary", "Also Found"])["record_id"].nunique().reset_index(name="Count")
-    
-    # Also get the total unique records per Primary substance
-    primary_totals = dff.groupby("substance")["record_id"].nunique().reset_index(name="Count")
-    
-    # Build arrays for go.Sunburst with explicit unique ids.
-    # We normalize child wedge sizes per parent so the outer ring fully covers each parent arc.
-    ids = []
-    labels = []
-    parents = []
-    values = []
-    customdata = []
-
-    primary_total_map = dict(zip(primary_totals["substance"], primary_totals["Count"]))
-
-    # Inner ring: one node per substance.
-    for _, row in primary_totals.iterrows():
-        substance = row["substance"]
-        total = float(row["Count"])
-        ids.append(f"sub::{substance}")
-        labels.append(substance)
-        parents.append("")
-        values.append(total)
-        # [raw_count, primary_substance]
-        customdata.append([int(total), substance])
-
-    # Outer ring: co-occurrence children under each primary substance.
-    # Raw counts overlap by design, so we scale child arc lengths to fill each parent exactly.
-    for primary, sub_df in pair_counts.groupby("Primary"):
-        parent_total = float(primary_total_map.get(primary, 0))
-        raw_sum = float(sub_df["Count"].sum())
-        if parent_total <= 0 or raw_sum <= 0:
-            continue
-
-        for _, row in sub_df.iterrows():
-            also_found = row["Also Found"]
-            raw_count = float(row["Count"])
-            scaled_value = parent_total * (raw_count / raw_sum)
-            ids.append(f"pair::{primary}::{also_found}")
-            labels.append(also_found)
-            parents.append(f"sub::{primary}")
-            values.append(scaled_value)
-            customdata.append([int(raw_count), primary])
-
-    fig = go.Figure(go.Sunburst(
-        ids=ids,
-        labels=labels,
-        parents=parents,
-        values=values,
-        customdata=customdata,
-        branchvalues="total",
-        hovertemplate=(
-            "<b>%{label}</b><br>"
-            "Raw Count: %{customdata[0]:,}<br>"
-            "Primary: %{customdata[1]}<extra></extra>"
-        ),
-    ))
-    apply_standard_non_axis_layout(fig, title="Substance Co-occurrence Sunburst")
-    fig.update_layout(uniformtext_minsize=8, uniformtext_mode="show")
-    return fig
+        chart_height = compute_adaptive_horizontal_bar_height(len(co_data), min_height=260, max_height=500)
+        apply_standard_bar_layout(bar_fig, height=chart_height)
 
 
-@callback(
-    Output("polysubstance-cooccurrence-network", "figure"),
-    Input("polysubstance-substance-filter", "value"),  # Not used, but keeps callback structure
-)
-def update_network(_):
-    """Create a network graph showing substance co-occurrences."""
-    
-    if df_raw.empty or 'substance' not in df_raw.columns:
-        return go.Figure().add_annotation(text="No data available", showarrow=False)
-    
-    # Build co-occurrence matrix
+    # ---------------------------------------------------------
+    # 3. Sunburst Generation
+    # ---------------------------------------------------------
+    if not {"record_id", "substance"}.issubset(df_raw.columns):
+        sunburst_fig = go.Figure().add_annotation(text="No data available", showarrow=False)
+    else:
+        dff_sun = df_raw.copy()
+        if "age_group" in dff_sun.columns: dff_sun = apply_filter(dff_sun, "age_group", age)
+        if "sex" in dff_sun.columns:       dff_sun = apply_filter(dff_sun, "sex", sex)
+        if "county" in dff_sun.columns:    dff_sun = apply_county_filter(dff_sun, county).copy()
+        if "year" in dff_sun.columns:      dff_sun = apply_year_filter(dff_sun, "year", year)
+
+        if selected_values:
+            dff_sun = records_matching_all_selected_substances(dff_sun, selected_values)
+
+        if dff_sun.empty:
+            sunburst_fig = go.Figure().add_annotation(text="No data matching filters", showarrow=False)
+        else:
+            if selected_values:
+                selected_label = selected_values[0] if len(selected_values) == 1 else format_display_list(selected_values)
+                selected_label_wrapped = wrap_axis_label(selected_label, max_len=28)
+                selected_set = {str(v) for v in selected_values}
+
+                cohort_records = dff_sun.drop_duplicates(subset=["record_id", "substance"])
+                outer_counts = cohort_records.groupby("substance")["record_id"].nunique().sort_values(ascending=False)
+                outer_counts = outer_counts[~outer_counts.index.astype(str).isin(selected_set)]
+
+                root_value = float(outer_counts.sum())
+                if outer_counts.empty or root_value <= 0:
+                    sunburst_fig = go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
+                else:
+                    ids, labels, parents, values = ["root"], [selected_label_wrapped], [""], [root_value]
+                    customdata = [[int(dff_sun["record_id"].nunique()), selected_label, selected_label]]
+
+                    def compact_label(value: str, max_chars: int = 12) -> str:
+                        text = str(value).strip()
+                        return text if len(text) <= max_chars else text[: max_chars - 3].rstrip() + "..."
+
+                    for substance_key, raw_count in outer_counts.items():
+                        scaled_value = float(raw_count)
+                        ids.append(f"sub::{substance_key}")
+                        show_label = (scaled_value / root_value) >= 0.04 if root_value else False
+                        label_text = substance_key if show_label else compact_label(substance_key)
+                        labels.append(wrap_axis_label(label_text, max_len=20))
+                        parents.append("root")
+                        values.append(scaled_value)
+                        customdata.append([int(raw_count), selected_label, str(substance_key)])
+
+                    sunburst_fig = go.Figure(go.Sunburst(
+                        ids=ids, labels=labels, parents=parents, values=values, customdata=customdata,
+                        branchvalues="total", insidetextorientation="horizontal",
+                        hovertemplate="<b>%{customdata[2]}</b><br>Raw Count: %{customdata[0]:,}<br>Cohort: %{customdata[1]}<extra></extra>",
+                    ))
+                    apply_standard_non_axis_layout(sunburst_fig)
+                    sunburst_fig.update_layout(uniformtext_minsize=8, uniformtext_mode="show")
+            else:
+                sunburst_data = build_sunburst_cooccurrence_data(dff_sun)
+                if sunburst_data.empty:
+                    sunburst_fig = go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
+                else:
+                    pair_counts = sunburst_data.groupby(["Primary", "Also Found"])["record_id"].nunique().reset_index(name="Count")
+                    primary_totals = dff_sun.groupby("substance")["record_id"].nunique().reset_index(name="Count")
+                    
+                    ids, labels, parents, values, customdata = [], [], [], [], []
+                    primary_total_map = dict(zip(primary_totals["substance"], primary_totals["Count"]))
+
+                    for _, row in primary_totals.iterrows():
+                        substance_key, total = row["substance"], float(row["Count"])
+                        ids.append(f"sub::{substance_key}")
+                        labels.append(substance_key)
+                        parents.append("")
+                        values.append(total)
+                        customdata.append([int(total), substance_key])
+
+                    for primary_key, sub_df in pair_counts.groupby("Primary"):
+                        parent_total = float(primary_total_map.get(primary_key, 0))
+                        raw_sum = float(sub_df["Count"].sum())
+                        if parent_total > 0 and raw_sum > 0:
+                            for _, row in sub_df.iterrows():
+                                also_found, raw_count = row["Also Found"], float(row["Count"])
+                                ids.append(f"pair::{primary_key}::{also_found}")
+                                labels.append(also_found)
+                                parents.append(f"sub::{primary_key}")
+                                values.append(parent_total * (raw_count / raw_sum))
+                                customdata.append([int(raw_count), primary_key])
+
+                    sunburst_fig = go.Figure(go.Sunburst(
+                        ids=ids, labels=labels, parents=parents, values=values, customdata=customdata,
+                        branchvalues="total",
+                        hovertemplate="<b>%{label}</b><br>Raw Count: %{customdata[0]:,}<br>Primary: %{customdata[1]}<extra></extra>",
+                    ))
+                    apply_standard_non_axis_layout(sunburst_fig, title="Substance Co-occurrence Sunburst")
+                    sunburst_fig.update_layout(uniformtext_minsize=8, uniformtext_mode="show")
+
+
+    # ---------------------------------------------------------
+    # 4. Network Graph Generation
+    # ---------------------------------------------------------
     cooccurrence = build_cooccurrence_matrix(df_raw)
-    
-    # Create edge list (only show edges above a threshold)
     threshold = 50
-    edges = []
-    edge_weights = []
-    
+    edges, edge_weights = [], []
     substances = list(cooccurrence.index)
     
     for i, sub1 in enumerate(substances):
         for j, sub2 in enumerate(substances):
-            if i < j:  # Only upper triangle to avoid duplicates
+            if i < j:
                 weight = cooccurrence.loc[sub1, sub2]
-                # Ensure weight is numeric for comparison
                 try:
                     weight_num = float(weight)
                 except Exception:
@@ -1402,196 +1175,91 @@ def update_network(_):
                     edge_weights.append(weight_num)
     
     if not edges:
-        return go.Figure().add_annotation(
-            text=f"No co-occurrences above threshold ({threshold})",
-            showarrow=False
-        )
-    
-    # Simple circular layout
-    n = len(substances)
-    angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
-    pos = {sub: (np.cos(angle), np.sin(angle)) for sub, angle in zip(substances, angles)}
-    
-    # Create edge traces with labels
-    edge_traces = []
-    edge_label_traces = []
-    
-    for (sub1, sub2), weight in zip(edges, edge_weights):
-        x0, y0 = pos[sub1]
-        x1, y1 = pos[sub2]
+        network_fig = go.Figure().add_annotation(text=f"No co-occurrences above threshold ({threshold})", showarrow=False)
+    else:
+        n = len(substances)
+        angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
+        pos = {sub: (np.cos(angle), np.sin(angle)) for sub, angle in zip(substances, angles)}
         
-        # Normalize weight for line width (1-10 range)
+        edge_traces, edge_label_traces = [], []
         max_weight = max(edge_weights)
-        line_width = 1 + (weight / max_weight) * 9
+
+        for (sub1, sub2), weight in zip(edges, edge_weights):
+            x0, y0 = pos[sub1]
+            x1, y1 = pos[sub2]
+            line_width = 1 + (weight / max_weight) * 9
+            
+            edge_traces.append(go.Scatter(
+                x=[x0, x1, None], y=[y0, y1, None], mode='lines',
+                line=dict(width=line_width, color='rgba(125,125,125,0.3)'),
+                hoverinfo='skip', showlegend=False
+            ))
+            
+            dx, dy = x1 - x0, y1 - y0
+            length = np.sqrt(dx**2 + dy**2)
+            perp_x, perp_y = -dy / length * 0.02, dx / length * 0.02
+            mid_x, mid_y = (x0 + x1) / 2 + perp_x, (y0 + y1) / 2 + perp_y
+            
+            edge_label_traces.append(go.Scatter(
+                x=[mid_x], y=[mid_y], mode='markers+text', text=[f"{int(weight):,}"],
+                textfont=dict(size=10, color='#ffffff', family='Arial'), textposition='middle center',
+                hovertext=f"{sub1} + {sub2}<br>Co-occurrences: {int(weight):,}", hoverinfo='text', showlegend=False,
+                marker=dict(size=20, color='#d32f2f', symbol='square', line=dict(width=0))
+            ))
         
-        # Add edge line
-        edge_traces.append(go.Scatter(
-            x=[x0, x1, None],
-            y=[y0, y1, None],
-            mode='lines',
-            line=dict(width=line_width, color='rgba(125,125,125,0.3)'),
-            hoverinfo='skip',
-            showlegend=False
-        ))
+        node_size = []
+        for sub in substances:
+            try:
+                freq = float(cooccurrence.loc[sub, sub])
+            except Exception:
+                freq = 1.0
+            node_size.append(freq / 50)
         
-        # Calculate position offset perpendicular to the line
-        # This helps spread out labels to reduce overlap
-        dx = x1 - x0
-        dy = y1 - y0
-        length = np.sqrt(dx**2 + dy**2)
+        node_trace = go.Scatter(
+            x=[pos[sub][0] for sub in substances], y=[pos[sub][1] for sub in substances],
+            mode='markers+text', text=substances, textposition='top center',
+            marker=dict(size=node_size, color='lightblue', line=dict(width=2, color='darkblue'), sizemode='area', sizeref=2.*max(node_size)/(40.**2) if node_size else 1, sizemin=4),
+            hovertext=[f"{sub}<br>Frequency: {cooccurrence.loc[sub, sub]:,.0f}" for sub in substances], hoverinfo='text', showlegend=False
+        )
         
-        # Perpendicular offset (very small displacement to stay close to line)
-        offset = 0.02
-        perp_x = -dy / length * offset
-        perp_y = dx / length * offset
-        
-        # Position label slightly offset from midpoint
-        mid_x = (x0 + x1) / 2 + perp_x
-        mid_y = (y0 + y1) / 2 + perp_y
-        
-        edge_label_traces.append(go.Scatter(
-            x=[mid_x],
-            y=[mid_y],
-            mode='markers+text',
-            text=[f"{int(weight):,}"],
-            textfont=dict(size=10, color='#ffffff', family='Arial'),
-            textposition='middle center',
-            hovertext=f"{sub1} + {sub2}<br>Co-occurrences: {int(weight):,}",
-            hoverinfo='text',
-            showlegend=False,
-            # Add background box to make text stand out
-            marker=dict(
-                size=20,
-                color='#d32f2f',
-                symbol='square',
-                line=dict(width=0)
-            )
-        ))
-    
-    # Create node trace
-    node_x = [pos[sub][0] for sub in substances]
-    node_y = [pos[sub][1] for sub in substances]
-    node_size = []
-    for sub in substances:
-        try:
-            freq = float(cooccurrence.loc[sub, sub])
-        except Exception:
-            freq = 1.0
-        node_size.append(freq / 50)
-    
-    node_trace = go.Scatter(
-        x=node_x,
-        y=node_y,
-        mode='markers+text',
-        text=substances,
-        textposition='top center',
-        marker=dict(
-            size=node_size,
-            color='lightblue',
-            line=dict(width=2, color='darkblue'),
-            sizemode='area',
-            sizeref=2.*max(node_size)/(40.**2) if node_size else 1,
-            sizemin=4
-        ),
-        hovertext=[f"{sub}<br>Frequency: {cooccurrence.loc[sub, sub]:,.0f}" for sub in substances],
-        hoverinfo='text',
-        showlegend=False
-    )
-    
-    # Combine traces: edges, edge labels, then nodes (so nodes appear on top)
-    fig = go.Figure(data=edge_traces + edge_label_traces + [node_trace])
-    apply_standard_network_layout(
-        fig,
-        node_count=len(substances),
-        title=f"Substance Co-occurrence Network (threshold: {threshold}+ cases)",
-        showlegend=False,
-        hovermode='closest',
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[-1.2, 1.2], fixedrange=True),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[-1.2, 1.2], fixedrange=True),
-        plot_bgcolor='white',
-    )
-    
-    return fig
+        network_fig = go.Figure(data=edge_traces + edge_label_traces + [node_trace])
+        apply_standard_network_layout(
+            network_fig, node_count=len(substances), title=f"Substance Co-occurrence Network (threshold: {threshold}+ cases)",
+            showlegend=False, hovermode='closest', plot_bgcolor='white',
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[-1.2, 1.2], fixedrange=True),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[-1.2, 1.2], fixedrange=True),
+        )
 
 
-@callback(
-    Output("polysubstance-cooccurrence-sankey", "figure"),
-    Input("polysubstance-substance-filter", "value"),  # Not used, but keeps callback structure
-)
-def update_sankey(_):
-    """Create a Sankey diagram showing substance flow patterns."""
-    
-    if df_raw.empty or 'substance' not in df_raw.columns:
-        return go.Figure().add_annotation(text="No data available", showarrow=False)
-    
-    # Get top substances to keep diagram readable
-    top_substances = (
-        df_raw.groupby('substance')['record_id']
-        .nunique()
-        .nlargest(8)
-        .index.tolist()
-    )
-    
-    # Filter to top substances
+    # ---------------------------------------------------------
+    # 5. Sankey Diagram Generation
+    # ---------------------------------------------------------
+    top_substances = df_raw.groupby('substance')['record_id'].nunique().nlargest(8).index.tolist()
     df_filtered = df_raw[df_raw['substance'].isin(top_substances)].copy()
     
-    # Build co-occurrence edges
-    edges = []
-    for substance in top_substances:
-        records = df_filtered[df_filtered['substance'] == substance]['record_id'].unique()
-        
+    sankey_edges = []
+    for substance_val in top_substances:
+        records = df_filtered[df_filtered['substance'] == substance_val]['record_id'].unique()
         for other_sub in top_substances:
-            if other_sub != substance:
-                count = df_filtered[
-                    (df_filtered['record_id'].isin(records)) & 
-                    (df_filtered['substance'] == other_sub)
-                ]['record_id'].nunique()
+            if other_sub != substance_val:
+                count = df_filtered[(df_filtered['record_id'].isin(records)) & (df_filtered['substance'] == other_sub)]['record_id'].nunique()
+                if count > 20:
+                    sankey_edges.append({'source': substance_val, 'target': other_sub, 'value': count})
+    
+    if not sankey_edges:
+        sankey_fig = go.Figure().add_annotation(text="Insufficient data for Sankey diagram", showarrow=False)
+    else:
+        edge_df = pd.DataFrame(sankey_edges)
+        all_nodes = list(set(edge_df['source'].tolist() + edge_df['target'].tolist()))
+        node_dict = {node: idx for idx, node in enumerate(all_nodes)}
+        
+        source_indices = [node_dict[s] for s in edge_df['source']]
+        target_indices = [node_dict[t] for t in edge_df['target']]
+        
+        sankey_fig = go.Figure(data=[go.Sankey(
+            node=dict(pad=15, thickness=20, line=dict(color="black", width=0.5), label=all_nodes, color="lightblue"),
+            link=dict(source=source_indices, target=target_indices, value=edge_df['value'].tolist(), label=[f"{edge_df.iloc[i]['value']:,.0f}" for i in range(len(edge_df))])
+        )])
+        apply_standard_sankey_layout(sankey_fig, node_count=len(all_nodes), title="Substance Co-occurrence Flow (Top 8 Substances)", font=dict(size=12))
 
-                if count > 20:  # Only show significant connections
-                    edges.append({
-                        'source': substance,
-                        'target': other_sub,
-                        'value': count
-                    })
-    
-    if not edges:
-        return go.Figure().add_annotation(text="Insufficient data for Sankey diagram", showarrow=False)
-    
-    edge_df = pd.DataFrame(edges)
-    
-    # Create node list and mappings
-    all_nodes = list(set(edge_df['source'].tolist() + edge_df['target'].tolist()))
-    node_dict = {node: idx for idx, node in enumerate(all_nodes)}
-
-    # Scale figure height with node count so lower nodes/links are not clipped.
-    node_count = len(all_nodes)
-    
-    # Map to indices
-    source_indices = [node_dict[s] for s in edge_df['source']]
-    target_indices = [node_dict[t] for t in edge_df['target']]
-    
-    # Create Sankey
-    fig = go.Figure(data=[go.Sankey(
-        node=dict(
-            pad=15,
-            thickness=20,
-            line=dict(color="black", width=0.5),
-            label=all_nodes,
-            color="lightblue"
-        ),
-        link=dict(
-            source=source_indices,
-            target=target_indices,
-            value=edge_df['value'].tolist(),
-            label=[f"{edge_df.iloc[i]['value']:,.0f}" for i in range(len(edge_df))]
-        )
-    )])
-    
-    apply_standard_sankey_layout(
-        fig,
-        node_count=node_count,
-        title="Substance Co-occurrence Flow (Top 8 Substances)",
-        font=dict(size=12),
-    )
-    
-    return fig
+    return heatmap_fig, bar_fig, bar_caption, sunburst_fig, network_fig, sankey_fig
