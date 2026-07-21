@@ -65,12 +65,11 @@ def get_standard_filter_label(label: str) -> str:
 
 import pandas as pd
 import dash_bootstrap_components as dbc
-from dash import html, dcc
+from dash import html, dcc, callback_context
 from theme import register_template
 import re
 import textwrap
 import math
-
 
 STATEWIDE_COUNTY = "Statewide"
 COUNT_SUPPRESSION_THRESHOLD = 10
@@ -964,6 +963,30 @@ def apply_standard_bar_layout(
     if margin:
         merged_margin.update(margin)
 
+    # --- NEW AUTO-SUBTITLE LOGIC ---
+    filter_context = _get_active_filters_from_ctx()
+    
+    if filter_context:
+        # Extract the existing title (if one was passed)
+        title_obj = layout_kwargs.get("title", "")
+        title_text = title_obj.get("text", "") if isinstance(title_obj, dict) else str(title_obj)
+        
+        # Append the filter string
+        new_title = f"{title_text}{filter_context}" if title_text else filter_context
+        
+        # Apply the new title
+        layout_kwargs["title"] = dict(text=new_title)
+        
+        # Dynamically expand the top margin based on the number of <br> tags
+        needed_margin = 60 + (filter_context.count("<br>") * 15)
+        if merged_margin.get("t", 0) < needed_margin:
+            merged_margin["t"] = needed_margin
+            
+        # Ensure the left margin is wide enough to prevent title clipping
+        if merged_margin.get("l", 0) < 20:
+            merged_margin["l"] = 20
+    # -------------------------------
+
     merged_xaxis = {"automargin": True}
     if xaxis:
         merged_xaxis.update(xaxis)
@@ -1465,3 +1488,102 @@ def radio_filter(label: str, control_id: str, **kwargs):
     kwargs.setdefault("persistence", control_id)
     kwargs.setdefault("persistence_type", "session")
     return get_standard_filter_label(label), dcc.RadioItems(id=control_id, **kwargs)
+
+
+def build_active_filters_subtitle(
+    filter_dict: dict, 
+    max_line_length: int = 120, 
+    max_chars_per_value: int = 60
+) -> str:
+    """
+    Builds a formatted HTML subtitle string of active filters for Plotly charts.
+    Designed to embed context into charts downloaded as PNGs.
+    
+    Args:
+        filter_dict: Dictionary mapping filter labels to their current values.
+                     Example: {"Year": [2024], "County": None, "Sex": ["Male"]}
+        max_line_length: Characters per line before inserting a <br> break.
+        max_chars_per_value: Truncates extremely long lists (e.g., 10 selected cities). Defaults to 60 characters.
+    """    
+    active_filters = []
+    
+    for label, val in filter_dict.items():
+        # Skip if the filter is None or an empty list/tuple
+        if val is None or (isinstance(val, (list, tuple, set)) and len(val) == 0):
+            continue
+            
+        # Format the value
+        if isinstance(val, (list, tuple, set)):
+            display_val = format_display_list(val)
+        else:
+            display_val = str(val)
+            
+        # Truncate if the user selected a massive list of options
+        if len(display_val) > max_chars_per_value:
+            display_val = display_val[:max_chars_per_value].rsplit(' ', 1)[0] + "..."
+            
+        active_filters.append(f"{label}: {display_val}")
+            
+    # Compile the final text
+    if not active_filters:
+        filter_text = "Filters: None applied (showing all data)"
+    else:
+        filter_text = "Filters — " + " | ".join(active_filters)
+        
+    # Wrap the text so it doesn't run off the edge of the downloaded PNG
+    wrapped_lines = textwrap.wrap(filter_text, width=max_line_length)
+    wrapped_text = "<br>".join(wrapped_lines)
+    
+    # Return formatted with Plotly-supported HTML tags
+    return f"<br><span style='font-size: 11px; color: #6c757d;'>{wrapped_text}</span>"
+
+
+def _get_active_filters_from_ctx(max_line_length: int = 120, max_chars_per_value: int = 60) -> str:
+    """
+    Automatically extracts active filters from the current Dash callback,
+    translates their component IDs to human-readable labels, and formats a subtitle.
+    """
+    ctx = callback_context
+    if not ctx or not hasattr(ctx, 'inputs') or not ctx.inputs:
+        return ""
+
+    active_filters = {}
+    for prop_id, val in ctx.inputs.items():
+        # Ignore empty lists, Nones, and unselected filters
+        if val is None or (isinstance(val, (list, tuple, set)) and len(val) == 0):
+            continue
+
+        comp_id = prop_id.split('.')[0].lower()
+        
+        # Skip generic buttons, toggles, or non-filter inputs
+        if not comp_id.endswith('-filter') and 'date' not in comp_id:
+            continue
+
+        label = None
+        
+        # 1. Try to match the ID against your existing FILTER_LABELS dictionary
+        # Sort by length descending so "race_ethnicity" matches before "race"
+        for k, v in sorted(FILTER_LABELS.items(), key=lambda item: len(str(item[0])), reverse=True):
+            k_normalized = str(k).lower().replace(" ", "_").replace("/", "")
+            comp_normalized = comp_id.replace("-", "_")
+            if k_normalized in comp_normalized:
+                label = v
+                break
+                
+        # 2. Hardcoded fallbacks for specific edge cases
+        if not label:
+            if "-mh-" in comp_id: label = "Mental Health Diagnosis"
+            elif "-su-" in comp_id: label = "Substance"
+            elif "start-date" in comp_id: label = "Start Date"
+            elif "end-date" in comp_id: label = "End Date"
+            else:
+                # 3. Final fallback: extract the word just before "-filter"
+                parts = comp_id.split('-')
+                if len(parts) >= 2 and parts[-1] == "filter":
+                    label = parts[-2].title()
+                else:
+                    label = comp_id
+
+        active_filters[label] = val
+
+    return build_active_filters_subtitle(active_filters, max_line_length, max_chars_per_value)
