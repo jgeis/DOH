@@ -978,8 +978,16 @@ def apply_standard_bar_layout(
         
         # Dynamically expand the top margin based on the number of <br> tags
         needed_margin = 60 + (filter_context.count("<br>") * 15)
-        if merged_margin.get("t", 0) < needed_margin:
+        current_t = merged_margin.get("t", 0)
+        
+        if current_t < needed_margin:
+            # Calculate how much extra space we are stealing for the text
+            extra_space_needed = needed_margin - current_t
             merged_margin["t"] = needed_margin
+            
+            # IMPORTANT: Expand the total figure height so the bars don't get crushed!
+            if "height" in layout_kwargs and isinstance(layout_kwargs["height"], (int, float)):
+                layout_kwargs["height"] += extra_space_needed
             
         # Ensure the left margin is wide enough to prevent title clipping
         if merged_margin.get("l", 0) < 20:
@@ -1601,8 +1609,6 @@ def _get_active_filters_from_ctx(max_line_length: int = 120, max_chars_per_value
     translates their component IDs to human-readable labels, and formats a subtitle.
     """
     try:
-        # If this is called during app initialization (outside a callback), 
-        # accessing .inputs will throw a MissingCallbackContextException.
         inputs = callback_context.inputs
     except exceptions.MissingCallbackContextException:
         return ""
@@ -1622,30 +1628,33 @@ def _get_active_filters_from_ctx(max_line_length: int = 120, max_chars_per_value
         if not comp_id.endswith('-filter') and 'date' not in comp_id:
             continue
 
+        # Strip the "-filter" suffix so we can evaluate the actual unique filter name at the end
+        if comp_id.endswith('-filter'):
+            base_id = comp_id[:-7].replace("-", "_")  # e.g., cooccur_su_mh_county
+        else:
+            base_id = comp_id.replace("-", "_")
+
         label = None
         
-        # 1. Try to match the ID against your existing FILTER_LABELS dictionary
-        # Sort by length descending so "race_ethnicity" matches before "race"
-        for k, v in sorted(FILTER_LABELS.items(), key=lambda item: len(str(item[0])), reverse=True):
-            k_normalized = str(k).lower().replace(" ", "_").replace("/", "")
-            comp_normalized = comp_id.replace("-", "_")
-            if k_normalized in comp_normalized:
-                label = v
-                break
+        # 1. Match the END of the ID against the dictionary to ignore dashboard prefixes
+        # Check if FILTER_LABELS is defined in this file to avoid NameErrors
+        if 'FILTER_LABELS' in globals():
+            for k, v in sorted(FILTER_LABELS.items(), key=lambda item: len(str(item[0])), reverse=True):
+                k_normalized = str(k).lower().replace(" ", "_").replace("/", "")
+                # Stricter check: Does the base ID end with this exact key?
+                if base_id.endswith(k_normalized):
+                    label = v
+                    break
                 
-        # 2. Hardcoded fallbacks for specific edge cases
+        # 2. Hardcoded fallbacks anchored to the end of the ID
         if not label:
-            if "-mh-" in comp_id: label = "Mental Health Diagnosis"
-            elif "-su-" in comp_id: label = "Substance"
-            elif "start-date" in comp_id: label = "Start Date"
-            elif "end-date" in comp_id: label = "End Date"
+            if base_id.endswith("mh"): label = "Mental Health Diagnosis"
+            elif base_id.endswith("su"): label = "Substance Type"
+            elif "start_date" in base_id: label = "Start Date"
+            elif "end_date" in base_id: label = "End Date"
             else:
-                # 3. Final fallback: extract the word just before "-filter"
-                parts = comp_id.split('-')
-                if len(parts) >= 2 and parts[-1] == "filter":
-                    label = parts[-2].title()
-                else:
-                    label = comp_id
+                # 3. Final fallback: extract the last word (e.g., "county" -> "County")
+                label = base_id.split('_')[-1].title()
 
         active_filters[label] = val
 
