@@ -54,7 +54,7 @@ import pytest
 import pandas as pd
 import plotly.graph_objects as go
 import sudors_dashboard
-
+from tests.test_utils import assert_returned_tables_sort_order
 
 class TestSudorsPageStructure:
     """Test basic page structure and initialization."""
@@ -69,51 +69,10 @@ class TestSudorsPageStructure:
         assert hasattr(sudors_dashboard, 'update_dashboard'), "Module should have update_dashboard callback"
         assert hasattr(sudors_dashboard, 'reset_all_filters'), "Module should have reset_all_filters callback"
 
-    def test_right_column_table_sort_order(self):
-        """
-        Verify that the tables in the right-hand column are ordered according
-        to the standardized dashboard_utils.RIGHT_TABLE_LABEL_ORDER.
-        """
-        layout = sudors_dashboard.layout
-        
-        # We will do a depth-first search of the Dash component tree to extract IDs
-        # in the exact order they will be rendered in the DOM.
-        rendered_ids = []
-        
-        def traverse(component):
-            # Base case: if it has an id, and it's one of our summary tables, record it
-            if hasattr(component, 'id') and component.id and str(component.id).startswith('sudors-table-'):
-                rendered_ids.append(component.id)
-                
-            # Recursive case: traverse children
-            if hasattr(component, 'children'):
-                children = component.children
-                if isinstance(children, (list, tuple)):
-                    for child in children:
-                        traverse(child)
-                elif children is not None:
-                    traverse(children)
-                    
-        traverse(layout)
-        
-        # Expected order based on dashboard_utils.RIGHT_TABLE_LABEL_ORDER
-        # Calendar Year -> Age Group -> Sex at Birth -> Race/Ethnicity -> Homeless
-        expected_order = [
-            'sudors-table-year',
-            'sudors-table-age',
-            'sudors-table-sex',
-            'sudors-table-race',
-            'sudors-table-homeless'
-        ]
-        
-        # Filter rendered_ids to just our expected tables (ignores any other charts/KPIs)
-        actual_order = [table_id for table_id in rendered_ids if table_id in expected_order]
-        
-        assert actual_order == expected_order, (
-            f"Tables rendered in wrong order.\n"
-            f"Expected: {expected_order}\n"
-            f"Got:      {actual_order}"
-        )
+    def test_callback_returns_tables_in_canonical_order(self):
+        """Verify the update_dashboard callback returns tables sorted by dashboard_utils."""
+        assert_returned_tables_sort_order(sudors_dashboard)
+
 
 class TestSudorsDataLoading:
     """Test data loading and initialization with real data."""

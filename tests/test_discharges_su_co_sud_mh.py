@@ -16,6 +16,7 @@ import pytest
 import pandas as pd
 import plotly.graph_objects as go
 import discharges_su_co_sud_mh_dashboard
+from tests.test_utils import assert_returned_tables_sort_order
 
 
 class TestPageStructure:
@@ -41,6 +42,9 @@ class TestPageStructure:
         assert hasattr(discharges_su_co_sud_mh_dashboard, 'layout'), "Module should have layout"
         assert hasattr(discharges_su_co_sud_mh_dashboard, 'update_dashboard'), "Module should have update_dashboard callback"
 
+    def test_callback_returns_tables_in_canonical_order(self):
+        """Verify the update_dashboard callback returns tables sorted by dashboard_utils."""
+        assert_returned_tables_sort_order(discharges_su_co_sud_mh_dashboard)
 
 class TestDataLoading:
     """Test data loading and initialization with real data."""

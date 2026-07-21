@@ -15,6 +15,7 @@ import pytest
 import pandas as pd
 import plotly.graph_objects as go
 import adad_dashboard
+from tests.test_utils import assert_returned_tables_sort_order
 from datetime import date
 
 # Helper function to parse the dbc.Table component for easier testing
@@ -33,6 +34,32 @@ def parse_table_from_layout(table_layout):
         data[category] = value
         
     return data
+
+class TestPageStructure:
+    """Test basic page structure and initialization."""
+    
+    def test_adad_page_registered(self):
+        """Test that adad page is registered."""
+        from dash import page_registry
+        import multi_dashboard  # Ensures pages are registered
+        
+        paths = [page['path'] for page in page_registry.values()]
+        assert '/adad' in paths, "adad page should be registered"
+    
+    def test_adad_page_has_layout(self):
+        """Test that adad page has a layout."""
+        from pages import adad
+        assert hasattr(adad, 'layout'), "Page should have layout attribute"
+        assert adad.layout is not None, "Layout should not be None"
+    
+    def test_adad_imports_correctly(self):
+        """Test that adad_dashboard module can be imported."""
+        assert hasattr(adad_dashboard, 'layout'), "Module should have layout"
+        assert hasattr(adad_dashboard, 'update_dashboard'), "Module should have update callback"
+
+    def test_callback_returns_tables_in_canonical_order(self):
+        """Verify the update_dashboard callback returns tables sorted by dashboard_utils."""
+        assert_returned_tables_sort_order(adad_dashboard)
 
 
 @pytest.mark.integration

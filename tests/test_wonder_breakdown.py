@@ -22,6 +22,7 @@ import pytest
 import pandas as pd
 import plotly.graph_objects as go
 import wonder_breakdown_dashboard
+from tests.test_utils import assert_returned_tables_sort_order
 from dashboard_utils import STATEWIDE_COUNTY
 
 
@@ -62,6 +63,9 @@ class TestWonderBreakdownPageStructure:
         assert desktop_layout is not None
         assert mobile_layout is not None
 
+    def test_callback_returns_tables_in_canonical_order(self):
+        """Verify the update_dashboard callback returns tables sorted by dashboard_utils."""
+        assert_returned_tables_sort_order(wonder_breakdown_dashboard)
 
 class TestWonderBreakdownDataLoading:
     """Test data loading and initialization with real data."""
