@@ -11,6 +11,7 @@ TAB_PATHS = {
     "/dose": "Drug Overdose Surveillance and Epidemiology (DOSE)",
     "/dose-polysubstance": "DOSE Polysubstance Co-occurrence",
     "/discharges-su-polysubstance": "Related to Polysubstance Use",
+    "/discharges-cooccurring-su-and-mh": "Related to co-occurring substance use and mental health disorders",
     "/wonder-overview": "CDC WONDER Overdose Deaths Overview",
     "/wonder-breakdown": "WONDER Overdose Deaths Breakdown",
     "/cares-call-volume": "Hawaiʻi CARES Crisis Center Volume",
@@ -32,6 +33,7 @@ NAV_GROUPS = {
     "substance": [
         ("/discharges-su", "Any Discharge Related to Substance Use"),
         ("/discharges-su-polysubstance", "Related to Polysubstance Use"),
+        ("/discharges-cooccurring-su-and-mh", "Related to co-occurring substance use and mental health disorders"),
         ("/discharges-su-co-sud-mh", "Related to co-occurring SUD (primary) and MH disorder (secondary)"),
         ("/discharges-su-co-mh-sud", "Related to co-occurring MH disorder (primary) and SUD (secondary)"),
         # ("/polysubstance-alt", "Polysubstance Alternates"),
@@ -68,6 +70,7 @@ NAV_GROUPS = {
 ROUTE_TO_GROUP = {
     "/discharges-su": "substance",
     "/discharges-su-polysubstance": "substance",
+    "/discharges-cooccurring-su-and-mh": "substance",
     "/discharges-su-co-sud-mh": "substance",
     "/discharges-su-co-mh-sud": "substance",
     "/discharges-mh": "mental_health_discharges",

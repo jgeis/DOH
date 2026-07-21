@@ -304,6 +304,41 @@ INNER JOIN discharge_data_view_demographics_test demo
  ON demo.record_id = dx.record_id
 WHERE LOWER(COALESCE(NULLIF(TRIM(demo.age_group), ''), 'unknown')) <> 'unknown';
 
+-- name: load_discharges_cooccuring_su_and_mh
+WITH diag AS (
+ SELECT DISTINCT
+   record_id,
+   REPLACE(TRIM(diagnosis), 'Dissacociative', 'Dissociative') AS diagnosis,
+   diagnosis_type
+ FROM discharge_data_view_diagnosis
+ WHERE diagnosis IS NOT NULL
+   AND TRIM(diagnosis) <> ''
+),
+cooccur as 
+(select distinct record_id from discharge_data_view 
+where 
+	num_substance > 0
+	and num_mental > 0
+  and (su_primary = 1 
+	or mh_primary = 1))
+SELECT distinct
+ dx.record_id,
+ dx.diagnosis,
+ dx.diagnosis_type,
+ demo.county,
+ demo.city,
+ demo.zip,
+ demo.hawaii_residency,
+ demo.age_group,
+ demo.sex,
+ demo.race_ethnicity,
+ CAST(demo.year AS INTEGER) AS year
+FROM diag dx
+INNER JOIN cooccur co 
+ ON co.record_id = dx.record_id
+INNER JOIN discharge_data_view_demographics_test demo
+ ON demo.record_id = dx.record_id
+WHERE LOWER(COALESCE(NULLIF(TRIM(demo.age_group), ''), 'unknown')) <> 'unknown';
 
 -- name: load_crisis_mobile_outreach
 SELECT 

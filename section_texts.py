@@ -43,6 +43,10 @@ SECTION_TEXTS = {
         "This data visual highlights emergency department (ED) discharges involving mental health as a primary factor. Data include diagnosis and demographic breakdowns by age group, sex assigned at birth, county, and year. ",
         "* Per data sharing agreements, ED data values less than 10 are suppressed and are displayed as <10*."
     ],
+    "discharges-cooccurring-su-and-mh": [
+        "This data visual highlights emergency department (ED) discharges involving co-occurring substance use and mental health disorders. Data include substance types, mental health diagnoses, and demographic breakdowns by age group, sex assigned at birth, county, and year.",
+        "* Per data sharing agreements, ED data values less than 10 are suppressed and are displayed as <10*."
+    ],
     "discharges-su-co-mh-sud": [
         "This data visual highlights emergency department (ED) discharges involving substance use as a primary factor. Data include substance types and demographic breakdowns by age group, sex assigned at birth, county, and year. Specific substances tracked are not mutually exclusive and include alcohol, nicotine, cannabis, opioids, cocaine, stimulants, and psychoactive drugs, among others.",
         "* Per data sharing agreements, ED data values less than 10 are suppressed and are displayed as <10*."
