@@ -2,7 +2,7 @@
 
 import pandas as pd
 import dash_bootstrap_components as dbc
-from dash import dcc, html, Output, callback
+from dash import dcc, html, Output, Input, callback
 import plotly.express as px
 
 from config import USE_MSSQL
@@ -71,6 +71,7 @@ def layout():
     """
     return dbc.Container(
         [
+            html.Div(id="cmo-trigger", style={"display": "none"}),
             dbc.Row(
                 dbc.Col(
                     [
@@ -121,8 +122,9 @@ def layout():
 
 @callback(
     Output("cmo-referral-bar", "figure"),
+    Input("cmo-trigger", "children"),
 )
-def update_dashboard():
+def update_dashboard(_):
     """
     Simplified callback that generates the bar chart from pre-aggregated data,
     using the new column names from the query (referral_destination, cnt, pct).
