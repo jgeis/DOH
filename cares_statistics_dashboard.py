@@ -190,7 +190,7 @@ def _load_calls_line_chart():
         fig.update_yaxes(tickmode="array", tickvals=tickvals, ticktext=ticktext)
 
     fig.update_traces(hovertemplate="%{fullData.name}: %{y:,}<extra></extra>")
-    fig.update_layout(hovermode="x unified", hoversort="value descending")
+    fig.update_layout(hovermode="x unified")
 
     return fig
 
