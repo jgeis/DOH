@@ -1,4 +1,17 @@
+# dashboard_utils.py — Shared utilities for dashboards
+
 from db_utils import execute_query
+import pandas as pd
+import dash_bootstrap_components as dbc
+from dash import html, dcc, callback_context, exceptions
+from theme import register_template
+import re
+import textwrap
+import math
+
+STATEWIDE_COUNTY = "Statewide"
+COUNT_SUPPRESSION_THRESHOLD = 10
+SUPPRESSED_COUNT_LABEL = "<10*"
 
 # Mapping from code/column names to canonical filter display labels
 FILTER_LABELS = {
@@ -61,20 +74,6 @@ def get_standard_filter_label(label: str) -> str:
     if label.title() in FILTER_LABELS:
         return FILTER_LABELS[label.title()]
     return label
-# dashboard_utils.py — Shared utilities for dashboards
-
-import pandas as pd
-import dash_bootstrap_components as dbc
-from dash import html, dcc, callback_context, exceptions
-from theme import register_template
-import re
-import textwrap
-import math
-
-STATEWIDE_COUNTY = "Statewide"
-COUNT_SUPPRESSION_THRESHOLD = 10
-SUPPRESSED_COUNT_LABEL = "<10*"
-
 
 # Custom table styling - light green striping for all summary tables
 # This CSS should be added to your assets/custom.css file for the styling to work:
