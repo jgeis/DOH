@@ -65,7 +65,7 @@ def get_standard_filter_label(label: str) -> str:
 
 import pandas as pd
 import dash_bootstrap_components as dbc
-from dash import html, dcc, callback_context
+from dash import html, dcc, callback_context, exceptions
 from theme import register_template
 import re
 import textwrap
@@ -1160,6 +1160,35 @@ def apply_standard_line_layout(
     if margin:
         merged_margin.update(margin)
 
+    # --- NEW AUTO-SUBTITLE LOGIC ---
+    filter_context = _get_active_filters_from_ctx()
+    
+    if filter_context:
+        # Extract the existing title (if one was passed)
+        title_obj = layout_kwargs.get("title", "")
+        
+        # Handle cases where title might explicitly be None
+        if title_obj is None:
+            title_text = ""
+        else:
+            title_text = title_obj.get("text", "") if isinstance(title_obj, dict) else str(title_obj)
+        
+        # Append the filter string
+        new_title = f"{title_text}{filter_context}" if title_text else filter_context
+        
+        # Apply the new title
+        layout_kwargs["title"] = dict(text=new_title)
+        
+        # Dynamically expand the top margin based on the number of <br> tags
+        needed_margin = 60 + (filter_context.count("<br>") * 15)
+        if merged_margin.get("t", 0) < needed_margin:
+            merged_margin["t"] = needed_margin
+            
+        # Ensure the left margin is wide enough to prevent title clipping
+        if merged_margin.get("l", 0) < 20:
+            merged_margin["l"] = 20
+    # -------------------------------
+
     merged_xaxis = {"automargin": True, "dtick": 1}
     if xaxis:
         merged_xaxis.update(xaxis)
@@ -1220,6 +1249,35 @@ def apply_standard_non_axis_layout(
     merged_margin = STANDARD_NON_AXIS_MARGIN.copy()
     if margin:
         merged_margin.update(margin)
+
+    # --- NEW AUTO-SUBTITLE LOGIC ---
+    filter_context = _get_active_filters_from_ctx()
+    
+    if filter_context:
+        # Extract the existing title (if one was passed)
+        title_obj = layout_kwargs.get("title", "")
+        
+        # Handle cases where title might explicitly be None
+        if title_obj is None:
+            title_text = ""
+        else:
+            title_text = title_obj.get("text", "") if isinstance(title_obj, dict) else str(title_obj)
+        
+        # Append the filter string
+        new_title = f"{title_text}{filter_context}" if title_text else filter_context
+        
+        # Apply the new title
+        layout_kwargs["title"] = dict(text=new_title)
+        
+        # Dynamically expand the top margin based on the number of <br> tags
+        needed_margin = 60 + (filter_context.count("<br>") * 15)
+        if merged_margin.get("t", 0) < needed_margin:
+            merged_margin["t"] = needed_margin
+            
+        # Ensure the left margin is wide enough to prevent title clipping
+        if merged_margin.get("l", 0) < 20:
+            merged_margin["l"] = 20
+    # -------------------------------
 
     fig.update_layout(
         margin=merged_margin,
@@ -1543,12 +1601,18 @@ def _get_active_filters_from_ctx(max_line_length: int = 120, max_chars_per_value
     Automatically extracts active filters from the current Dash callback,
     translates their component IDs to human-readable labels, and formats a subtitle.
     """
-    ctx = callback_context
-    if not ctx or not hasattr(ctx, 'inputs') or not ctx.inputs:
+    try:
+        # If this is called during app initialization (outside a callback), 
+        # accessing .inputs will throw a MissingCallbackContextException.
+        inputs = callback_context.inputs
+    except exceptions.MissingCallbackContextException:
+        return ""
+
+    if not inputs:
         return ""
 
     active_filters = {}
-    for prop_id, val in ctx.inputs.items():
+    for prop_id, val in inputs.items():
         # Ignore empty lists, Nones, and unselected filters
         if val is None or (isinstance(val, (list, tuple, set)) and len(val) == 0):
             continue
