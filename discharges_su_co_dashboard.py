@@ -318,14 +318,6 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
         )
 
         apply_standard_bar_layout(sub_bar)
-        
-        # Highlight selected substances in a lighter green
-        if su:
-            colors = [
-                "rgba(34, 118, 124, 0.5)" if diag in su else "#22767C"  # Light green for selected, standard green for non-selected
-                for diag in by_sub["diagnosis"]
-            ]
-            sub_bar.update_traces(marker_color=colors)
     else:
         sub_bar = px.bar()
 
@@ -360,14 +352,6 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
         )
 
         apply_standard_bar_layout(mh_bar)
-        
-        # Highlight selected mental health diagnoses in a lighter green
-        if mh:
-            colors = [
-                "rgba(34, 118, 124, 0.5)" if diag in mh else "#22767C"  # Light green for selected, standard green for non-selected
-                for diag in by_mh["diagnosis"]
-            ]
-            mh_bar.update_traces(marker_color=colors)
     else:
         mh_bar = px.bar()
 
