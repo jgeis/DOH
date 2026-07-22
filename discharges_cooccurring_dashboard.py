@@ -1,4 +1,4 @@
-# discharges_su_co_dashboard.py — Related to co-occurring substance use and mental health disorders
+# discharges_cooccurring_dashboard.py — Related to co-occurring substance use and mental health disorders
 
 from db_utils import execute_query
 import pandas as pd
