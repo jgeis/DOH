@@ -541,12 +541,13 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
             cooccur_bar = px.bar()
     
     # Summary tables
-    def summary_table(group_col, categories=None):
+    def summary_table(group_col, categories=None, filter_selection=None):
         return build_summary_count_table(
             df,
             group_col=group_col,
             id_col="record_id",
             categories=categories,
+            filter_selection=filter_selection,
             include_statewide_county=(group_col == "county" and include_statewide_county_outputs),
             count_label="Records",
         )
@@ -560,9 +561,9 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
         county_line,
         sunburst_fig,
         cooccur_bar,
-        summary_table("county", county_opts),
-        summary_table("age_group", dose_age_groups),
-        summary_table("sex", sex_opts),
-        summary_table("race_ethnicity", race_ethnicity_opts),
-        summary_table("hawaii_residency", residency_opts),
+        summary_table("county", county_opts, filter_selection=county),
+        summary_table("age_group", dose_age_groups, filter_selection=age),
+        summary_table("sex", sex_opts, filter_selection=sex),
+        summary_table("race_ethnicity", race_ethnicity_opts, filter_selection=race),
+        summary_table("hawaii_residency", residency_opts, filter_selection=residency),
     )

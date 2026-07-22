@@ -469,19 +469,20 @@ def update_dashboard(substance, homeless, sex, age, race, year):
 
    # ---------- Helper for the summary tables ----------
    # Use shared build_summary_count_table for summary tables
-   def summary_table(group_col, categories=None):
+   def summary_table(group_col, categories=None, filter_selection=None):
         return build_summary_count_table(
             dff,
             group_col=group_col,
             id_col="incident_id",
             categories=categories,
+            filter_selection=filter_selection,
             count_label="Deaths",
         )
-   table_race = summary_table("race_ethnicity", categories=race_opts)
-   table_sex = summary_table("sex", categories=sex_opts)
-   table_homeless = summary_table("homeless", categories=homeless_opts)
-   table_year = summary_table("year", categories=year_opts)
-   table_age = summary_table("age_cat", categories=age_opts)
+   table_race = summary_table("race_ethnicity", categories=race_opts, filter_selection=race)
+   table_sex = summary_table("sex", categories=sex_opts, filter_selection=sex)
+   table_homeless = summary_table("homeless", categories=homeless_opts, filter_selection=homeless)
+   table_year = summary_table("year", categories=year_opts, filter_selection=year)
+   table_age = summary_table("age_cat", categories=age_opts, filter_selection=age)
 
    # ---------- Bar chart: Deaths by Substance ----------
    if {"substance"}.issubset(dff.columns):

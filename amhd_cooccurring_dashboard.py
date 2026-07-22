@@ -260,7 +260,20 @@ def update_dashboard(view, sel_years, sel_service_categories):
         table_df = amhd_cooccurring_kpi_category_rows.rename(columns={"service_category": "Service Category", "consumer_count": "Number of AMHD Co-Occurring Consumers"}).copy()
     else:
         dff_for_table = _filter_amhd_cooccurring_series(df_year_categories, sel_years, None)
-        table_df = dff_for_table.groupby("service_category", as_index=False)["consumer_count"].sum().rename(columns={"service_category": "Service Category", "consumer_count": "Number of AMHD Co-Occurring Consumers"}).sort_values("Number of AMHD Co-Occurring Consumers", ascending=False)
+        table_df = dff_for_table.groupby("service_category", as_index=False)["consumer_count"].sum().rename(columns={"service_category": "Service Category", "consumer_count": "Number of AMHD Co-Occurring Consumers"})
+
+    # Determine which categories to show based on filter
+    categories_to_show = service_category_opts
+    if sel_service_categories:
+        categories_to_show = sel_service_categories
+    
+    # Ensure all selected categories show, even if zero
+    full_categories = pd.DataFrame({"Service Category": categories_to_show})
+    table_df = full_categories.merge(table_df, on="Service Category", how="left")
+    table_df["Number of AMHD Co-Occurring Consumers"] = table_df["Number of AMHD Co-Occurring Consumers"].fillna(0).astype(int)
+    
+    # Sort by count descending
+    table_df = table_df.sort_values("Number of AMHD Co-Occurring Consumers", ascending=False)
 
     table_df["Number of AMHD Co-Occurring Consumers"] = table_df["Number of AMHD Co-Occurring Consumers"].apply(format_count_display)
     service_category_table = create_styled_table(table_df)

@@ -335,12 +335,13 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
 
     # ---------- Helper for the summary tables ----------
     # Use shared build_summary_count_table for summary tables
-    def summary_table(group_col, categories=None):
+    def summary_table(group_col, categories=None, filter_selection=None):
         return build_summary_count_table(
             dose_df,
             group_col=group_col,
             id_col="record_id",
             categories=categories,
+            filter_selection=filter_selection,
             include_statewide_county=(group_col == "county" and include_statewide_county_outputs),
         )
     
@@ -402,9 +403,9 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         dose_bar,
         dose_line,
         map_fig,
-        summary_table("county", dose_county_opts),
-        summary_table("age_group", dose_age_groups),
-        summary_table("sex", dose_sex_opts),
-        summary_table("race_ethnicity", dose_race_ethnicity_opts),
-        summary_table("hawaii_residency", dose_residency_opts),
+        summary_table("county", dose_county_opts, filter_selection=county),
+        summary_table("age_group", dose_age_groups, filter_selection=age),
+        summary_table("sex", dose_sex_opts, filter_selection=sex),
+        summary_table("race_ethnicity", dose_race_ethnicity_opts, filter_selection=race_ethnicity),
+        summary_table("hawaii_residency", dose_residency_opts, filter_selection=hawaii_residency),
     )

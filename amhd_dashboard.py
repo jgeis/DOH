@@ -370,9 +370,21 @@ def update_dashboard(view, sel_years, sel_service_categories):
                 "service_category": "Service Category",
                 "client_count": "Number of AMHD Consumers",
             })
-            .sort_values("Number of AMHD Consumers", ascending=False)
         )
 
+    # Determine which categories to show based on filter
+    categories_to_show = service_category_opts
+    if sel_service_categories:
+        categories_to_show = sel_service_categories
+    
+    # Ensure all selected categories show, even if zero
+    full_categories = pd.DataFrame({"Service Category": categories_to_show})
+    table_df = full_categories.merge(table_df, on="Service Category", how="left")
+    table_df["Number of AMHD Consumers"] = table_df["Number of AMHD Consumers"].fillna(0).astype(int)
+    
+    # Sort by count descending
+    table_df = table_df.sort_values("Number of AMHD Consumers", ascending=False)
+    
     table_df["Number of AMHD Consumers"] = table_df["Number of AMHD Consumers"].apply(format_count_display)
     service_category_table = create_styled_table(table_df)
 

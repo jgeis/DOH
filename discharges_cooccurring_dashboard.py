@@ -451,13 +451,14 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
 
     county_categories = sort_opts(county_opts) if county_opts else None
 
-    def summary_table(group_col, categories=None):
+    def summary_table(group_col, categories=None, filter_selection=None):
         if dff.empty:
             return build_summary_count_table(
                 pd.DataFrame(columns=df_raw.columns),
                 group_col=group_col,
                 id_col="record_id",
                 categories=categories,
+                filter_selection=filter_selection,
                 include_statewide_county=(group_col == "county" and include_statewide_county_outputs),
             )
         return build_summary_count_table(
@@ -465,6 +466,7 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
             group_col=group_col,
             id_col="record_id",
             categories=categories,
+            filter_selection=filter_selection,
             include_statewide_county=(group_col == "county" and include_statewide_county_outputs),
         )
 
@@ -474,9 +476,9 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
         mh_bar,
         sub_line,
         mh_line,
-        summary_table("county", categories=county_categories),
-        summary_table("age_group", categories=age_opts),
-        summary_table("sex", categories=sex_opts),
-        summary_table("race_ethnicity", categories=race_ethnicity_opts),
-        summary_table("hawaii_residency", categories=hawaii_residency_opts),
+        summary_table("county", categories=county_categories, filter_selection=county),
+        summary_table("age_group", categories=age_opts, filter_selection=age),
+        summary_table("sex", categories=sex_opts, filter_selection=sex),
+        summary_table("race_ethnicity", categories=race_ethnicity_opts, filter_selection=race_ethnicity),
+        summary_table("hawaii_residency", categories=hawaii_residency_opts, filter_selection=hawaii_residency),
     )

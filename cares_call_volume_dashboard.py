@@ -312,8 +312,21 @@ def update_dashboard(view, sel_years, sel_months, sel_crisis):
         dff.groupby("origin_of_call", as_index=False)["count_of_users"]
         .sum()
         .rename(columns={"origin_of_call": "Crisis Line", "count_of_users": "Total Calls"})
-        .sort_values("Total Calls", ascending=False)
     )
+    
+    # Determine which crisis lines to show based on filter
+    categories_to_show = crisis_line_opts
+    if sel_crisis:
+        categories_to_show = sel_crisis
+    
+    # Ensure all selected crisis lines show, even if zero
+    full_categories = pd.DataFrame({"Crisis Line": categories_to_show})
+    crisis_totals = full_categories.merge(crisis_totals, on="Crisis Line", how="left")
+    crisis_totals["Total Calls"] = crisis_totals["Total Calls"].fillna(0).astype(int)
+    
+    # Sort by count descending
+    crisis_totals = crisis_totals.sort_values("Total Calls", ascending=False)
+    
     crisis_totals["Total Calls"] = crisis_totals["Total Calls"].apply(format_count_display)
 
     table = create_styled_table(crisis_totals)

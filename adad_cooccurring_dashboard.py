@@ -448,17 +448,18 @@ def update_dashboard(view, sel_years, sel_months, sel_modalities, sel_counties, 
 
     # ---------- Helper for the summary tables ----------
     # Use shared build_summary_count_table for summary tables
-    def summary_table(group_col, categories=None):
+    def summary_table(group_col, categories=None, filter_selection=None):
         return build_summary_count_table(
             dff,
             group_col=group_col,
             id_col="client_id",
             categories=categories,
+            filter_selection=filter_selection,
             count_label="Number of Clients",
         )
 
-    modality_table = summary_table("modality", categories=modality_opts)
-    year_table = summary_table("year", categories=year_opts)
-    county_table = summary_table("county", categories=county_opts)
+    modality_table = summary_table("modality", categories=modality_opts, filter_selection=sel_modalities)
+    year_table = summary_table("year", categories=year_opts, filter_selection=sel_years)
+    county_table = summary_table("county", categories=county_opts, filter_selection=sel_counties)
 
     return bar_fig, modality_line_fig, county_line_fig, format_count_display(total_clients), modality_table, year_table, county_table

@@ -69,6 +69,12 @@ total_unique = df_raw_gender["deaths"].count()
 wonder_county_opts  = sort_opts(df_raw_gender["county"])                           if "county"  in df_raw_gender.columns else []
 wonder_year_opts    = sort_opts(df_raw_gender["year"])                              if "year"    in df_raw_gender.columns else []
 
+# Extract all unique categories for each dimension to show in tables
+wonder_gender_opts = sort_opts(df_raw_gender["gender"]) if "gender" in df_raw_gender.columns else []
+wonder_race_opts = sort_opts(df_raw_race["race"]) if "race" in df_raw_race.columns else []
+wonder_age_group_opts = sort_opts(df_raw_age_group["age_group"]) if "age_group" in df_raw_age_group.columns else []
+wonder_substance_opts = sort_opts(df_raw_substance["substance"]) if "substance" in df_raw_substance.columns else []
+
 DEFAULT_COUNTY = "Statewide" if "Statewide" in wonder_county_opts else (wonder_county_opts[0] if wonder_county_opts else None)
 DEFAULT_YEAR = wonder_year_opts[-1] if wonder_year_opts else None
 
@@ -476,6 +482,7 @@ def update_dashboard(county, year):
             category_col=group_col,
             count_col="deaths",
             count_label="Deaths",
+            categories=categories,
             header_labels=None,
         )
 
@@ -485,9 +492,9 @@ def update_dashboard(county, year):
         sub_bar,
         race_bar,
         age_group_bar,
-        summary_table(dff_gender[["gender", "deaths"]], "gender"),
-        summary_table(dff_race[["race", "deaths"]], "race"),
-        summary_table(dff_age_group[["age_group", "deaths"]], "age_group"),
-        summary_table(dff_substance[["substance", "deaths"]], "substance"),
+        summary_table(dff_gender[["gender", "deaths"]], "gender", categories=wonder_gender_opts),
+        summary_table(dff_race[["race", "deaths"]], "race", categories=wonder_race_opts),
+        summary_table(dff_age_group[["age_group", "deaths"]], "age_group", categories=wonder_age_group_opts),
+        summary_table(dff_substance[["substance", "deaths"]], "substance", categories=wonder_substance_opts),
 
     )

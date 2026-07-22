@@ -800,7 +800,7 @@ def update(substance, age, sex, county, year):
     else:
         fig_year_county = px.line()
 
-    def summary_table(df, col, ordered=None):
+    def summary_table(df, col, ordered=None, filter_selection=None):
         # Use shared build_summary_count_table for summary tables, letting it handle header labels
         if col not in df.columns or df.empty:
             return dbc.Alert(f"No data for '{col}'.", color="warning", className="mb-0")
@@ -809,6 +809,7 @@ def update(substance, age, sex, county, year):
             group_col=col,
             id_col="record_id",
             categories=ordered,
+            filter_selection=filter_selection,
         )
 
     # ---------- Small tables ----------
@@ -835,10 +836,10 @@ def update(substance, age, sex, county, year):
         year_source["year"] = year_source["year"].astype(str)
 
     county_opts_ordered = statewide_first(sort_opts(uniq["county"])) if "county" in uniq.columns and not uniq.empty else None
-    tbl_county = summary_table(uniq, "county", county_opts_ordered)
-    tbl_year = summary_table(year_source, "year", year_groups)
-    tbl_age = summary_table(uniq, "age_group", age_opts)
-    tbl_sex = summary_table(uniq, "sex", sex_opts)
+    tbl_county = summary_table(uniq, "county", county_opts_ordered, filter_selection=county)
+    tbl_year = summary_table(year_source, "year", year_groups, filter_selection=year)
+    tbl_age = summary_table(uniq, "age_group", age_opts, filter_selection=age)
+    tbl_sex = summary_table(uniq, "sex", sex_opts, filter_selection=sex)
 
     return kpi_value, bar_title, line_title, county_title, fig_sub, fig_year_substance, fig_year_county, tbl_county, tbl_year, tbl_age, tbl_sex
 

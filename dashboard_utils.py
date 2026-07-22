@@ -334,7 +334,9 @@ def format_count_display(value, threshold: int = COUNT_SUPPRESSION_THRESHOLD, su
     """
     Format a count for UI display with small-number suppression.
 
-    Values where 0 <= value < threshold are shown as '<10*' by default.
+    - Zero values are shown as "0"
+    - Values where 0 < value < threshold are shown as '<10*' by default.
+    - Values >= threshold are shown with comma formatting.
     """
     if value is None or pd.isna(value):
         return suppressed_label
@@ -344,7 +346,9 @@ def format_count_display(value, threshold: int = COUNT_SUPPRESSION_THRESHOLD, su
     except (TypeError, ValueError):
         return str(value)
 
-    if 0 <= numeric < threshold:
+    if numeric == 0:
+        return "0"
+    if 0 < numeric < threshold:
         return suppressed_label
     return f"{numeric:,}"
 
@@ -753,7 +757,8 @@ def build_summary_count_table(
     group_col: str,
     id_col: str = "record_id",
     categories=None,
-    include_all_ordered: bool = False,
+    filter_selection=None,
+    include_all_ordered: bool = True,
     include_statewide_county: bool = False,
     county_col: str = "county",
     header_labels: dict | None = None,
@@ -761,7 +766,18 @@ def build_summary_count_table(
 ):
     """
     Build a standardized summary table of distinct counts for a grouping column.
+    
+    Args:
+        filter_selection: The current filter value for this dimension. If provided,
+                         only the selected categories will be shown in the table.
     """
+    # If this dimension has an active filter, only show the selected categories
+    if filter_selection is not None:
+        if isinstance(filter_selection, (list, tuple)) and len(filter_selection) > 0:
+            categories = filter_selection
+        elif not isinstance(filter_selection, (list, tuple)):
+            categories = [filter_selection]
+    
     # Check if the dataframe is empty or missing the necessary columns
     if frame is None or frame.empty or group_col not in frame.columns or id_col not in frame.columns:
         # If we have the categories, synthesize an empty dataframe so the table 
@@ -819,6 +835,9 @@ def build_pre_aggregated_table(
     category_col: str,
     count_col: str,
     count_label: str = "Count",
+    categories=None,
+    filter_selection=None,
+    include_all_ordered: bool = True,
     header_labels: dict | None = None,
 ):
     """
@@ -826,16 +845,46 @@ def build_pre_aggregated_table(
 
     This helper handles sorting, count formatting, and styling for data
     that is already grouped. It does not perform any aggregation.
+    
+    Args:
+        filter_selection: The current filter value for this dimension. If provided,
+                         only the selected categories will be shown in the table.
+        categories: List of all possible categories to show (with zeros if missing).
+        include_all_ordered: If True and categories provided, show all categories even if missing from data.
     """
+    # If this dimension has an active filter, only show the selected categories
+    if filter_selection is not None:
+        if isinstance(filter_selection, (list, tuple)) and len(filter_selection) > 0:
+            categories = filter_selection
+        elif not isinstance(filter_selection, (list, tuple)):
+            categories = [filter_selection]
+    
     if frame is None or frame.empty or category_col not in frame.columns or count_col not in frame.columns:
-        return dbc.Alert(f"Required columns not found.", color="warning", className="mb-0")
+        # If we have categories, synthesize an empty dataframe
+        if categories is not None:
+            frame = pd.DataFrame({
+                category_col: categories,
+                count_col: [0] * len(categories)
+            })
+        else:
+            return dbc.Alert(f"Required columns not found.", color="warning", className="mb-0")
 
     df = frame.copy()
 
+    # If categories provided and include_all_ordered is True, ensure all categories are present
+    if categories is not None and include_all_ordered:
+        full = pd.DataFrame({category_col: categories})
+        df = full.merge(df, on=category_col, how="left")
+        df[count_col] = df[count_col].fillna(0).astype(int)
+
     # Sort the data using the standard options sorter
-    sorted_categories = sort_opts(df[category_col])
-    df[category_col] = pd.Categorical(df[category_col], categories=sorted_categories, ordered=True)
-    df = df.sort_values(category_col)
+    if categories is not None:
+        df[category_col] = pd.Categorical(df[category_col], categories=categories, ordered=True)
+        df = df.sort_values(category_col)
+    else:
+        sorted_categories = sort_opts(df[category_col])
+        df[category_col] = pd.Categorical(df[category_col], categories=sorted_categories, ordered=True)
+        df = df.sort_values(category_col)
 
     # Format the count column
     df[count_col] = df[count_col].map(format_count_display)
@@ -994,6 +1043,23 @@ def apply_standard_bar_layout(
         if merged_margin.get("l", 0) < 20:
             merged_margin["l"] = 20
     # -------------------------------
+
+    # Auto-detect horizontal bar charts and ensure x-axis starts at 0
+    is_horizontal_bar = False
+    max_x_value = 0
+    for trace in getattr(fig, "data", []):
+        if getattr(trace, "type", None) == "bar" and getattr(trace, "orientation", None) == "h":
+            is_horizontal_bar = True
+            trace_x = getattr(trace, "x", None)
+            if trace_x is not None and len(trace_x) > 0:
+                max_x_value = max(max_x_value, max(trace_x))
+    
+    # If horizontal bar and no range specified, set range to start at 0
+    if is_horizontal_bar:
+        if xaxis is None:
+            xaxis = {}
+        if "range" not in xaxis:
+            xaxis["range"] = [0, max(max_x_value * 1.1, 1)]
 
     merged_xaxis = {"automargin": True}
     if xaxis:
