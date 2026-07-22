@@ -2,6 +2,7 @@
 
 from db_utils import execute_query
 import pandas as pd
+import numpy as np
 import dash_bootstrap_components as dbc
 from dash import html, dcc, callback_context, exceptions
 from theme import register_template
@@ -1078,6 +1079,7 @@ def apply_standard_single_series_bar_trace(
             ]
             trace.text = formatted_text
 
+    # 1. Apply baseline styles and any passed customdata
     fig.update_traces(
         marker_color=marker_color,
         texttemplate=texttemplate,
@@ -1089,7 +1091,59 @@ def apply_standard_single_series_bar_trace(
         **trace_kwargs,
     )
 
+    # --- NEW AUTO-HIGHLIGHT LOGIC ---
+    # Fetch active filters from callback context
+    active_filters = _get_raw_active_filter_values()
+    
+    if active_filters:
+        for trace in fig.data:
+            if getattr(trace, "type", None) == "bar":
+                is_horizontal = getattr(trace, "orientation", "v") == "h"
+                
+                # Identify which axis holds the categorical labels
+                cat_axis = trace.y if is_horizontal else trace.x
+                custom_data = getattr(trace, "customdata", None)
+                
+                if cat_axis is not None:
+                    colors = []
+                    has_match = False
+                    
+                    for i, cat in enumerate(cat_axis):
+                        is_matched = False
+                        
+                        # 1. Safest method: Check the raw, un-wrapped customdata if it exists
+                        if custom_data is not None and i < len(custom_data):
+                            raw_val = custom_data[i]
+                            # Plotly Express sometimes wraps customdata in nested arrays (e.g., [[val1], [val2]])
+                            if isinstance(raw_val, (list, tuple, np.ndarray)):
+                                raw_val = raw_val[0]
+                                
+                            if str(raw_val).strip() in active_filters:
+                                is_matched = True
+                        
+                        # 2. Fallback method: Try to reverse-engineer the axis label if customdata isn't there
+                        if not is_matched:
+                            clean_space = str(cat).replace("<br>", " ").strip()
+                            clean_nospace = str(cat).replace("<br>", "").strip()
+                            
+                            if clean_space in active_filters or clean_nospace in active_filters or str(cat).strip() in active_filters:
+                                is_matched = True
+
+                        # Apply the color assignment
+                        if is_matched:
+                            colors.append("rgba(34, 118, 124, 0.5)") # Highlighted (Lighter Green)
+                            has_match = True
+                        else:
+                            colors.append(marker_color) # Standard
+                            
+                    # Only override the colors if at least one bar was selected
+                    if has_match:
+                        trace.marker.color = colors
+    # --------------------------------
+
     if apply_count_suppression:
+        # Import dynamically or assume it's available in your utils
+        from dashboard_utils import apply_suppressed_horizontal_bar_display
         apply_suppressed_horizontal_bar_display(
             fig,
             suppress_zero=suppress_zero_counts,
@@ -1659,3 +1713,28 @@ def _get_active_filters_from_ctx(max_line_length: int = 120, max_chars_per_value
         active_filters[label] = val
 
     return build_active_filters_subtitle(active_filters, max_line_length, max_chars_per_value)
+
+def _get_raw_active_filter_values() -> set:
+    """
+    Returns a flat set of all currently selected string values 
+    across all active filters in the current callback context.
+    """
+    try:
+        inputs = callback_context.inputs
+    except exceptions.MissingCallbackContextException:
+        return set()
+    
+    active_vals = set()
+    if inputs:
+        for val in inputs.values():
+            if val is None:
+                continue
+            # If it's a multi-select list, add all items
+            if isinstance(val, (list, tuple, set)):
+                for item in val:
+                    active_vals.add(str(item).strip())
+            # If it's a single select/string
+            else:
+                active_vals.add(str(val).strip())
+                
+    return active_vals
