@@ -16,7 +16,6 @@ TAB_PATHS = {
     "/discharges-su": "Any Discharge Related to Substance Use",
     "/discharges-mh": "Any Discharge Related to Mental Health Disorders",
     "/discharges-su-polysubstance": "Related to Polysubstance Use",
-    "/discharges-cooccurring": "Related to co-occurring substance use and mental health disorders",
     "/dose": "Drug Overdose Surveillance and Epidemiology (DOSE)",
     "/dose-polysubstance": "DOSE Polysubstance Co-occurrence",
     "/lcrs": "Licensed Crisis Residential Shelters",
@@ -33,13 +32,13 @@ NAV_GROUPS = {
     "substance": [
         ("/discharges-su", "Any Discharge Related to Substance Use"),
         ("/discharges-su-polysubstance", "Related to Polysubstance Use"),
-        ("/discharges-cooccurring", "Related to co-occurring substance use and mental health disorders"),
+        ("/discharges-cooccurring-su", "Related to co-occurring substance use and mental health disorders"),
         ("/discharges-su-co-sud-mh", "Related to co-occurring SUD (primary) and MH disorder (secondary)"),
         ("/discharges-su-co-mh-sud", "Related to co-occurring MH disorder (primary) and SUD (secondary)"),
     ],
     "mental_health_discharges": [
         ("/discharges-mh", "Any Discharge Related to Mental Health Disorders"),
-        ("/discharges-cooccurring", "Related to co-occurring substance use and mental health disorders"),
+        ("/discharges-cooccurring-mh", "Related to co-occurring mental health disorders and substance use"),
         ("/discharges-mh-co-sud-mh", "Related to co-occurring SUD (primary) and MH disorder (secondary)"),
         ("/discharges-mh-co-mh-sud", "Related to co-occurring MH disorder (primary) and SUD (secondary)"),
     ],
@@ -70,7 +69,8 @@ NAV_GROUPS = {
 ROUTE_TO_GROUP = {
     "/discharges-su": "substance",
     "/discharges-su-polysubstance": "substance",
-    "/discharges-cooccurring": "substance",
+    "/discharges-cooccurring-su": "substance",
+    "/discharges-cooccurring-mh": "mental_health_discharges",
     "/discharges-su-co-sud-mh": "substance",
     "/discharges-su-co-mh-sud": "substance",
     "/discharges-mh": "mental_health_discharges",

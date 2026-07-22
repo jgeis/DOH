@@ -205,9 +205,6 @@ def layout():
     ], fluid=True, className="p-2")
 
 
-# This is the default layout used when the app imports this file.
-layout = layout()
-
 # ----------------------------
 # Callbacks
 # ----------------------------
