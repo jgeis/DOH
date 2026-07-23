@@ -52,6 +52,11 @@ for col in ["county", "city", "zip", "hawaii_residency", "age_group", "sex", "su
     if col in df_dose_raw.columns:
         df_dose_raw[col] = df_dose_raw[col].fillna("Unknown")
 
+# Trim whitespace from text columns (fixes issue where trailing spaces prevent filter matches)
+for col in ["county", "city", "zip", "hawaii_residency", "age_group", "sex", "substance", "race_ethnicity"]:
+    if col in df_dose_raw.columns:
+        df_dose_raw[col] = df_dose_raw[col].astype(str).str.strip()
+
 # Normalize ZIP values (5-digit strings) so they match the GeoJSON
 if "zip" in df_dose_raw.columns:
     df_dose_raw["zip"] = (
