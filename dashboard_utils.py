@@ -419,6 +419,46 @@ def apply_suppressed_horizontal_bar_display(
 
         trace.x = plot_values.tolist()
         trace.text = display_values.tolist()
+        
+        # Make suppressed labels bold when they match selected filters
+        active_filters = _get_raw_active_filter_values()
+        if active_filters and suppressed_mask.any():
+            y_values = getattr(trace, "y", None)
+            custom_data = getattr(trace, "customdata", None)
+            
+            if y_values is not None:
+                updated_text = []
+                for i, (text_val, is_suppressed) in enumerate(zip(trace.text, suppressed_mask)):
+                    if is_suppressed and text_val == suppressed_label:
+                        # Check if this category matches an active filter
+                        is_matched = False
+                        
+                        # Method 1: Check customdata if available
+                        if custom_data is not None and i < len(custom_data):
+                            raw_val = custom_data[i]
+                            if isinstance(raw_val, (list, tuple, np.ndarray)):
+                                raw_val = raw_val[0]
+                            if str(raw_val).strip() in active_filters:
+                                is_matched = True
+                        
+                        # Method 2: Check the y-axis label
+                        if not is_matched and i < len(y_values):
+                            cat = y_values[i]
+                            clean_space = str(cat).replace("<br>", " ").strip()
+                            clean_nospace = str(cat).replace("<br>", "").strip()
+                            if clean_space in active_filters or clean_nospace in active_filters or str(cat).strip() in active_filters:
+                                is_matched = True
+                        
+                        # Apply bold formatting if matched
+                        if is_matched:
+                            updated_text.append(f"<b>{text_val}</b>")
+                        else:
+                            updated_text.append(text_val)
+                    else:
+                        updated_text.append(text_val)
+                
+                trace.text = updated_text
+        
         if suppressed_mask.any():
             trace.textposition = "outside"
             if override_hovertemplate:
