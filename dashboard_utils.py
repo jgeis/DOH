@@ -1060,6 +1060,27 @@ def apply_standard_bar_layout(
             xaxis = {}
         if "range" not in xaxis:
             xaxis["range"] = [0, max(max_x_value * 1.1, 1)]
+        # Calculate appropriate tick interval to ensure integer ticks
+        if "dtick" not in xaxis:
+            # Calculate a nice tick interval based on the max value
+            max_val = max(max_x_value * 1.1, 1)
+            if max_val <= 10:
+                xaxis["dtick"] = 1
+            elif max_val <= 20:
+                xaxis["dtick"] = 2
+            elif max_val <= 50:
+                xaxis["dtick"] = 5
+            elif max_val <= 100:
+                xaxis["dtick"] = 10
+            elif max_val <= 500:
+                xaxis["dtick"] = 50
+            elif max_val <= 1000:
+                xaxis["dtick"] = 100
+            else:
+                # For larger values, use a power of 10 based calculation
+                import math
+                magnitude = 10 ** math.floor(math.log10(max_val))
+                xaxis["dtick"] = magnitude / 2  # e.g., 500 for max ~5000, 5000 for max ~50000
 
     merged_xaxis = {"automargin": True}
     if xaxis:
