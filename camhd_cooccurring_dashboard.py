@@ -151,8 +151,8 @@ def layout():
     left_col = make_left_sidebar(
         kpi_card,
         reset_button,
-        view_toggle_card,
         filters_card,
+        view_toggle_card=view_toggle_card,
         helper_text=camhd_cooccurring_sidebar_text,
         last_updated_value=last_updated_value,
         xs=12,

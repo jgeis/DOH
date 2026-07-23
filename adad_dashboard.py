@@ -185,14 +185,12 @@ def layout():
         kpi_card,
         reset_button,
         filters_card,
+        view_toggle_card=view_toggle_card,
         helper_text=adad_sidebar_text,
         last_updated_value=last_updated_value,
         xs=12,
         md=3,
     )
-
-    # Insert view-toggle between reset button and filters card.
-    left_col.children.insert(2, view_toggle_card)
 
     center_col = dbc.Col(
         [

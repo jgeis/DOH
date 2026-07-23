@@ -165,8 +165,7 @@ amhd_sidebar_text = SECTION_TEXTS.get("amhd-cooccurring", [])
 
 # --- Layout ---
 def layout():
-    left_col = make_left_sidebar(kpi_card, reset_button, filters_card, helper_text=amhd_sidebar_text, last_updated_value=last_updated_value, xs=12, md=3)
-    left_col.children.insert(2, view_toggle_card)
+    left_col = make_left_sidebar(kpi_card, reset_button, filters_card, view_toggle_card=view_toggle_card, helper_text=amhd_sidebar_text, last_updated_value=last_updated_value, xs=12, md=3)
     center_col = dbc.Col([
         html.Div([
             html.H5("Number of AMHD Co-Occurring Consumers", id="amhd-cooccurring-bar-chart-title", className="plot-card-header mb-2"),
