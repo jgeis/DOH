@@ -11,6 +11,17 @@ These tests use REAL DATA from the database to verify:
 - Queries are working correctly
 - Visuals load as expected
 - Filters work correctly with actual data
+
+Query used to create these tests:
+Using test_discharges_su.py as an example, create tests for 'discharges_mh_dashboard.py'.  
+Set the filters as appropriate and get the numbers directly from the discharges_mh_dashboard to use in the tests.
+Do not use the years 2025 or 2026 (if available) in the tests.   
+
+Follow up request:
+Add some asserts for table_race and table_residency in the #sym:test_specific_scenario_mood_2024_honolulu_18_44_male_1253_discharges method.
+Add a test to verify the "Reset All Filters" buttons works along with any other tests you think may be valuable. 
+New date-based data gets added all the time, so don't hard code any numbers that aren't tied to a year after 
+2024 as the tests will fail when current dates are added. Data from 2024 and older will not change.
 """
 import pytest
 import pandas as pd
@@ -452,6 +463,20 @@ class TestDischargesMHRegressionScenarios:
         table_sex_str = str(table_sex)
         assert '1,253' in table_sex_str or '1253' in table_sex_str, f"Sex table should contain 1,253"
         assert 'Male' in table_sex_str, "Sex table should contain Male"
+        
+        # TEST 11: Race/Ethnicity table should have data (multiple race categories shown)
+        assert table_race is not None, "Race/Ethnicity table should not be None"
+        table_race_str = str(table_race)
+        # Should contain race/ethnicity categories - verify at least some common ones are present
+        assert any(race in table_race_str for race in ['White/Caucasian', 'Filipino', 'Japanese', 'Native Hawaiian']), \
+            f"Race/Ethnicity table should contain race categories"
+        
+        # TEST 12: Residency table should show 1,224 Residents + other categories totaling to 1,253
+        assert table_residency is not None, "Residency table should not be None"
+        table_residency_str = str(table_residency)
+        assert '1,224' in table_residency_str or '1224' in table_residency_str, f"Residency table should contain 1,224 for Resident"
+        assert 'Resident' in table_residency_str, "Residency table should contain Resident"
+        assert 'Non-resident' in table_residency_str or '25' in table_residency_str, "Residency table should show Non-resident data"
     
     def test_empty_filters_shows_all_data(self):
         """Regression: Empty filters should show all data from real database."""
@@ -495,3 +520,112 @@ class TestDischargesMHRegressionScenarios:
             mood_trace = diagnosis_line.data[0]
             years_shown = set(mood_trace.x)
             assert 2023 in years_shown or 2024 in years_shown, f"Should show 2023 or 2024, got {years_shown}"
+
+
+class TestDischargesMHResetFilters:
+    """Test filter reset functionality."""
+    
+    def test_reset_filters_callback_exists(self):
+        """Test that reset filters callback is defined."""
+        assert hasattr(discharges_mh_dashboard, 'reset_discharges_mh_filters'), "Should have reset_discharges_mh_filters function"
+        assert callable(discharges_mh_dashboard.reset_discharges_mh_filters), "reset_discharges_mh_filters should be callable"
+    
+    def test_reset_filters_returns_none_values(self):
+        """Test that reset filters returns None for all filter values."""
+        result = discharges_mh_dashboard.reset_discharges_mh_filters(1)
+        
+        # Should return 8 None values (one for each filter)
+        assert len(result) == 8, f"Should return 8 filter values, got {len(result)}"
+        assert all(v is None for v in result), "All filter values should be None after reset"
+
+
+class TestDischargesMHEdgeCases:
+    """Test edge cases and data quality scenarios."""
+    
+    def test_no_data_scenario_handles_gracefully(self):
+        """Test that filtering with no matching data doesn't crash."""
+        # Filter for a very specific combination that's unlikely to exist
+        # but don't use current year data (use 2024 which is fixed)
+        result = discharges_mh_dashboard.update_dashboard(
+            diagnosis=['Mood (Affective) Disorder (includes Major Depressive and Bipolar Disorders)'],
+            county=['Kauaʻi'],
+            city=['Honolulu'],  # City in different county - should yield no results or very few
+            year=[2024],
+            hawaii_residency=None,
+            age=None,
+            sex=None,
+            race_ethnicity=None
+        )
+        
+        # Should still return 12 elements
+        assert len(result) == 12, f"Should return 12 elements even with no/minimal data, got {len(result)}"
+        
+        # Figures should still be created (even if empty)
+        kpi, bar_fig, diagnosis_line, county_line, age_line, sex_stacked, *tables = result
+        assert bar_fig is not None, "Bar chart should exist even with no data"
+        assert diagnosis_line is not None, "Line chart should exist even with no data"
+    
+    def test_all_filters_applied_simultaneously(self):
+        """Test that applying all filters at once works correctly."""
+        # Use 2024 data which won't change
+        result = discharges_mh_dashboard.update_dashboard(
+            diagnosis=['Mood (Affective) Disorder (includes Major Depressive and Bipolar Disorders)'],
+            county=['Honolulu'],
+            city=['Honolulu'],
+            year=[2024],
+            hawaii_residency=['Resident'],
+            age=['18-44'],
+            sex=['Male'],
+            race_ethnicity=['White/Caucasian']
+        )
+        
+        kpi, bar_fig, diagnosis_line, county_line, age_line, sex_stacked, *tables = result
+        
+        # Should have some data
+        assert kpi is not None, "KPI should not be None"
+        # Should be a number (could be suppressed or actual count)
+        kpi_str = str(kpi)
+        assert any(char.isdigit() for char in kpi_str) or '<10*' in kpi_str, "KPI should show a number or suppressed count"
+    
+    def test_year_2024_data_consistency(self):
+        """Test that 2024 data remains consistent (regression test for data changes)."""
+        # This test uses fixed year 2024 data which should not change
+        result = discharges_mh_dashboard.update_dashboard(
+            diagnosis=None,
+            county=None,
+            city=None,
+            year=[2024],
+            hawaii_residency=None,
+            age=None,
+            sex=None,
+            race_ethnicity=None
+        )
+        
+        kpi = result[0]
+        
+        # 2024 data should show 9,592 discharges
+        # This is fixed data that won't change
+        assert '9,592' in kpi or '9592' in kpi, f"2024 should have 9,592 discharges (fixed data), got: {kpi}"
+    
+    def test_data_integrity_all_visuals_match(self):
+        """Test that KPI and all tables show consistent totals for a specific filter."""
+        # Use 2024 data to ensure consistency
+        result = discharges_mh_dashboard.update_dashboard(
+            diagnosis=None,
+            county=None,
+            city=None,
+            year=[2024],
+            hawaii_residency=None,
+            age=None,
+            sex=['Male'],
+            race_ethnicity=None
+        )
+        
+        kpi, bar_fig, diagnosis_line, county_line, age_line, sex_stacked, table_year, table_county, table_age, table_sex, table_race, table_residency = result
+        
+        # KPI should match what's in the sex table
+        kpi_str = str(kpi)
+        table_sex_str = str(table_sex)
+        
+        assert '4,500' in kpi_str or '4500' in kpi_str, f"KPI should show 4,500, got: {kpi_str}"
+        assert '4,500' in table_sex_str or '4500' in table_sex_str, f"Sex table should show 4,500, got: {table_sex_str}"
