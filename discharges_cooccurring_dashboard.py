@@ -111,14 +111,14 @@ hawaii_residency_opts   = sort_opts(df_raw["hawaii_residency"])                 
 # This link helps keyboard and screen reader users jump straight to the filters.
 skip_link = html.A(
    "Skip to filters",
-   href="#cooccur-su-mh-filters",
+   href="#discharges-cooccur-filters",
    className="visually-hidden-focusable",
    tabIndex=0
 )
 
 reset_filters_button = dbc.Button(
     "Reset All Filters",
-    id="cooccur-su-mh-reset-filters-btn",
+    id="discharges-cooccur-reset-filters-btn",
     color="secondary",
     outline=True,
     className="w-100 mb-3",
@@ -128,24 +128,24 @@ reset_filters_button = dbc.Button(
 # Big green card that shows the total number of discharges.
 kpi_card = make_kpi_card(
     label="Number of Discharges Related to Co-Occurring Substance Use and Mental Health Disorders",
-    count_id="cooccur-su-mh-kpi-total",
+    count_id="discharges-cooccur-kpi-total",
 )
 
 # Card holding all the filter controls down the left side.
 # Filter display order is managed centrally in dashboard_utils.make_filters_card.
 filters_card = make_filters_card(
-    card_id="cooccur-su-mh-filters",
+    card_id="discharges-cooccur-filters",
     title="Filter Data",
     filters=[
-        dropdown_filter("Substance", "cooccur-su-mh-su-filter", options=opts_list(su_opts), multi=True, placeholder="All"),
-        dropdown_filter("Mental Health Diagnosis", "cooccur-su-mh-mh-filter", options=opts_list(mh_opts), multi=True, placeholder="All"),
-        dropdown_filter("County", "cooccur-su-mh-county-filter", options=opts_list(county_opts), multi=True, placeholder="All"),
-        dropdown_filter("City", "cooccur-su-mh-city-filter", options=opts_list(city_opts), multi=True, placeholder="All"),
-        dropdown_filter("Year", "cooccur-su-mh-year-filter", options=opts_list(year_opts), multi=True, placeholder="All"),
-        dropdown_filter("Age Group", "cooccur-su-mh-age-filter", options=opts_list(age_opts), multi=True, placeholder="All"),
-        dropdown_filter("Sex", "cooccur-su-mh-sex-filter", options=opts_list(sex_opts), multi=True, placeholder="All"),
-        dropdown_filter("Race/Ethnicity", "cooccur-su-mh-race-ethnicity-filter", options=opts_list(race_ethnicity_opts), multi=True, placeholder="All"),
-        dropdown_filter("Hawaii Resident", "cooccur-su-mh-hawaii-residency-filter", options=opts_list(hawaii_residency_opts), multi=True, placeholder="All"),
+        dropdown_filter("Substance", "discharges-cooccur-su-filter", options=opts_list(su_opts), multi=True, placeholder="All"),
+        dropdown_filter("Mental Health Diagnosis", "discharges-cooccur-mh-filter", options=opts_list(mh_opts), multi=True, placeholder="All"),
+        dropdown_filter("County", "discharges-cooccur-county-filter", options=opts_list(county_opts), multi=True, placeholder="All"),
+        dropdown_filter("City", "discharges-cooccur-city-filter", options=opts_list(city_opts), multi=True, placeholder="All"),
+        dropdown_filter("Year", "discharges-cooccur-year-filter", options=opts_list(year_opts), multi=True, placeholder="All"),
+        dropdown_filter("Age Group", "discharges-cooccur-age-filter", options=opts_list(age_opts), multi=True, placeholder="All"),
+        dropdown_filter("Sex", "discharges-cooccur-sex-filter", options=opts_list(sex_opts), multi=True, placeholder="All"),
+        dropdown_filter("Race/Ethnicity", "discharges-cooccur-race-ethnicity-filter", options=opts_list(race_ethnicity_opts), multi=True, placeholder="All"),
+        dropdown_filter("Hawaii Resident", "discharges-cooccur-hawaii-residency-filter", options=opts_list(hawaii_residency_opts), multi=True, placeholder="All"),
     ],
 )
 
@@ -173,24 +173,25 @@ def layout():
 
     # Center column: the main line and bar charts.
     center_col = dbc.Col([
-        graph_block("cooccur-su-mh-su-bar", "Discharges by Substance"),
+        graph_block("discharges-cooccur-su-bar", "Discharges by Substance"),
         html.P("Bar chart showing discharges by substance.", className="visually-hidden"),
-        graph_block("cooccur-su-mh-mh-bar", "Discharges by Mental Health Diagnosis"),
+        graph_block("discharges-cooccur-mh-bar", "Discharges by Mental Health Diagnosis"),
         html.P("Bar chart showing discharges by mental health diagnosis.", className="visually-hidden"),
-        graph_block("cooccur-su-mh-line", "Yearly Discharges by Substance", line_h),
+        graph_block("discharges-cooccur-line", "Yearly Discharges by Substance", line_h),
         html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
-        graph_block("cooccur-su-mh-mh-line", "Yearly Discharges by Mental Health Diagnosis", line_h),
+        graph_block("discharges-cooccur-mh-line", "Yearly Discharges by Mental Health Diagnosis", line_h),
         html.P("Line chart showing yearly discharges by mental health diagnosis.", className="visually-hidden"),
     ], xs=12, md=6)
 
     # Right column: summary tables (ordered by shared site-wide utility)
     right_col = make_right_summary_tables_col(
         [
-            ("County", "cooccur-su-mh-table-county"),
-            ("Age Group", "cooccur-su-mh-table-age"),
-            ("Sex", "cooccur-su-mh-table-sex"),
-            ("Race/Ethnicity", "cooccur-su-mh-table-race-ethnicity"),
-            ("Hawaii Residency", "cooccur-su-mh-table-hawaii-residency"),
+            ("Calendar Year", "discharges-cooccur-table-year"),
+            ("County", "discharges-cooccur-table-county"),
+            ("Age Group", "discharges-cooccur-table-age"),
+            ("Sex", "discharges-cooccur-table-sex"),
+            ("Race/Ethnicity", "discharges-cooccur-table-race-ethnicity"),
+            ("Hawaii Residency", "discharges-cooccur-table-hawaii-residency"),
         ],
         xs=12,
         md=3,
@@ -200,7 +201,7 @@ def layout():
         skip_link,
         html.Div(
             dbc.Row([left_col, center_col, right_col], className="g-3"),
-            id="cooccur-su-mh-section",
+            id="discharges-cooccur-section",
         ),
     ], fluid=True, className="p-2")
 
@@ -210,16 +211,16 @@ def layout():
 # ----------------------------
 
 @callback(
-    Output("cooccur-su-mh-su-filter", "value"),
-    Output("cooccur-su-mh-mh-filter", "value"),
-    Output("cooccur-su-mh-county-filter", "value"),
-    Output("cooccur-su-mh-city-filter", "value"),
-    Output("cooccur-su-mh-year-filter", "value"),
-    Output("cooccur-su-mh-age-filter", "value"),
-    Output("cooccur-su-mh-sex-filter", "value"),
-    Output("cooccur-su-mh-race-ethnicity-filter", "value"),
-    Output("cooccur-su-mh-hawaii-residency-filter", "value"),
-    Input("cooccur-su-mh-reset-filters-btn", "n_clicks"),
+    Output("discharges-cooccur-su-filter", "value"),
+    Output("discharges-cooccur-mh-filter", "value"),
+    Output("discharges-cooccur-county-filter", "value"),
+    Output("discharges-cooccur-city-filter", "value"),
+    Output("discharges-cooccur-year-filter", "value"),
+    Output("discharges-cooccur-age-filter", "value"),
+    Output("discharges-cooccur-sex-filter", "value"),
+    Output("discharges-cooccur-race-ethnicity-filter", "value"),
+    Output("discharges-cooccur-hawaii-residency-filter", "value"),
+    Input("discharges-cooccur-reset-filters-btn", "n_clicks"),
     prevent_initial_call=True,
 )
 
@@ -229,28 +230,29 @@ def reset_discharges_filters(_n_clicks):
 
 @callback(
     # kpi card
-    Output("cooccur-su-mh-kpi-total", "children"),
+    Output("discharges-cooccur-kpi-total", "children"),
     # graphs
-    Output("cooccur-su-mh-su-bar", "figure"),
-    Output("cooccur-su-mh-mh-bar", "figure"),
-    Output("cooccur-su-mh-line", "figure"),
-    Output("cooccur-su-mh-mh-line", "figure"),
+    Output("discharges-cooccur-su-bar", "figure"),
+    Output("discharges-cooccur-mh-bar", "figure"),
+    Output("discharges-cooccur-line", "figure"),
+    Output("discharges-cooccur-mh-line", "figure"),
     # tables 
-    Output("cooccur-su-mh-table-county", "children"),
-    Output("cooccur-su-mh-table-age", "children"),
-    Output("cooccur-su-mh-table-sex", "children"),
-    Output("cooccur-su-mh-table-race-ethnicity", "children"),
-    Output("cooccur-su-mh-table-hawaii-residency", "children"),   
+    Output("discharges-cooccur-table-year", "children"),
+    Output("discharges-cooccur-table-county", "children"),
+    Output("discharges-cooccur-table-age", "children"),
+    Output("discharges-cooccur-table-sex", "children"),
+    Output("discharges-cooccur-table-race-ethnicity", "children"),
+    Output("discharges-cooccur-table-hawaii-residency", "children"),   
     # filters
-    Input("cooccur-su-mh-su-filter", "value"),
-    Input("cooccur-su-mh-mh-filter", "value"),
-    Input("cooccur-su-mh-county-filter", "value"),
-    Input("cooccur-su-mh-city-filter", "value"),
-    Input("cooccur-su-mh-year-filter", "value"),
-    Input("cooccur-su-mh-age-filter", "value"),
-    Input("cooccur-su-mh-sex-filter", "value"),
-    Input("cooccur-su-mh-race-ethnicity-filter", "value"),
-    Input("cooccur-su-mh-hawaii-residency-filter", "value"),
+    Input("discharges-cooccur-su-filter", "value"),
+    Input("discharges-cooccur-mh-filter", "value"),
+    Input("discharges-cooccur-county-filter", "value"),
+    Input("discharges-cooccur-city-filter", "value"),
+    Input("discharges-cooccur-year-filter", "value"),
+    Input("discharges-cooccur-age-filter", "value"),
+    Input("discharges-cooccur-sex-filter", "value"),
+    Input("discharges-cooccur-race-ethnicity-filter", "value"),
+    Input("discharges-cooccur-hawaii-residency-filter", "value"),
 )
 def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawaii_residency):
     """
@@ -476,6 +478,7 @@ def update_dashboard(su, mh, county, city, year, age, sex, race_ethnicity, hawai
         mh_bar,
         sub_line,
         mh_line,
+        summary_table("year", categories=year_opts, filter_selection=year),
         summary_table("county", categories=county_categories, filter_selection=county),
         summary_table("age_group", categories=age_opts, filter_selection=age),
         summary_table("sex", categories=sex_opts, filter_selection=sex),
