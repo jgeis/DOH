@@ -75,11 +75,16 @@ def load_df():
     want_obj = ["county", "city", "hawaii_residency", "age_group", "sex", "substance"]
     for c in want_obj:
         if c in df.columns:
-            df[c] = (
-                df[c].astype(str).str.strip()
-                .replace({"nan": np.nan, "None": np.nan})
-                .fillna("Unknown")
-            )
+            # Catch actual nulls first, then convert to string and strip whitespace
+            df[c] = df[c].fillna("Unknown").astype(str).str.strip()
+            # Explicitly catch empty strings and pandas <NA> string artifacts
+            df[c] = df[c].replace({
+                "": "Unknown", 
+                "nan": "Unknown", 
+                "NaN": "Unknown", 
+                "None": "Unknown", 
+                "<NA>": "Unknown"
+            })
 
     # Make sure the year column is a proper integer type so graphs order it correctly.
     if "year" in df.columns:
@@ -197,34 +202,6 @@ def build_sunburst_cooccurrence_data(df):
 # Load the cleaned dataset once when the module is imported.
 # All callbacks reuse this instead of hitting the DB over and over.
 df_raw = load_df()
-
-# Guard rails: limit years to our window and drop "unknown" ages
-if "year" in df_raw.columns:
-    # Make sure year is numeric
-    df_raw["year"] = pd.to_numeric(df_raw["year"], errors="coerce").astype("Int64")
-    valid_years = df_raw["year"].dropna()
-    if not valid_years.empty:
-        min_year = int(valid_years.min())
-        max_year = int(valid_years.max())
-        print(f"[polysubstance_dashboard] year range in data: {min_year}-{max_year}")
-    mask_year = df_raw["year"].notna()
-else:
-    mask_year = True  # If we don't have a year, don't filter by year
-
-def is_unknown_age(val):
-    """
-    Decide if an age group value is basically "unknown".
-
-    We treat blanks or common shortcuts (unknown, unk, n/a, etc.) as unknown.
-    """
-    s = (str(val) if val is not None else "").strip().lower()
-    return s in {"", "unknown", "unk", "n/a", "na"}
-
-# Remove rows with unknown age groups (only if that column exists)
-mask_age = ~df_raw["age_group"].apply(is_unknown_age) if "age_group" in df_raw.columns else True
-
-# Keep only rows that pass both filters
-df_raw = df_raw[mask_year & mask_age].copy()
 last_updated_value = compute_last_updated_value(df_raw)
 
 
