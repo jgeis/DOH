@@ -722,6 +722,26 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
             .sort_values(ascending=False)
         )
         outer_counts = outer_counts[~outer_counts.index.astype(str).isin(selected_set)]
+        
+        # Define parent-child relationships to prevent double-counting
+        # Some substances are subcategories of broader categories
+        substance_parents = {
+            "Fentanyl": "All Opioids",
+            "Heroin": "All Opioids",
+            "Prescription Opioids": "All Opioids",
+            "Methamphetamine": "All Stimulants",
+            "Cocaine": "All Stimulants",
+        }
+        
+        # For each selected substance, if it has a parent category, remove that parent from outer ring
+        # This prevents double-counting (e.g., if Fentanyl is selected, don't show "All Opioids" in outer ring)
+        parents_to_remove = set()
+        for selected in selected_set:
+            if selected in substance_parents:
+                parents_to_remove.add(substance_parents[selected])
+        
+        if parents_to_remove:
+            outer_counts = outer_counts[~outer_counts.index.isin(parents_to_remove)]
 
         if outer_counts.empty:
             sun_fig = go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
@@ -773,7 +793,27 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
             sun_fig = go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
         else:
             sunburst_counts = sunburst_data.value_counts().reset_index(name='Count')
+            
+            # Define parent-child relationships to prevent double-counting
+            substance_parents = {
+                "Fentanyl": "All Opioids",
+                "Heroin": "All Opioids",
+                "Prescription Opioids": "All Opioids",
+                "Methamphetamine": "All Stimulants",
+                "Cocaine": "All Stimulants",
+            }
+            
+            # Filter out rows where "Also Found" is the parent of "Primary"
+            def is_parent_relationship(row):
+                primary = row["Primary"]
+                also_found = row["Also Found"]
+                return also_found == substance_parents.get(primary)
+            
+            sunburst_counts = sunburst_counts[~sunburst_counts.apply(is_parent_relationship, axis=1)]
 
+            # Use px.sunburst for the no-selection case
+            # Note: Values here represent co-occurrence counts, not unique incidents
+            # This is semantically correct because substances overlap (co-occur)
             sun_fig = px.sunburst(
                 sunburst_counts,
                 path=["Primary", "Also Found"],
