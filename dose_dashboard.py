@@ -350,9 +350,6 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             include_statewide_county=(group_col == "county" and include_statewide_county_outputs),
         )
     
-    # Extract age groups dynamically from the filtered DOSE data using shared sort rules.
-    dose_age_groups = sort_opts(dose_df["age_group"]) if "age_group" in dose_df.columns and not dose_df.empty else None
-
     # ---------- Map: Discharges by ZIP Code ----------
     try:
         with open("assets/hawaii_zipcodes.geojson") as f:
@@ -409,7 +406,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         dose_line,
         map_fig,
         summary_table("county", dose_county_opts, filter_selection=county),
-        summary_table("age_group", dose_age_groups, filter_selection=age),
+        summary_table("age_group", dose_age_opts, filter_selection=age),
         summary_table("sex", dose_sex_opts, filter_selection=sex),
         summary_table("race_ethnicity", dose_race_ethnicity_opts, filter_selection=race_ethnicity),
         summary_table("hawaii_residency", dose_residency_opts, filter_selection=hawaii_residency),

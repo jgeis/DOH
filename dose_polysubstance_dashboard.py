@@ -156,20 +156,6 @@ def build_cooccurrence_data(df):
 
 # Load data
 df_raw = load_df()
-
-# Filter out unknown ages and invalid years
-# if "year" in df_raw.columns:
-#     mask_year = df_raw["year"].notna()
-# else:
-#     mask_year = True
-
-def is_unknown_age(val):
-    s = (str(val) if val is not None else "").strip().lower()
-    return s in {"", "unknown", "unk", "n/a", "na"}
-
-# mask_age = ~df_raw["age_group"].apply(is_unknown_age) if "age_group" in df_raw.columns else True
-
-#df_raw = df_raw[mask_year & mask_age].copy()
 last_updated_value = compute_last_updated_value(df_raw)
 
 # Build filter options
@@ -551,9 +537,7 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
             include_statewide_county=(group_col == "county" and include_statewide_county_outputs),
             count_label="Records",
         )
-    
-    dose_age_groups = sort_opts(df["age_group"]) if "age_group" in df.columns and not df.empty else None
-    
+        
     return (
         kpi_display,
         substance_bar,
@@ -562,7 +546,7 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
         sunburst_fig,
         cooccur_bar,
         summary_table("county", county_opts, filter_selection=county),
-        summary_table("age_group", dose_age_groups, filter_selection=age),
+        summary_table("age_group", age_opts, filter_selection=age),
         summary_table("sex", sex_opts, filter_selection=sex),
         summary_table("race_ethnicity", race_ethnicity_opts, filter_selection=race),
         summary_table("hawaii_residency", residency_opts, filter_selection=residency),

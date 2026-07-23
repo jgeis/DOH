@@ -419,10 +419,6 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         )
         by_ya["display_count"] = by_ya["count"].apply(format_count_display)
 
-        age_groups = sort_opts(by_ya["age_group"]) if "age_group" in by_ya.columns else []
-        if age_groups:
-            by_ya["age_group"] = pd.Categorical(by_ya["age_group"], categories=age_groups, ordered=True)
-
         age_line_fig = px.line(
             by_ya,
             x="year",
@@ -431,7 +427,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             markers=True,
             custom_data=["display_count"],
             labels={"year": "Year", "count": "Discharges", "age_group": "Age Group"},
-            category_orders={"age_group": age_groups} if age_groups else None,
+            category_orders={"age_group": age_opts} if age_opts else None,
         )
         age_line_fig.update_traces(
             hovertemplate="Year %{x}<br>Age Group: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
@@ -497,9 +493,6 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             include_statewide_county=(group_col == "county" and include_statewide_county_outputs),
         )
 
-    # Extract age groups dynamically from the filtered data using shared sort rules.
-    age_groups = sort_opts(dff["age_group"]) if "age_group" in dff.columns and not dff.empty else None
-
     # Return all the updated visuals and tables to Dash
     return (
         format_count_display(filter_total),
@@ -510,7 +503,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         sex_bar,
         summary_table("year", year_opts, filter_selection=year),
         summary_table("county", county_opts, filter_selection=county),
-        summary_table("age_group", age_groups, filter_selection=age),
+        summary_table("age_group", age_opts, filter_selection=age),
         summary_table("sex", sex_opts, filter_selection=sex),
         summary_table("race_ethnicity", race_ethnicity_opts, filter_selection=race_ethnicity),
         summary_table("hawaii_residency", hawaii_residency_opts, filter_selection=hawaii_residency),
