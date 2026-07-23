@@ -126,7 +126,7 @@ class TestAMHDDashboard:
         assert len(bar_fig.data[0].y) == 1
         assert bar_fig.data[0].x[0] == 5201
         table_data = parse_table_from_layout(table)
-        assert len(table_data) == 3
+        assert len(table_data) == 1
         assert table_data.get('Contracted Providers') == '5,201'
 
     def test_month_view_2024_with_category(self):

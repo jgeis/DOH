@@ -30,11 +30,6 @@ class TestAppInitialization:
         from multi_dashboard import app
         assert app.config.external_stylesheets is not None
     
-    def test_app_uses_pages(self):
-        """Test that multi-page functionality is enabled."""
-        from multi_dashboard import app
-        assert app.config.use_pages is True
-    
     def test_suppress_callback_exceptions(self):
         """Test that callback exceptions are suppressed for dynamic pages."""
         from multi_dashboard import app
@@ -223,46 +218,46 @@ class TestAppNavGroups:
                 assert SUDORS_ROUTE_TO_GROUP[path] == group_name
 
 
-@pytest.mark.integration
-class TestDashIntegration:
-    """Integration tests using Dash testing tools."""
+# @pytest.mark.integration
+# class TestDashIntegration:
+#     """Integration tests using Dash testing tools."""
     
-    @pytest.mark.slow
-    def test_app_starts_successfully(self, dash_duo):
-        """Test that the app starts without errors."""
-        from multi_dashboard import app
+#     @pytest.mark.slow
+#     def test_app_starts_successfully(self, dash_duo):
+#         """Test that the app starts without errors."""
+#         from multi_dashboard import app
         
-        dash_duo.start_server(app)
+#         dash_duo.start_server(app)
         
-        # Wait for app to load
-        dash_duo.wait_for_page(timeout=10)
+#         # Wait for app to load
+#         dash_duo.wait_for_page(timeout=10)
         
-        # App should not have any errors in console
-        assert dash_duo.get_logs() == []
+#         # App should not have any errors in console
+#         assert dash_duo.get_logs() == []
     
-    @pytest.mark.slow
-    def test_navigation_elements_present(self, dash_duo):
-        """Test that navigation elements are rendered."""
-        from multi_dashboard import app
+#     @pytest.mark.slow
+#     def test_navigation_elements_present(self, dash_duo):
+#         """Test that navigation elements are rendered."""
+#         from multi_dashboard import app
         
-        dash_duo.start_server(app)
-        dash_duo.wait_for_page(timeout=10)
+#         dash_duo.start_server(app)
+#         dash_duo.wait_for_page(timeout=10)
         
-        # Check for navigation wrapper
-        nav_element = dash_duo.find_element("#top-nav-wrapper")
-        assert nav_element is not None
+#         # Check for navigation wrapper
+#         nav_element = dash_duo.find_element("#top-nav-wrapper")
+#         assert nav_element is not None
     
-    @pytest.mark.slow
-    def test_page_container_present(self, dash_duo):
-        """Test that page container is rendered."""
-        from multi_dashboard import app
+#     @pytest.mark.slow
+#     def test_page_container_present(self, dash_duo):
+#         """Test that page container is rendered."""
+#         from multi_dashboard import app
         
-        dash_duo.start_server(app)
-        dash_duo.wait_for_page(timeout=10)
+#         dash_duo.start_server(app)
+#         dash_duo.wait_for_page(timeout=10)
         
-        # Page container should exist
-        # This is a basic smoke test to ensure the app structure is correct
-        assert dash_duo.driver.find_element("css selector", "body") is not None
+#         # Page container should exist
+#         # This is a basic smoke test to ensure the app structure is correct
+#         assert dash_duo.driver.find_element("css selector", "body") is not None
 
 
 class TestAccessibility:

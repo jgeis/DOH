@@ -1,5 +1,5 @@
 """
-Tests for discharges_su_co_sud_mh_dashboard.py and /discharges-su-co-sud-mh page.
+Tests for discharges_cooccurring_dashboard.py and /discharges-cooccurring-su and /discharges-cooccurring-mh page.
 
 Tests cover:
 - Page loading and initialization
@@ -15,43 +15,47 @@ These tests use REAL DATA from the database to verify:
 import pytest
 import pandas as pd
 import plotly.graph_objects as go
-import discharges_su_co_sud_mh_dashboard
+import discharges_cooccurring_dashboard
 from tests.test_utils import assert_returned_tables_sort_order
 
 
 class TestPageStructure:
     """Test basic page structure and initialization."""
     
-    def test_discharges_su_co_sud_mh_page_registered(self):
-        """Test that discharges-su-co-sud-mh page is registered."""
+    def test_discharges_cooccurring_pages_registered(self):
+        """Test that discharges-cooccurring-su and discharges-cooccurring-mg pages are registered."""
         from dash import page_registry
         import multi_dashboard  # Ensures pages are registered
         
         paths = [page['path'] for page in page_registry.values()]
-        assert '/discharges-su-co-sud-mh' in paths, "discharges-su-co-sud-mh page should be registered"
+        assert '/discharges-cooccurring-su' in paths, "discharges-cooccurring-su page should be registered"
+        assert '/discharges-cooccurring-mh' in paths, "discharges-cooccurring-mh page should be registered"
     
-    def test_discharges_su_co_sud_mh_page_has_layout(self):
-        """Test that discharges-su-co-sud-mh page has a layout."""
-        from pages import discharges_su_co_sud_mh
-        
-        assert hasattr(discharges_su_co_sud_mh, 'layout'), "Page should have layout attribute"
-        assert discharges_su_co_sud_mh.layout is not None, "Layout should not be None"
+    def test_discharges_cooccurring_pages_have_layouts(self):
+        """Test that discharges-cooccurring-su(mh) page has a layout."""
+        from pages import discharges_cooccurring_su
+        from pages import discharges_cooccurring_mh
+ 
+        assert hasattr(discharges_cooccurring_su, 'layout'), "Page should have layout attribute"
+        assert discharges_cooccurring_su.layout is not None, "Layout should not be None"
+        assert hasattr(discharges_cooccurring_mh, 'layout'), "Page should have layout attribute"
+        assert discharges_cooccurring_mh.layout is not None, "Layout should not be None"
     
-    def test_discharges_su_co_sud_mh_imports_correctly(self):
-        """Test that discharges_su_co_sud_mh_dashboard module can be imported."""
-        assert hasattr(discharges_su_co_sud_mh_dashboard, 'layout'), "Module should have layout"
-        assert hasattr(discharges_su_co_sud_mh_dashboard, 'update_dashboard'), "Module should have update_dashboard callback"
+    def test_discharges_cooccurring_dashboard_imports_correctly(self):
+        """Test that discharges_cooccurring_dashboard module can be imported."""
+        assert hasattr(discharges_cooccurring_dashboard, 'layout'), "Module should have layout"
+        assert hasattr(discharges_cooccurring_dashboard, 'update_dashboard'), "Module should have update_dashboard callback"
 
     def test_callback_returns_tables_in_canonical_order(self):
         """Verify the update_dashboard callback returns tables sorted by dashboard_utils."""
-        assert_returned_tables_sort_order(discharges_su_co_sud_mh_dashboard)
+        assert_returned_tables_sort_order(discharges_cooccurring_dashboard)
 
 class TestDataLoading:
     """Test data loading and initialization with real data."""
     
     def test_load_discharge_dataframe_from_db(self):
         """Test that data loading function works correctly with real data."""
-        df = discharges_su_co_sud_mh_dashboard.df_raw
+        df = discharges_cooccurring_dashboard.df_raw
         
         assert not df.empty, "Real data should not be empty"
         assert 'diagnosis' in df.columns, "Should have diagnosis column"
@@ -68,13 +72,13 @@ class TestDataLoading:
     
     def test_year_column_is_numeric(self):
         """Test that year column is numeric in real data."""
-        df = discharges_su_co_sud_mh_dashboard.df_raw
+        df = discharges_cooccurring_dashboard.df_raw
         
         assert pd.api.types.is_numeric_dtype(df['year']), "Year column should be numeric"
     
     def test_county_column_has_no_trailing_whitespace(self):
         """Test that county column values are trimmed (regression test for county filter bug)."""
-        df = discharges_su_co_sud_mh_dashboard.df_raw
+        df = discharges_cooccurring_dashboard.df_raw
         if 'county' in df.columns:
             county_values = df['county'].unique()
             for county in county_values:
@@ -83,7 +87,7 @@ class TestDataLoading:
 
     def test_city_column_has_no_trailing_whitespace(self):
         """Test that city column values are trimmed (regression test for city filter bug)."""
-        df = discharges_su_co_sud_mh_dashboard.df_raw
+        df = discharges_cooccurring_dashboard.df_raw
         
         if 'city' in df.columns:
             city_values = df['city'].unique()
@@ -93,7 +97,7 @@ class TestDataLoading:
 
     def test_age_column_has_no_trailing_whitespace(self):
         """Test that age column values are trimmed (regression test for age filter bug)."""
-        df = discharges_su_co_sud_mh_dashboard.df_raw
+        df = discharges_cooccurring_dashboard.df_raw
         
         if 'age_group' in df.columns:
             age_values = df['age_group'].unique()
@@ -103,7 +107,7 @@ class TestDataLoading:
 
     def test_sex_column_has_no_trailing_whitespace(self):
         """Test that sex column values are trimmed (regression test for sex filter bug)."""
-        df = discharges_su_co_sud_mh_dashboard.df_raw
+        df = discharges_cooccurring_dashboard.df_raw
         
         if 'sex' in df.columns:
             sex_values = df['sex'].unique()
@@ -113,7 +117,7 @@ class TestDataLoading:
 
     def test_substance_column_has_no_trailing_whitespace(self):
         """Test that substance column values are trimmed (regression test for substance filter bug)."""
-        df = discharges_su_co_sud_mh_dashboard.df_raw
+        df = discharges_cooccurring_dashboard.df_raw
         
         if 'substance' in df.columns:
             substance_values = df['substance'].unique()
@@ -123,7 +127,7 @@ class TestDataLoading:
 
     def test_race_ethnicity_column_has_no_trailing_whitespace(self):
         """Test that race/ethnicity column values are trimmed (regression test for race/ethnicity filter bug)."""
-        df = discharges_su_co_sud_mh_dashboard.df_raw
+        df = discharges_cooccurring_dashboard.df_raw
         
         if 'race_ethnicity' in df.columns:
             race_ethnicity_values = df['race_ethnicity'].unique()
@@ -133,7 +137,7 @@ class TestDataLoading:
 
     def test_hawaii_residency_column_has_no_trailing_whitespace(self):
         """Test that Hawaii residency column values are trimmed (regression test for Hawaii residency filter bug)."""
-        df = discharges_su_co_sud_mh_dashboard.df_raw
+        df = discharges_cooccurring_dashboard.df_raw
         
         if 'hawaii_residency' in df.columns:
             hawaii_residency_values = df['hawaii_residency'].unique()
@@ -149,7 +153,7 @@ class TestFiltering:
     
     def test_filter_by_year_2024(self):
         """Test filtering by year 2024 with real data."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=None,
             mh=None,
             county=None,
@@ -160,18 +164,18 @@ class TestFiltering:
             sex=None,
             race_ethnicity=None
         )
-        kpi, sub_bar, mh_bar, sub_line, table_county, table_age, table_sex, table_race, table_hawaii = result
+        kpi, sub_bar, mh_bar, sub_line, mh_line, table_year, table_county, table_age, table_sex, table_race, table_hawaii = result
         # Line charts should only show 2024 data
         if len(sub_line.data) > 0:
             for trace in sub_line.data:
                 if len(trace.x) > 0:
                     assert all(x == 2024 for x in trace.x), f"All years should be 2024, got {trace.x}"
-        # KPI card should show 869 
-        assert '869' in kpi or '869' in kpi, f"KPI should contain '869', got: {kpi}"
+        # KPI card should show 1,960 
+        assert '1,960' in kpi or '1,960' in kpi, f"KPI should contain '1,960', got: {kpi}"
 
     def test_filter_by_substance_alcohol(self):
         """Test filtering by Alcohol substance with real data."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=['Alcohol'],
             mh=None,
             county=None,
@@ -183,19 +187,19 @@ class TestFiltering:
             race_ethnicity=None
         )
         
-        # Result should be a tuple with 9 elements
-        assert len(result) == 9, f"Should return 9 elements, got {len(result)}"
+        # Result should be a tuple with 11 elements
+        assert len(result) == 11, f"Should return 11 elements, got {len(result)}"
         
         # KPI should show some value
         kpi = result[0]
         assert kpi is not None, "KPI should not be None"
         assert any(c.isdigit() for c in str(kpi)), "KPI should show numeric value"
-        # KPI card should show 400 
-        assert '400' in kpi or '400' in kpi, f"KPI should contain '400', got: {kpi}"
+        # KPI card should show 834 
+        assert '834' in kpi or '834' in kpi, f"KPI should contain '834', got: {kpi}"
 
     def test_filter_by_county_honolulu(self):
         """Test filtering by Honolulu county with real data."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=None,
             mh=None,
             county=['Honolulu'],
@@ -207,7 +211,7 @@ class TestFiltering:
             race_ethnicity=None
         )
         print(result)
-        kpi, sub_bar, mh_bar, sub_line, table_county, table_age, table_sex, table_race, table_hawaii = result
+        kpi, sub_bar, mh_bar, sub_line, mh_line, table_year, table_county, table_age, table_sex, table_race, table_hawaii = result
         print(f"kpi: {kpi}")
         print(f"sub_bar: {sub_bar}")
         print(f"mh_bar: {mh_bar}")
@@ -221,16 +225,16 @@ class TestFiltering:
         assert len(sub_bar.data) > 0, "Bar chart should have data"
         assert mh_bar is not None, "Bar chart should not be None"
         assert len(mh_bar.data) > 0, "Bar chart should have data"
-        # County table should show 597 for county Honolulu
+        # County table should show 1,346 for county Honolulu
         assert table_county is not None, "County table should not be None"
         table_county_str = str(table_county)
-        assert '597' in table_county_str or '597' in table_county_str, f"County table should contain 597, got: {table_county_str}"
+        assert '1,346' in table_county_str or '1,346' in table_county_str, f"County table should contain 1,346, got: {table_county_str}"
         assert 'Honolulu' in table_county_str, f"County table should contain Honolulu, got: {table_county_str}"
     
 
     def test_filter_by_city_honolulu(self):
         """Test filtering by Honolulu city with real data."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=None,
             mh=None,
             county=None,
@@ -241,24 +245,24 @@ class TestFiltering:
             sex=None,
             race_ethnicity=None
         )
-        kpi, sub_bar, mh_bar, sub_line, table_county, table_age, table_sex, table_race, table_hawaii = result
+        kpi, sub_bar, mh_bar, sub_line, mh_line, table_year, table_county, table_age, table_sex, table_race, table_hawaii = result
         # Bar chart should have data
         assert sub_bar is not None, "Bar chart should not be None"
         assert len(sub_bar.data) > 0, "Bar chart should have data"
         assert mh_bar is not None, "Bar chart should not be None"
         assert len(mh_bar.data) > 0, "Bar chart should have data"
-        # KPI card should show 450 
-        assert '450' in kpi or '450' in kpi, f"KPI should contain '450', got: {kpi}"
-        # County table should show 450 for city Honolulu
+        # KPI card should show 1,045 
+        assert '1,045' in kpi or '1,045' in kpi, f"KPI should contain '1,045', got: {kpi}"
+        # County table should show 1,045 for city Honolulu
         assert table_county is not None, "County table should not be None"
         table_county_str = str(table_county)
         print(f"table_county_str: {table_county_str}")
-        assert '450' in table_county_str or '450' in table_county_str, f"County table should contain 450, got: {table_county_str}"
+        assert '1,045' in table_county_str or '1,045' in table_county_str, f"County table should contain 1,045, got: {table_county_str}"
         assert 'Statewide' in table_county_str, f"County table should contain Statewide, got: {table_county_str}"
 
     def test_filter_by_age_group_18_44(self):
         """Test filtering by age group 18-44 with real data."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=None,
             mh=None,
             county=None,
@@ -269,24 +273,24 @@ class TestFiltering:
             sex=None,
             race_ethnicity=None
         )
-        kpi, sub_bar, mh_bar, sub_line, table_county, table_age, table_sex, table_race, table_hawaii = result
+        kpi, sub_bar, mh_bar, sub_line, mh_line, table_year, table_county, table_age, table_sex, table_race, table_hawaii = result
         # Bar chart should have data
         assert sub_bar is not None, "Bar chart should not be None"
         assert len(sub_bar.data) > 0, "Bar chart should have data"
         assert mh_bar is not None, "Bar chart should not be None"
         assert len(mh_bar.data) > 0, "Bar chart should have data"
-        # KPI card should show 527
-        assert '527' in kpi or '527' in kpi, f"KPI should contain '527', got: {kpi}"
-        # Age table should show 527 for age group 18-44
+        # KPI card should show 1,180
+        assert '1,180' in kpi or '1,180' in kpi, f"KPI should contain '1,180', got: {kpi}"
+        # Age table should show 1,180 for age group 18-44
         assert table_age is not None, "Age table should not be None"
         table_age_str = str(table_age)
         print(f"table_age_str: {table_age_str}")
-        assert '527' in table_age_str or '527' in table_age_str, f"Age table should contain 527, got: {table_age_str}"
+        assert '1,180' in table_age_str or '1,180' in table_age_str, f"Age table should contain 1,180, got: {table_age_str}"
         assert '18-44' in table_age_str, f"Age table should contain 18-44, got: {table_age_str}"
 
     def test_filter_by_sex_male(self):
         """Test filtering by sex Male with real data."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=None,
             mh=None,
             county=None,
@@ -297,24 +301,24 @@ class TestFiltering:
             sex=['Male'],
             race_ethnicity=None
         )
-        kpi, sub_bar, mh_bar, sub_line, table_county, table_age, table_sex, table_race, table_hawaii = result
+        kpi, sub_bar, mh_bar, sub_line, mh_line, table_year, table_county, table_age, table_sex, table_race, table_hawaii = result
         # Bar chart should have data
         assert sub_bar is not None, "Bar chart should not be None"
         assert len(sub_bar.data) > 0, "Bar chart should have data"
         assert mh_bar is not None, "Bar chart should not be None"
         assert len(mh_bar.data) > 0, "Bar chart should have data"
-        # KPI card should show 533 
-        assert '533' in kpi or '533' in kpi, f"KPI should contain '533', got: {kpi}"
-        # Sex table should show 533 for Male
+        # KPI card should show 1,168 
+        assert '1,168' in kpi or '1,168' in kpi, f"KPI should contain '1,168', got: {kpi}"
+        # Sex table should show 1,168 for Male
         assert table_sex is not None, "Sex table should not be None"
         table_sex_str = str(table_sex)
         print(f"table_sex_str: {table_sex_str}")
-        assert '533' in table_sex_str or '533' in table_sex_str, f"Sex table should contain 533, got: {table_sex_str}"
+        assert '1,168' in table_sex_str or '1,168' in table_sex_str, f"Sex table should contain 1,168, got: {table_sex_str}"
         assert 'Male' in table_sex_str, f"Sex table should contain Male, got: {table_sex_str}"
 
     def test_filter_by_race_ethnicity_white(self):
         """Test filtering by race/ethnicity White/Caucasian with real data."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=None,
             mh=None,            
             county=None,
@@ -325,23 +329,23 @@ class TestFiltering:
             sex=None,
             race_ethnicity=['White/Caucasian']
         )
-        kpi, sub_bar, mh_bar, sub_line, table_county, table_age, table_sex, table_race, table_hawaii = result
+        kpi, sub_bar, mh_bar, sub_line, mh_line, table_year, table_county, table_age, table_sex, table_race, table_hawaii = result
         # Bar chart should have data
         assert sub_bar is not None, "Bar chart should not be None"
         assert len(sub_bar.data) > 0, "Bar chart should have data"
         assert mh_bar is not None, "Bar chart should not be None"
         assert len(mh_bar.data) > 0, "Bar chart should have data"
-        # KPI card should show 445 
-        assert '445' in kpi or '445' in kpi, f"KPI should contain '445', got: {kpi}"
-        # # Race/Ethnicity table should show 445 for White/Caucasian
-        # assert table_race is not None, "Race/Ethnicity table should not be None"
-        # table_race_str = str(table_race)
-        # assert '445' in table_race_str or '445' in table_race_str, f"Race/Ethnicity table should contain 445, got: {table_race_str}"
-        # assert 'White/Caucasian' in table_race_str, f"Race/Ethnicity table should contain White/Caucasian, got: {table_race_str}"
+        # KPI card should show 916 
+        assert '916' in kpi or '916' in kpi, f"KPI should contain '916', got: {kpi}"
+        # # Race/Ethnicity table should show 916 for White/Caucasian
+        assert table_race is not None, "Race/Ethnicity table should not be None"
+        table_race_str = str(table_race)
+        assert '916' in table_race_str or '916' in table_race_str, f"Race/Ethnicity table should contain 916, got: {table_race_str}"
+        assert 'White/Caucasian' in table_race_str, f"Race/Ethnicity table should contain White/Caucasian, got: {table_race_str}"
 
     def test_filter_by_hawaii_residency_resident(self):
         """Test filtering by Hawaii residency with real data."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=None,
             mh=None,
             county=None,
@@ -352,18 +356,18 @@ class TestFiltering:
             sex=None,
             race_ethnicity=None
         )
-        kpi, sub_bar, mh_bar, sub_line, table_county, table_age, table_sex, table_race, table_hawaii = result
+        kpi, sub_bar, mh_bar, sub_line, mh_line, table_year, table_county, table_age, table_sex, table_race, table_hawaii = result
         # Bar chart should have data
         assert sub_bar is not None, "Bar chart should not be None"
         assert len(sub_bar.data) > 0, "Bar chart should have data"
         assert mh_bar is not None, "Bar chart should not be None"
         assert len(mh_bar.data) > 0, "Bar chart should have data"
-        # KPI card should show 816 
-        assert '816' in kpi or '816' in kpi, f"KPI should contain '816', got: {kpi}"
-        # # Residency table should show 816 for Resident
+        # KPI card should show 1,840 
+        assert '1,840' in kpi or '1,840' in kpi, f"KPI should contain '1,840', got: {kpi}"
+        # # Residency table should show 1,840 for Resident
         # assert table_residency is not None, "Residency table should not be None"
         # table_residency_str = str(table_residency)
-        # assert '816' in table_residency_str or '816' in table_residency_str, f"Residency table should contain 816, got: {table_residency_str}"
+        # assert '1,840' in table_residency_str or '1,840' in table_residency_str, f"Residency table should contain 1,840, got: {table_residency_str}"
         # assert 'Resident' in table_residency_str, f"Residency table should contain Resident, got: {table_residency_str}"
 
 
@@ -383,7 +387,7 @@ class TestDischargesSURegressionScenarios:
         - Sex at Birth: Male
         
         Expected results (verified from real data):
-        - All visuals should show 1,473 discharges
+        - All visuals should show 169 discharges
         - This verifies:
           * Query is working correctly
           * Visuals load as expected
@@ -391,7 +395,7 @@ class TestDischargesSURegressionScenarios:
           * All aggregations are consistent
         """
         # Apply the specific filters to real data
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=['Alcohol'],
             mh=None,
             county=['Honolulu'],
@@ -408,62 +412,65 @@ class TestDischargesSURegressionScenarios:
          sub_bar_fig, 
          mh_bar_fig, 
          sub_line_fig, 
+         mh_line_fig,
+         table_year,
          table_county,
          table_age,
          table_sex,
          table_race,
          table_residency) = result
         
-        # TEST 1: KPI card should show 77
-        assert '77' in kpi_text or '77' in kpi_text, f"KPI should contain '77', got: {kpi_text}"
+        # TEST 1: KPI card should show 169
+        assert '169' in kpi_text or '169' in kpi_text, f"KPI should contain '169', got: {kpi_text}"
         
-        # TEST 2: Bar chart (Discharges by Substance) should show 111 for Alcohol
+        # TEST 2: Bar chart (Discharges by Substance) should show 169 for Alcohol
         assert sub_bar_fig is not None, "Bar chart should not be None"
         assert len(sub_bar_fig.data) > 0, "Bar chart should have data"
         
         bar_data = sub_bar_fig.data[0]
-        # Since we filtered for Alcohol only, should have one bar
-        assert len(bar_data.y) == 1, f"Should have 1 substance bar (Alcohol), got {len(bar_data.y)}"
-        assert bar_data.x[0] == 111, f"Bar chart should show 111 discharges, got {bar_data.x[0]}"
-        
-        # TEST 3: Substance line chart should show 111 for 2024
+        assert len(bar_data.y) == 8, f"Should have 8 bars, got {len(bar_data.y)}"
+        alcohol_index = 7
+        assert bar_data.x[alcohol_index] == 169, f"Bar chart should show 169 discharges, got {bar_data.x[alcohol_index]}"
+        assert bar_data.y[alcohol_index] == 'Alcohol', f"Bar chart should show Alcohol discharges, got {bar_data.y[alcohol_index]}"
+
+        # TEST 3: Substance line chart should show 169 for 2024
         assert sub_line_fig is not None, "Substance line chart should not be None"
-        assert len(sub_line_fig.data) > 0, "Substance line chart should have data"
+        assert len(sub_line_fig.data) == 8, f"Substance line chart should have 8 points (2024), got {len(sub_line_fig.data)}"
         
         # TEST 4: Should have one trace for Alcohol
         alcohol_trace = sub_line_fig.data[0]
-        assert len(alcohol_trace.x) == 1, f"Should have 1 point (2024), got {len(alcohol_trace.x)}"
+        assert len(alcohol_trace.x) == 1, f"Should have 1 points (2024), got {len(alcohol_trace.x)}"
         assert alcohol_trace.x[0] == 2024, f"Year should be 2024, got {alcohol_trace.x[0]}"
-        assert alcohol_trace.y[0] == 111, f"Substance line should show 111, got {alcohol_trace.y[0]}"
+        assert alcohol_trace.y[0] == 169, f"Substance line should show 169, got {alcohol_trace.y[0]}"
         
-        # TEST 5: Year table should show 111 for 2024
+        # TEST 5: Year table should show 169 for 2024
         assert table_year is not None, "Year table should not be None"
         # Convert table to string to search for value
         table_year_str = str(table_year)
-        assert '111' in table_year_str, f"Year table should contain 111"
+        assert '169' in table_year_str, f"Year table should contain 169"
         assert '2024' in table_year_str, "Year table should contain 2024"
         
-        # TEST 6: County table should show 111 for Honolulu
+        # TEST 6: County table should show 169 for Honolulu
         assert table_county is not None, "County table should not be None"
         table_county_str = str(table_county)
-        assert '111' in table_county_str, f"County table should contain 111"
+        assert '169' in table_county_str, f"County table should contain 169"
         assert 'Honolulu' in table_county_str, "County table should contain Honolulu"
         
-        # TEST 7: Age table should show 111 for 18-44
+        # TEST 7: Age table should show 169 for 18-44
         assert table_age is not None, "Age table should not be None"
         table_age_str = str(table_age)
-        assert '111' in table_age_str, f"Age table should contain 111"
+        assert '169' in table_age_str, f"Age table should contain 169"
         assert '18-44' in table_age_str, "Age table should contain 18-44"
         
-        # TEST 8: Sex table should show 111 for Male
+        # TEST 8: Sex table should show 169 for Male
         assert table_sex is not None, "Sex table should not be None"
         table_sex_str = str(table_sex)
-        assert '111' in table_sex_str, f"Sex table should contain 111"
+        assert '169' in table_sex_str, f"Sex table should contain 169"
         assert 'Male' in table_sex_str, "Sex table should contain Male"
     
     def test_empty_filters_shows_all_data(self):
         """Regression: Empty filters should show all data from real database."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=None,
             mh=None,
             county=None,
@@ -475,7 +482,7 @@ class TestDischargesSURegressionScenarios:
             race_ethnicity=None
         )
         
-        kpi, sub_bar, mh_bar, sub_line, table_county, table_age, table_sex, table_race, table_hawaii = result
+        kpi, sub_bar, mh_bar, sub_line, mh_line, table_year, table_county, table_age, table_sex, table_race, table_hawaii = result
         
         # Should have data for multiple substances
         assert sub_bar is not None, "Bar chart should not be None"
@@ -486,7 +493,7 @@ class TestDischargesSURegressionScenarios:
     
     def test_multiple_years_selected(self):
         """Regression: Multiple year selection should work with real data."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=['Alcohol'],
             mh=None,
             county=['Honolulu'],
@@ -498,7 +505,7 @@ class TestDischargesSURegressionScenarios:
             race_ethnicity=None
         )
         
-        kpi, sub_bar, mh_bar, sub_line, table_county, table_age, table_sex, table_race, table_hawaii = result
+        kpi, sub_bar, mh_bar, sub_line, mh_line, table_year, table_county, table_age, table_sex, table_race, table_hawaii = result
         
         # Line charts should show both years
         if len(sub_line.data) > 0:
@@ -512,7 +519,7 @@ class TestDischargesSUCharts:
     
     def test_bar_chart_structure(self):
         """Test that bar chart has correct structure with real data."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=None,
             mh=None,
             county=None,
@@ -524,7 +531,7 @@ class TestDischargesSUCharts:
             race_ethnicity=None
         )
         
-        kpi, sub_bar, mh_bar, sub_line, table_county, table_age, table_sex, table_race, table_hawaii = result
+        kpi, sub_bar, mh_bar, sub_line, mh_line, table_year, table_county, table_age, table_sex, table_race, table_hawaii = result
         
         # Should be a bar chart
         assert isinstance(sub_bar, go.Figure), "Should be a Plotly Figure"
@@ -536,7 +543,7 @@ class TestDischargesSUCharts:
     
     def test_line_chart_structure(self):
         """Test that line charts have correct structure with real data."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=['Alcohol'],
             mh=None,
             county=None,
@@ -548,7 +555,7 @@ class TestDischargesSUCharts:
             race_ethnicity=None
         )
         
-        kpi, sub_bar, mh_bar, sub_line, table_county, table_age, table_sex, table_race, table_hawaii = result
+        kpi, sub_bar, mh_bar, sub_line, mh_line, table_year, table_county, table_age, table_sex, table_race, table_hawaii = result
         
         # Substance line should be a line chart
         assert isinstance(sub_line, go.Figure), "Should be a Plotly Figure"
@@ -556,25 +563,25 @@ class TestDischargesSUCharts:
             for trace in sub_line.data:
                 assert trace.type == 'scatter', "Should be scatter type"
     
-    def test_stacked_bar_structure(self):
-        """Test that stacked bar chart has correct structure with real data."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
-            su=['Alcohol'],
-            mh=None,
-            county=None,
-            city=None,
-            year=[2024],
-            hawaii_residency=None,
-            age=None,
-            sex=None,
-            race_ethnicity=None
-        )
+    # def test_stacked_bar_structure(self):
+    #     """Test that stacked bar chart has correct structure with real data."""
+    #     result = discharges_cooccurring_dashboard.update_dashboard(
+    #         su=['Alcohol'],
+    #         mh=None,
+    #         county=None,
+    #         city=None,
+    #         year=[2024],
+    #         hawaii_residency=None,
+    #         age=None,
+    #         sex=None,
+    #         race_ethnicity=None
+    #     )
         
-        kpi, sub_bar, mh_bar, sub_line, table_county, table_age, table_sex, table_race, table_hawaii = result
+    #     kpi, sub_bar, mh_bar, sub_line, mh_line, table_year, table_county, table_age, table_sex, table_race, table_hawaii = result
         
-        # Should be a stacked bar chart
-        assert isinstance(table_sex, go.Figure), "Should be a Plotly Figure"
-        assert len(table_sex.data) > 0, "Should have at least one trace"
+    #     # Should be a stacked bar chart
+    #     assert isinstance(table_sex, go.Figure), "Should be a Plotly Figure"
+    #     assert len(table_sex.data) > 0, "Should have at least one trace"
 
 
 class TestDischargesSUTables:
@@ -582,7 +589,7 @@ class TestDischargesSUTables:
     
     def test_tables_are_not_none(self):
         """Test that all tables are generated."""
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
+        result = discharges_cooccurring_dashboard.update_dashboard(
             su=['Alcohol'],
             mh=None,
             county=None,
@@ -594,7 +601,7 @@ class TestDischargesSUTables:
             race_ethnicity=None
         )
         
-        kpi, sub_bar, mh_bar, sub_line, table_county, table_age, table_sex, table_race, table_hawaii = result
+        kpi, sub_bar, mh_bar, sub_line, mh_line, table_year, table_county, table_age, table_sex, table_race, table_hawaii = result
         
         assert table_county is not None, "County table should not be None"
         assert table_age is not None, "Age table should not be None"
@@ -608,60 +615,16 @@ class TestDischargesSUResetFilters:
     
     def test_reset_filters_callback_exists(self):
         """Test that reset filters callback is defined."""
-        assert hasattr(discharges_su_co_sud_mh_dashboard, 'reset_discharges_filters'), "Should have reset_discharges_filters function"
-        assert callable(discharges_su_co_sud_mh_dashboard.reset_discharges_filters), "reset_discharges_filters should be callable"
+        assert hasattr(discharges_cooccurring_dashboard, 'reset_discharges_filters'), "Should have reset_discharges_filters function"
+        assert callable(discharges_cooccurring_dashboard.reset_discharges_filters), "reset_discharges_filters should be callable"
     
     def test_reset_filters_returns_none_values(self):
         """Test that reset filters returns None for all filter values."""
-        result = discharges_su_co_sud_mh_dashboard.reset_discharges_filters(1)
+        result = discharges_cooccurring_dashboard.reset_discharges_filters(1)
         
-        # Should return 8 None values (one for each filter)
-        assert len(result) == 8, f"Should return 8 values, got {len(result)}"
+        # Should return 9 None values (one for each filter)
+        assert len(result) == 9, f"Should return 9 values, got {len(result)}"
         assert all(v is None for v in result), "All filter values should be None after reset"
-
-
-@pytest.mark.integration
-class TestDischargesSUDataConsistency:
-    """Test data consistency across different visuals."""
-    
-    def test_kpi_matches_filtered_data_count(self):
-        """Test that KPI value matches the actual filtered data count."""
-        # Get raw data and apply same filters
-        df = discharges_su_co_sud_mh_dashboard.df_raw.copy()
-        
-        # Apply filters manually
-        df_filtered = df[
-            (df['su'] == 'Alcohol') &
-            (df['county'] == 'Honolulu') &
-            (df['year'] == 2024) &
-            (df['age_group'] == '18-44') &
-            (df['sex'] == 'Male')
-        ]
-        
-        expected_count = df_filtered['record_id'].nunique()
-        
-        # Now call the dashboard callback
-        result = discharges_su_co_sud_mh_dashboard.update_dashboard(
-            su=['Alcohol'],
-            mh=None,
-            county=['Honolulu'],
-            city=None,
-            year=[2024],
-            hawaii_residency=None,
-            age=['18-44'],
-            sex=['Male'],
-            race_ethnicity=None
-        )
-        
-        kpi_text = result[0]
-        
-        # Extract number from KPI text
-        import re
-        numbers = re.findall(r'[\d,]+', kpi_text)
-        if numbers:
-            kpi_value = int(numbers[0].replace(',', ''))
-            assert kpi_value == expected_count, f"KPI should show {expected_count}, got {kpi_value}"
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

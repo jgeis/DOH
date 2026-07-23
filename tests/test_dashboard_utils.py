@@ -69,7 +69,7 @@ class TestCountSuppression:
         """Test counts below threshold are suppressed."""
         assert format_count_display(5) == SUPPRESSED_COUNT_LABEL
         assert format_count_display(9) == SUPPRESSED_COUNT_LABEL
-        assert format_count_display(0) == SUPPRESSED_COUNT_LABEL
+        assert format_count_display(0) == "0"
     
     def test_format_count_display_at_threshold(self):
         """Test count at threshold is shown."""
@@ -420,8 +420,8 @@ class TestRegressionScenarios:
     
     def test_zero_count_handling(self):
         """Regression: Ensure zeros are handled consistently."""
-        # Zero should be suppressed in default behavior
-        assert format_count_display(0) == SUPPRESSED_COUNT_LABEL
+        # Zero should show as zero
+        assert format_count_display(0) == '0'
     
     def test_mixed_type_county_filtering(self):
         """Regression: Handle mixed string/numeric types in filtering."""

@@ -102,20 +102,20 @@ class TestADADDashboard:
         assert len(bar_fig.data[0].y) == 1 and bar_fig.data[0].y[0] == '2024' and bar_fig.data[0].x[0] == 8377
         
         year_table_data = parse_table_from_layout(year_table)
-        # FIX: Access dictionary key with integer 2024, not string '2024'
-        assert len(year_table_data) == 1 and year_table_data.get(2024) == '8,377'
+        assert len(year_table_data) == 1 and year_table_data.get('2024') == '8,377'
 
         county_table_data = parse_table_from_layout(county_table)
-        assert len(county_table_data) == 6
+        assert len(county_table_data) == 7
         assert county_table_data.get('Hawaiʻi') == '976'
         assert county_table_data.get('Kauaʻi') == '150'
         assert county_table_data.get('Lānaʻi') == '<10*'
         assert county_table_data.get('Maui') == '765'
+        assert county_table_data.get('Molokaʻi') == '0'
         assert county_table_data.get('Oahu') == '6,186'
         assert county_table_data.get('Unknown') == '766'
 
         modality_table_data = parse_table_from_layout(modality_table)
-        assert len(modality_table_data) == 19
+        assert len(modality_table_data) == 32
         assert modality_table_data.get('Care Coordination') == '6,612'
 
         assert len(modality_line.data) > 0
@@ -140,14 +140,15 @@ class TestADADDashboard:
         assert len(bar_fig.data[0].y) == 1 and bar_fig.data[0].x[0] == 6612
         
         year_table_data = parse_table_from_layout(year_table)
-        # FIX: Access dictionary key with integer 2024, not string '2024'
-        assert len(year_table_data) == 1 and year_table_data.get(2024) == '6,612'
+        assert len(year_table_data) == 1 and year_table_data.get('2024') == '6,612'
 
         county_table_data = parse_table_from_layout(county_table)
-        assert len(county_table_data) == 5
+        assert len(county_table_data) == 7
         assert county_table_data.get('Hawaiʻi') == '566'
         assert county_table_data.get('Kauaʻi') == '100'
+        assert county_table_data.get('Lānaʻi') == '0'
         assert county_table_data.get('Maui') == '602'
+        assert county_table_data.get('Molokaʻi') == '0'
         assert county_table_data.get('Oahu') == '5,054'
         assert county_table_data.get('Unknown') == '647'
 

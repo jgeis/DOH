@@ -112,7 +112,7 @@ class TestAMHDCooccurringDashboard:
         assert len(bar_fig.data[0].y) == 1
         assert bar_fig.data[0].x[0] == 1119
         table_data = parse_table_from_layout(table)
-        assert len(table_data) == 3
+        assert len(table_data) == 1
         assert table_data.get('Contracted Providers') == '1,119'
 
     def test_month_view_2024_with_category(self):
