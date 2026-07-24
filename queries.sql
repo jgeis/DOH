@@ -13,7 +13,7 @@ SELECT
   m.hawaii_residency,
   m.age_group, 
   m.sex, 
-  m.race_ethnicity,
+  REPLACE(TRIM(m.race_ethnicity), 'Black of African American', 'Black or African American') AS race_ethnicity,
   m.year
 FROM dx
 JOIN discharge_data_view_demographics_test m ON m.record_id = dx.record_id;
@@ -34,7 +34,7 @@ SELECT
   m.hawaii_residency,
   m.age_group, 
   m.sex, 
-  m.race_ethnicity,
+  REPLACE(TRIM(m.race_ethnicity), 'Black of African American', 'Black or African American') AS race_ethnicity,
   m.year
 FROM dx
 JOIN discharge_data_view_demographics_test m ON m.record_id = dx.record_id;
@@ -57,16 +57,20 @@ poly_ids AS (
 SELECT
   u.record_id,
   u.substance,
-  m.county, m.city, m.zip, m.hawaii_residency,
-  m.age_group, m.sex, m.race_ethnicity,
+  m.county, 
+  m.city, 
+  m.zip, 
+  m.hawaii_residency,
+  m.age_group, 
+  m.sex, 
+  REPLACE(TRIM(m.race_ethnicity), 'Black of African American', 'Black or African American') AS race_ethnicity,
   CAST(m.year AS INTEGER) AS year
 FROM dx_union AS u
 JOIN poly_ids AS p
   ON p.record_id = u.record_id
 JOIN discharge_data_view_demographics_test AS m
-  ON m.record_id = u.record_id
-WHERE
-  LOWER(COALESCE(NULLIF(TRIM(m.age_group), ''), 'unknown')) <> 'unknown';  -- drop Unknown/blank ages
+  ON m.record_id = u.record_id;
+
 
 -- name: load_dose_data
 WITH dx AS (
@@ -83,7 +87,7 @@ SELECT
   m.hawaii_residency,
   m.age_group,
   m.sex,
-  m.race_ethnicity,
+  REPLACE(TRIM(m.race_ethnicity), 'Black of African American', 'Black or African American') AS race_ethnicity,
   m.year
 FROM dx
 JOIN discharge_data_view_demographics_test m ON m.record_id = dx.record_id;
@@ -110,7 +114,7 @@ SELECT
   m.hawaii_residency,
   m.age_group,
   m.sex,
-  m.race_ethnicity,
+  REPLACE(TRIM(m.race_ethnicity), 'Black of African American', 'Black or African American') AS race_ethnicity,
   m.year
 FROM dx
 JOIN poly_ids AS p
@@ -257,14 +261,14 @@ SELECT distinct
  demo.hawaii_residency,
  demo.age_group,
  demo.sex,
- demo.race_ethnicity,
+ REPLACE(TRIM(demo.race_ethnicity), 'Black of African American', 'Black or African American') AS race_ethnicity,
  CAST(demo.year AS INTEGER) AS year
 FROM diag dx
 INNER JOIN cooccur co 
  ON co.record_id = dx.record_id
 INNER JOIN discharge_data_view_demographics_test demo
- ON demo.record_id = dx.record_id
-WHERE LOWER(COALESCE(NULLIF(TRIM(demo.age_group), ''), 'unknown')) <> 'unknown';
+ ON demo.record_id = dx.record_id;
+
 
 -- name: load_discharges_su_co_mh_sud
 WITH diag AS (
@@ -295,14 +299,14 @@ SELECT distinct
  demo.hawaii_residency,
  demo.age_group,
  demo.sex,
- demo.race_ethnicity,
+ REPLACE(TRIM(demo.race_ethnicity), 'Black of African American', 'Black or African American') AS race_ethnicity,
  CAST(demo.year AS INTEGER) AS year
 FROM diag dx
 INNER JOIN cooccur co 
  ON co.record_id = dx.record_id
 INNER JOIN discharge_data_view_demographics_test demo
- ON demo.record_id = dx.record_id
-WHERE LOWER(COALESCE(NULLIF(TRIM(demo.age_group), ''), 'unknown')) <> 'unknown';
+ ON demo.record_id = dx.record_id;
+
 
 -- name: load_discharges_cooccuring_su_and_mh
 WITH diag AS (
@@ -331,14 +335,13 @@ SELECT distinct
  demo.hawaii_residency,
  demo.age_group,
  demo.sex,
- demo.race_ethnicity,
+ REPLACE(TRIM(demo.race_ethnicity), 'Black of African American', 'Black or African American') AS race_ethnicity,
  CAST(demo.year AS INTEGER) AS year
 FROM diag dx
 INNER JOIN cooccur co 
  ON co.record_id = dx.record_id
 INNER JOIN discharge_data_view_demographics_test demo
- ON demo.record_id = dx.record_id
-WHERE LOWER(COALESCE(NULLIF(TRIM(demo.age_group), ''), 'unknown')) <> 'unknown';
+ ON demo.record_id = dx.record_id;
 
 -- name: load_crisis_mobile_outreach
 SELECT 
