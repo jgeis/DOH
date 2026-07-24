@@ -53,6 +53,7 @@ def load_diagnosis_dataframe_from_db():
     
     # Execute query using db_utils (automatically uses correct database)
     df = execute_query(sql)
+    print(df["county"].unique())
     print(f"load_discharges_cooccuring_su_and_mh returned {len(df):,} rows")
 
     # If there is no data, we stop early instead of showing a broken page
@@ -63,16 +64,29 @@ def load_diagnosis_dataframe_from_db():
     if "year" in df.columns:
         df["year"] = pd.to_numeric(df["year"], errors="coerce")
 
-    # For these columns, replace missing values with "Unknown"
-    # so we don't get blank labels in filters and tables.
-    for col in ["diagnosis", "diagnosis_type", "county", "city", "zip", "hawaii_residency", "age_group", "sex", "race_ethnicity", "year"]:
+    # Clean up text columns by catching true nulls, stripping whitespace, and catching empty strings
+    text_cols = ["diagnosis", "diagnosis_type", "county", "city", "zip", "hawaii_residency", "age_group", "sex", "race_ethnicity"]
+    for col in text_cols:
         if col in df.columns:
-            df[col] = df[col].fillna("Unknown")
-    
-    # Trim whitespace from text columns (fixes issue where trailing spaces prevent filter matches)
-    for col in ["diagnosis", "diagnosis_type", "county", "city", "zip", "hawaii_residency", "age_group", "sex", "race_ethnicity"]:
-        if col in df.columns:
-            df[col] = df[col].astype(str).str.strip()
+            # Handle true nulls, convert to string, and strip whitespace
+            df[col] = df[col].fillna("Unknown").astype(str).str.strip()
+            # Explicitly catch empty strings, pandas artifacts, and SQL artifacts
+            df[col] = df[col].replace({
+                "": "Unknown", 
+                "nan": "Unknown", 
+                "NaN": "Unknown", 
+                "None": "Unknown", 
+                "<NA>": "Unknown",
+                "NULL": "Unknown",
+                "null": "Unknown",
+                "N/A": "Unknown",
+                "n/a": "Unknown",
+                "-": "Unknown"
+            })
+            
+    # Handle the year column separately since it shouldn't be cast to a string right away
+    if "year" in df.columns:
+        df["year"] = df["year"].fillna("Unknown")
     
     return df
 
