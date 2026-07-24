@@ -111,11 +111,13 @@ class TestFiltering:
             county=None,
             year=None,
             age=None,
-            sex=None
+            sex=None,
+            race_ethnicity=None,
+            hawaii_residency=None
         )
-        # Result should be a tuple with 11 elements
+        # Result should be a tuple with 15 elements
         print(result)
-        assert len(result) == 11, f"Should return 11 elements, got {len(result)}"
+        assert len(result) == 15, f"Should return 15 elements, got {len(result)}"
         # KPI should show some value
         kpi = result[0]
         assert kpi is not None, "KPI should not be None"
@@ -128,10 +130,12 @@ class TestFiltering:
             county=None,
             year=[2024],
             age=None,
-            sex=None
+            sex=None,
+            race_ethnicity=None,
+            hawaii_residency=None
         )
         #print(result)
-        kpi, substance_type_bar_title, substance_line_title, substance_bar_title, bar_fig, substance_line, county_line, table_county, table_year, table_age, table_sex = result
+        kpi, substance_type_bar_title, substance_line_title, substance_bar_title, bar_fig, substance_line, county_line, table_county, table_year, table_age, table_sex,  = result
         print(f"kpi: {kpi}")
         print(f"substance_type_bar_title: {substance_type_bar_title}")
         print(f"substance_line_title: {substance_line_title}")
@@ -164,7 +168,9 @@ class TestFiltering:
             county=['Honolulu'],
             year=[2024],
             age=None,
-            sex=None
+            sex=None,
+            race_ethnicity=None,
+            hawaii_residency=None
         )
         kpi, substance_type_bar_title, substance_line_title, substance_bar_title, bar_fig, substance_line, county_line, table_county, table_year, table_age, table_sex = result
         # Bar chart should have data
@@ -190,7 +196,9 @@ class TestFiltering:
             county=None,
             year=[2024],
             age=['18-44'],
-            sex=None
+            sex=None,
+            race_ethnicity=None,
+            hawaii_residency=None
         )
         kpi, substance_type_bar_title, substance_line_title, substance_bar_title, bar_fig, substance_line, county_line, table_county, table_year, table_age, table_sex = result
         # Bar chart should have data
@@ -211,7 +219,9 @@ class TestFiltering:
             county=None,
             year=[2024],
             age=None,
-            sex=['Male']
+            sex=['Male'],
+            race_ethnicity=None,
+            hawaii_residency=None
         )
         kpi, substance_type_bar_title, substance_line_title, substance_bar_title, bar_fig, substance_line, county_line, table_county, table_year, table_age, table_sex = result
         # Bar chart should have data
@@ -236,7 +246,9 @@ class TestRegressionScenarios:
             county=None,
             year=None,
             age=None,
-            sex=None
+            sex=None,
+            race_ethnicity=None,
+            hawaii_residency=None
         )
         
         (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
@@ -257,7 +269,9 @@ class TestRegressionScenarios:
             county=['Honolulu'],
             year=[2023, 2024],
             age=['18-44'],
-            sex=['Male']
+            sex=['Male'],
+            race_ethnicity=None,
+            hawaii_residency=None
         )
         
         (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
@@ -281,7 +295,9 @@ class TestCharts:
             county=None,
             year=[2024],
             age=None,
-            sex=None
+            sex=None,
+            race_ethnicity=None,
+            hawaii_residency=None
         )
         (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
          bar_fig, substance_line, county_line, 
@@ -303,7 +319,9 @@ class TestCharts:
             county=None,
             year=None,
             age=None,
-            sex=None
+            sex=None,
+            race_ethnicity=None,
+            hawaii_residency=None
         )
         
         (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
@@ -335,7 +353,9 @@ class TestTables:
             county=None,
             year=[2024],
             age=None,
-            sex=None
+            sex=None,
+            race_ethnicity=None,
+            hawaii_residency=None
         )
         
         (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
@@ -359,8 +379,8 @@ class TestResetFilters:
         """Test that reset filters returns None for all filter values."""
         result = discharges_su_polysubstance_dashboard.reset_filters(1)
         
-        # Should return 5 None values (one for each filter)
-        assert len(result) == 5, f"Should return 5 values, got {len(result)}"
+        # Should return 7 None values (one for each filter)
+        assert len(result) == 7, f"Should return 7 values, got {len(result)}"
         assert all(len(v) == 0 for v in result), "All filter values should be empty lists after reset"
 
 
@@ -379,7 +399,9 @@ class TestDataConsistency:
             (df['county'] == 'Honolulu') &
             (df['year'] == 2024) &
             (df['age_group'] == '18-44') &
-            (df['sex'] == 'Male')
+            (df['sex'] == 'Male') &
+            (df['race_ethnicity'] == 'Korean') &
+            (df['hawaii_residency'] == 'Resident') 
         ]
         
         expected_count = df_filtered['record_id'].nunique()
@@ -390,7 +412,9 @@ class TestDataConsistency:
             county=['Honolulu'],
             year=[2024],
             age=['18-44'],
-            sex=['Male']
+            sex=['Male'],
+            race_ethnicity=['Korean'],
+            hawaii_residency=['Resident']
         )
         
         kpi_text = result[0]
