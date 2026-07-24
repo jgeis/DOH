@@ -38,6 +38,7 @@ from dashboard_utils import (
     wrap_axis_label,
     apply_standard_single_series_bar_trace,
     apply_standard_bar_layout,
+    add_stacked_bar_total_labels,
     apply_standard_line_layout,
     apply_standard_non_axis_layout,
     apply_standard_heatmap_layout,
@@ -72,7 +73,7 @@ def load_df():
 
     # These columns are treated as category-like text fields.
     # Here we clean them up to avoid weird blanks or "nan" strings.
-    want_obj = ["county", "city", "hawaii_residency", "age_group", "sex", "substance"]
+    want_obj = ["county", "city", "hawaii_residency", "age_group", "sex", "substance", "race_ethnicity"]
     for c in want_obj:
         if c in df.columns:
             # Catch actual nulls first, then convert to string and strip whitespace
@@ -134,7 +135,7 @@ def build_correlation_matrix(df):
     return substance_matrix.corr()
 
 
-def build_cooccurrence_data(df, age=None, sex=None, county=None, year=None):
+def build_cooccurrence_data(df, age=None, sex=None, county=None, year=None, race_ethnicity=None, hawaii_residency=None):
     """
     Build data for grouped bar chart showing co-occurrence percentages.
 
@@ -149,6 +150,10 @@ def build_cooccurrence_data(df, age=None, sex=None, county=None, year=None):
         df = apply_county_filter(df, county).copy()
     if "year" in df.columns:
         df = apply_year_filter(df, "year", year)
+    if "race_ethnicity" in df.columns:
+        df = apply_filter(df, "race_ethnicity", race_ethnicity)
+    if "hawaii_residency" in df.columns:
+        df = apply_filter(df, "hawaii_residency", hawaii_residency)
 
     results = []
 
@@ -214,11 +219,13 @@ def opts(values):
     return [{"label": v, "value": v} for v in values]
 
 # Build the dropdown choices for each filter, only if those columns exist.
-substance_opts = sort_opts(df_raw["substance"]) if "substance" in df_raw.columns else []
-county_opts    = sort_opts(df_raw["county"]) if "county" in df_raw.columns else []
-age_opts       = sort_opts(df_raw["age_group"]) if "age_group" in df_raw.columns else []
-sex_opts       = sort_opts(df_raw["sex"])       if "sex"       in df_raw.columns else []
-year_opts      = sort_opts(df_raw["year"])                         if "year" in df_raw.columns else []
+substance_opts        = sort_opts(df_raw["substance"])        if "substance"        in df_raw.columns else []
+county_opts           = sort_opts(df_raw["county"])           if "county"           in df_raw.columns else []
+age_opts              = sort_opts(df_raw["age_group"])        if "age_group"        in df_raw.columns else []
+sex_opts              = sort_opts(df_raw["sex"])              if "sex"              in df_raw.columns else []
+year_opts             = sort_opts(df_raw["year"])             if "year"             in df_raw.columns else []
+race_ethnicity_opts   = sort_opts(df_raw["race_ethnicity"])   if "race_ethnicity"   in df_raw.columns else []
+hawaii_residency_opts = sort_opts(df_raw["hawaii_residency"]) if "hawaii_residency" in df_raw.columns else []
 
 # Total number of unique records, used for the big KPI card.
 kpi_total = df_raw["record_id"].nunique() if "record_id" in df_raw.columns else 0
@@ -236,6 +243,8 @@ filters_card = make_filters_card(
         dropdown_filter("Sex", "polysubstance-sex-filter", options=opts(sex_opts), multi=True, placeholder="All"),
         dropdown_filter("County", "polysubstance-county-filter", options=opts(county_opts), multi=True, placeholder="All"),
         dropdown_filter("Calendar Year", "polysubstance-year-filter", options=opts(year_opts), multi=True, placeholder="All"),
+        dropdown_filter("Race/Ethnicity", "polysubstance-race-ethnicity-filter", options=opts(race_ethnicity_opts), multi=True, placeholder="All"),
+        dropdown_filter("Hawaii Resident", "polysubstance-hawaii-residency-filter", options=opts(hawaii_residency_opts), multi=True, placeholder="All"),
     ],
 )
 
@@ -314,7 +323,7 @@ def layout_for(is_mobile: bool = False):
     The page is split into three columns:
       LEFT:  KPI + filters
       CENTER: main bar/stacked charts
-      RIGHT: treemap + small summary tables
+      RIGHT: summary tables
     """
     # Make charts taller on phones so they are easier to read.
     h_bar = (
@@ -324,7 +333,6 @@ def layout_for(is_mobile: bool = False):
     )
     h_stack = "55vh" if is_mobile else "360px"
     h_full_row = "55vh" if is_mobile else "420px"
-    h_tree = "46vh" if is_mobile else "280px"
 
     # LEFT: KPI + filters
     left = make_left_sidebar(
@@ -346,21 +354,29 @@ def layout_for(is_mobile: bool = False):
         md=3,
     )
 
-    # CENTER: main charts focused on substance over time
+    # CENTER: main charts focused on substance over time and new demographic charts
     center = dbc.Col([
+        graph_block("sunburst-cooccurrence", "Substance Co-occurrence Sunburst", h_full_row),
+        html.P("Sunburst chart showing co-occurring substances in the selected cohort.", className="visually-hidden"),
         graph_block("bar-top-substances", "Substance Type"),
         html.P("Horizontal bar chart showing the top substances among polysubstance records.", className="visually-hidden"),
         graph_block("line-year-substance", "Yearly Discharges by Polysubstance", h_stack),
         html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
+        graph_block("polysubstance-age-year-lines", "Yearly Discharges by Age Group", h_stack),
+        html.P("Line chart showing yearly discharges by age group.", className="visually-hidden"),
+        graph_block("polysubstance-sex-year-stacked", "Yearly Discharges by Gender", h_bar),
+        html.P("Stacked bar chart showing yearly discharges by gender.", className="visually-hidden"),
     ], xs=12, md=6)
 
     # RIGHT: summary tables (ordered by shared site-wide utility)
     right = make_right_summary_tables_col(
         [
-            ("County", "tbl-county-share"),
             ("Calendar Year", "tbl-year"),
+            ("County", "tbl-county-share"),
             ("Age Group", "tbl-age"),
             ("Sex", "tbl-sex"),
+            ("Race/Ethnicity", "tbl-race-ethnicity"),
+            ("Hawaii Resident", "tbl-hawaii-residency"),
         ],
         xs=12,
         md=3,
@@ -379,16 +395,12 @@ def layout_for(is_mobile: bool = False):
 
         dbc.Row([left, center, right], className="g-3"),
 
-        # Full-width row under filters/blurbs: county trend (left) + sunburst co-occurrence (right)
+        # Full-width row under filters/blurbs: county trend
         dbc.Row([
             dbc.Col([
                 graph_block("stack-year-county", "Yearly Discharges by County", h_full_row),
                 html.P("Line chart showing discharges by year and county.", className="visually-hidden"),
-            ], xs=12, md=6),
-            dbc.Col([
-                graph_block("sunburst-cooccurrence", "Substance Co-occurrence Sunburst", h_full_row),
-                html.P("Sunburst chart showing co-occurring substances in the selected cohort.", className="visually-hidden"),
-            ], xs=12, md=6),
+            ], xs=12, md=12),
         ], className="g-3"),
 
         
@@ -560,18 +572,24 @@ layout = layout_for(is_mobile=False)
     Output("stack-year-county-title", "children"),
     Output("bar-top-substances", "figure"),
     Output("line-year-substance", "figure"),
+    Output("polysubstance-age-year-lines", "figure"),
+    Output("polysubstance-sex-year-stacked", "figure"),
     Output("stack-year-county", "figure"),
-    Output("tbl-county-share", "children"),
     Output("tbl-year", "children"),
+    Output("tbl-county-share", "children"),
     Output("tbl-age", "children"),
     Output("tbl-sex", "children"),
+    Output("tbl-race-ethnicity", "children"),
+    Output("tbl-hawaii-residency", "children"),
     Input("polysubstance-substance-filter", "value"),
     Input("polysubstance-age-filter", "value"),
     Input("polysubstance-sex-filter", "value"),
     Input("polysubstance-county-filter", "value"),
     Input("polysubstance-year-filter", "value"),
+    Input("polysubstance-race-ethnicity-filter", "value"),
+    Input("polysubstance-hawaii-residency-filter", "value"),
 )
-def update(substance, age, sex, county, year):
+def update(substance, age, sex, county, year, race_ethnicity, hawaii_residency):
     # Base frame for co-occurrence-aware charts: apply non-substance filters only.
     dff_base = df_raw.copy()
     if "age_group" in dff_base.columns:
@@ -582,6 +600,10 @@ def update(substance, age, sex, county, year):
         dff_base = apply_county_filter(dff_base, county).copy()
     if "year" in dff_base.columns:
         dff_base = apply_year_filter(dff_base, "year", year)
+    if "race_ethnicity" in dff_base.columns:
+        dff_base = apply_filter(dff_base, "race_ethnicity", race_ethnicity)
+    if "hawaii_residency" in dff_base.columns:
+        dff_base = apply_filter(dff_base, "hawaii_residency", hawaii_residency)
 
     # Main frame for existing visuals: includes substance filter.
     dff = dff_base.copy()
@@ -734,6 +756,74 @@ def update(substance, age, sex, county, year):
     if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
         demographic_source = records_matching_all_selected_substances(dff_base, selected_substances)
 
+    # ---------- Line: Yearly Discharges by Age Group ----------
+    if {"year", "age_group", "record_id"}.issubset(demographic_source.columns) and not demographic_source.empty:
+        by_ya = (
+            demographic_source.drop_duplicates(subset=["record_id"])
+            .groupby(["year", "age_group"])["record_id"].nunique()
+            .reset_index(name="discharges")
+        )
+        by_ya["display_count"] = by_ya["discharges"].apply(format_count_display)
+
+        age_line_fig = px.line(
+            by_ya,
+            x="year",
+            y="discharges",
+            color="age_group",
+            markers=True,
+            custom_data=["display_count"],
+            labels={"year": "Year", "discharges": "Discharges", "age_group": "Age Group"},
+            category_orders={"age_group": age_opts} if age_opts else None,
+        )
+        age_line_fig.update_traces(
+            hovertemplate="Year %{x}<br>Age Group: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
+        )
+        apply_standard_line_layout(age_line_fig)
+    else:
+        age_line_fig = px.line()
+
+    # ---------- Stacked bar: Yearly Discharges by Gender (Sex) ----------
+    if {"year", "sex", "record_id"}.issubset(demographic_source.columns) and not demographic_source.empty:
+        by_ys = (
+            demographic_source.drop_duplicates(subset=["record_id"])
+            .groupby(["year", "sex"])["record_id"].nunique()
+            .reset_index(name="discharges")
+            .sort_values(["year", "sex"])
+        )
+        by_ys["display_count"] = by_ys["discharges"].apply(format_count_display)
+
+        sex_bar = px.bar(
+            by_ys,
+            x="year",
+            y="discharges",
+            color="sex",
+            barmode="stack",
+            labels={"year": "Year", "discharges": "Discharges", "sex": "Sex at Birth"},
+            text="display_count"
+        )
+        sex_bar.update_traces(
+            textposition="inside",
+            insidetextanchor="middle",
+            cliponaxis=False
+        )
+
+        totals = by_ys.groupby("year")["discharges"].sum().reset_index()
+        add_stacked_bar_total_labels(sex_bar, totals, x_col="year", y_col="discharges")
+
+        max_y = int(totals["discharges"].max()) if not totals.empty else 0
+        apply_standard_bar_layout(
+            sex_bar,
+            xaxis=dict(dtick=1),
+            yaxis=dict(range=[0, max_y * 1.25 if max_y else 1]),
+        )
+        sex_bar.update_traces(
+            textposition="inside",
+            insidetextanchor="middle",
+            selector={"type": "bar"},
+        )
+    else:
+        sex_bar = px.bar()
+
     # ---------- Line: Year × County ----------
     if {"year", "county", "record_id"}.issubset(demographic_source.columns) and not demographic_source.empty:
         yearly_counts = (
@@ -787,6 +877,7 @@ def update(substance, age, sex, county, year):
             id_col="record_id",
             categories=ordered,
             filter_selection=filter_selection,
+            include_statewide_county=(col == "county" and include_statewide_on_line),
         )
 
     # ---------- Small tables ----------
@@ -817,8 +908,26 @@ def update(substance, age, sex, county, year):
     tbl_year = summary_table(year_source, "year", year_groups, filter_selection=year)
     tbl_age = summary_table(uniq, "age_group", age_opts, filter_selection=age)
     tbl_sex = summary_table(uniq, "sex", sex_opts, filter_selection=sex)
+    tbl_race = summary_table(uniq, "race_ethnicity", race_ethnicity_opts, filter_selection=race_ethnicity)
+    tbl_hawaii = summary_table(uniq, "hawaii_residency", hawaii_residency_opts, filter_selection=hawaii_residency)
 
-    return kpi_value, bar_title, line_title, county_title, fig_sub, fig_year_substance, fig_year_county, tbl_county, tbl_year, tbl_age, tbl_sex
+    return (
+        kpi_value, 
+        bar_title, 
+        line_title, 
+        county_title, 
+        fig_sub, 
+        fig_year_substance, 
+        age_line_fig, 
+        sex_bar, 
+        fig_year_county, 
+        tbl_year, 
+        tbl_county, 
+        tbl_age, 
+        tbl_sex, 
+        tbl_race, 
+        tbl_hawaii
+    )
 
 
 # ---------- Reset filters ----------
@@ -828,6 +937,8 @@ def update(substance, age, sex, county, year):
     Output("polysubstance-sex-filter", "value"),
     Output("polysubstance-county-filter", "value"),
     Output("polysubstance-year-filter", "value"),
+    Output("polysubstance-race-ethnicity-filter", "value"),
+    Output("polysubstance-hawaii-residency-filter", "value"),
     Input("polysubstance-reset-filters-btn", "n_clicks"),
     prevent_initial_call=True
 )
@@ -837,7 +948,7 @@ def reset_filters(n):
 
     We return empty lists so Dash treats them as "no selection".
     """
-    return [], [], [], [], []
+    return [], [], [], [], [], [], []
 
 
 
@@ -857,8 +968,10 @@ def reset_filters(n):
     Input("polysubstance-sex-filter", "value"),
     Input("polysubstance-county-filter", "value"),
     Input("polysubstance-year-filter", "value"),
+    Input("polysubstance-race-ethnicity-filter", "value"),
+    Input("polysubstance-hawaii-residency-filter", "value"),
 )
-def update_dashboard(selected_substances, is_mobile, age, sex, county, year):
+def update_dashboard(selected_substances, is_mobile, age, sex, county, year, race_ethnicity, hawaii_residency):
     """
     Unified callback that updates the heatmap, grouped bar chart, sunburst, 
     network graph, and sankey diagram simultaneously.
@@ -881,6 +994,13 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year):
     # 1. Heatmap Generation
     # ---------------------------------------------------------
     dff_heat = df_raw.copy()
+    if "age_group" in dff_heat.columns: dff_heat = apply_filter(dff_heat, "age_group", age)
+    if "sex" in dff_heat.columns:       dff_heat = apply_filter(dff_heat, "sex", sex)
+    if "county" in dff_heat.columns:    dff_heat = apply_county_filter(dff_heat, county).copy()
+    if "year" in dff_heat.columns:      dff_heat = apply_year_filter(dff_heat, "year", year)
+    if "race_ethnicity" in dff_heat.columns: dff_heat = apply_filter(dff_heat, "race_ethnicity", race_ethnicity)
+    if "hawaii_residency" in dff_heat.columns: dff_heat = apply_filter(dff_heat, "hawaii_residency", hawaii_residency)
+
     if selected_values:
         dff_heat = records_matching_all_selected_substances(dff_heat, selected_values)
         
@@ -926,7 +1046,7 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year):
     # ---------------------------------------------------------
     # 2. Grouped Bar Chart Generation
     # ---------------------------------------------------------
-    co_data = build_cooccurrence_data(df_raw)
+    co_data = build_cooccurrence_data(df_raw, age=age, sex=sex, county=county, year=year, race_ethnicity=race_ethnicity, hawaii_residency=hawaii_residency)
     
     if co_data.empty:
         bar_fig = go.Figure().add_annotation(text="No co-occurrence data available", showarrow=False)
@@ -934,7 +1054,15 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year):
         plot_width = 900 if is_mobile else None
         
         if selected_values:
-            matched = records_matching_all_selected_substances(df_raw, selected_values)
+            dff_base_matched = df_raw.copy()
+            if "age_group" in dff_base_matched.columns: dff_base_matched = apply_filter(dff_base_matched, "age_group", age)
+            if "sex" in dff_base_matched.columns:       dff_base_matched = apply_filter(dff_base_matched, "sex", sex)
+            if "county" in dff_base_matched.columns:    dff_base_matched = apply_county_filter(dff_base_matched, county).copy()
+            if "year" in dff_base_matched.columns:      dff_base_matched = apply_year_filter(dff_base_matched, "year", year)
+            if "race_ethnicity" in dff_base_matched.columns: dff_base_matched = apply_filter(dff_base_matched, "race_ethnicity", race_ethnicity)
+            if "hawaii_residency" in dff_base_matched.columns: dff_base_matched = apply_filter(dff_base_matched, "hawaii_residency", hawaii_residency)
+
+            matched = records_matching_all_selected_substances(dff_base_matched, selected_values)
             if matched.empty:
                 bar_fig = go.Figure().add_annotation(
                     text=f"No co-occurrence data for selected substance(s): {', '.join(str(v) for v in selected_values)}",
@@ -1048,6 +1176,8 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year):
         if "sex" in dff_sun.columns:       dff_sun = apply_filter(dff_sun, "sex", sex)
         if "county" in dff_sun.columns:    dff_sun = apply_county_filter(dff_sun, county).copy()
         if "year" in dff_sun.columns:      dff_sun = apply_year_filter(dff_sun, "year", year)
+        if "race_ethnicity" in dff_sun.columns: dff_sun = apply_filter(dff_sun, "race_ethnicity", race_ethnicity)
+        if "hawaii_residency" in dff_sun.columns: dff_sun = apply_filter(dff_sun, "hawaii_residency", hawaii_residency)
 
         if selected_values:
             dff_sun = records_matching_all_selected_substances(dff_sun, selected_values)

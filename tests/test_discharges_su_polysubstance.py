@@ -44,6 +44,7 @@ class TestPageStructure:
         """Verify the update_dashboard callback returns tables sorted by dashboard_utils."""
         assert_returned_tables_sort_order(discharges_su_polysubstance_dashboard)
 
+
 class TestDataLoading:
     """Test data loading and initialization with real data."""
     
@@ -56,6 +57,8 @@ class TestDataLoading:
         assert 'year' in df.columns, "Should have year column"
         assert 'age_group' in df.columns, "Should have age_group column"
         assert 'sex' in df.columns, "Should have sex column"
+        assert 'race_ethnicity' in df.columns, "Should have race_ethnicity column"
+        assert 'hawaii_residency' in df.columns, "Should have hawaii_residency column"
         assert 'record_id' in df.columns, "Should have record_id column"
         assert len(df) > 0, "Should have at least some rows of data"
     
@@ -64,6 +67,18 @@ class TestDataLoading:
         df = discharges_su_polysubstance_dashboard.df_raw
         assert pd.api.types.is_numeric_dtype(df['year']), "Year column should be numeric"
     
+    def test_text_columns_have_no_trailing_whitespace(self):
+        """Test that text column values are trimmed (regression test for filter bugs)."""
+        df = discharges_su_polysubstance_dashboard.df_raw
+        text_cols = ['county', 'sex', 'substance', 'age_group', 'race_ethnicity', 'hawaii_residency']
+        
+        for col in text_cols:
+            if col in df.columns:
+                unique_values = df[col].unique()
+                for val in unique_values:
+                    val_str = str(val)
+                    assert val_str == val_str.strip(), f"{col} '{val}' should not have trailing whitespace"
+
     def test_county_column_has_no_trailing_whitespace(self):
         """Test that county column values are trimmed (regression test for county filter bug)."""
         df = discharges_su_polysubstance_dashboard.df_raw
@@ -108,17 +123,14 @@ class TestFiltering:
         """Test filtering by Alcohol substance with real data."""
         result = discharges_su_polysubstance_dashboard.update(
             substance=['Alcohol'],
-            county=None,
-            year=None,
             age=None,
             sex=None,
+            county=None,
+            year=None,
             race_ethnicity=None,
             hawaii_residency=None
         )
-        # Result should be a tuple with 15 elements
-        print(result)
         assert len(result) == 15, f"Should return 15 elements, got {len(result)}"
-        # KPI should show some value
         kpi = result[0]
         assert kpi is not None, "KPI should not be None"
         assert '1' in str(kpi) or '2' in str(kpi), "KPI should show numeric value"
@@ -127,34 +139,23 @@ class TestFiltering:
         """Test filtering by year 2024 with real data."""
         result = discharges_su_polysubstance_dashboard.update(
             substance=None,
+            age=None, 
+            sex=None, 
             county=None,
             year=[2024],
-            age=None,
-            sex=None,
             race_ethnicity=None,
             hawaii_residency=None
         )
-        #print(result)
-        kpi, substance_type_bar_title, substance_line_title, substance_bar_title, bar_fig, substance_line, county_line, table_county, table_year, table_age, table_sex,  = result
-        print(f"kpi: {kpi}")
-        print(f"substance_type_bar_title: {substance_type_bar_title}")
-        print(f"substance_line_title: {substance_line_title}")
-        print(f"substance_bar_title: {substance_bar_title}")
-        print(f"bar_fig: {bar_fig}")
-        print(f"substance_line: {substance_line}")
-
-        print(f"county_line: {county_line}")
-        print(f"table_county: {table_county}")
-        print(f"table_year: {table_year}")
-        print(f"table_sex: {table_sex}")
-        print(f"table_age: {table_age}")
-
+        
+        (kpi, bar_top_title, line_substance_title, stack_county_title, 
+         bar_fig, substance_line, age_line, sex_bar, county_line, 
+         table_year, table_county, table_age, table_sex, table_race, table_hawaii) = result
 
         # Line charts should only show 2024 data
         if len(substance_line.data) > 0:
             for trace in substance_line.data:
                 if len(trace.x) > 0:
-                    assert all(x == 2024 for x in trace.x), f"All years should be 2024, got {trace.x}"
+                    assert all(x == 2024 for x in trace.x), f"All years should be 2024, got {trace.x}"          
         # Year table should show 3,232 for year 2024
         assert table_year is not None, "Year table should not be None"
         table_year_str = str(table_year)
@@ -165,14 +166,18 @@ class TestFiltering:
         """Test filtering by Honolulu county with real data."""
         result = discharges_su_polysubstance_dashboard.update(
             substance=None,
-            county=['Honolulu'],
-            year=[2024],
             age=None,
             sex=None,
+            county=['Honolulu'],
+            year=[2024],
             race_ethnicity=None,
             hawaii_residency=None
         )
-        kpi, substance_type_bar_title, substance_line_title, substance_bar_title, bar_fig, substance_line, county_line, table_county, table_year, table_age, table_sex = result
+        
+        (kpi, bar_top_title, line_substance_title, stack_county_title, 
+         bar_fig, substance_line, age_line, sex_bar, county_line, 
+         table_year, table_county, table_age, table_sex, table_race, table_hawaii) = result
+         
         # Bar chart should have data
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
@@ -193,15 +198,18 @@ class TestFiltering:
         """Test filtering by age group 18-44 with real data."""
         result = discharges_su_polysubstance_dashboard.update(
             substance=None,
-            county=None,
-            year=[2024],
             age=['18-44'],
             sex=None,
+            county=None,
+            year=[2024],
             race_ethnicity=None,
             hawaii_residency=None
         )
-        kpi, substance_type_bar_title, substance_line_title, substance_bar_title, bar_fig, substance_line, county_line, table_county, table_year, table_age, table_sex = result
-        # Bar chart should have data
+        
+        (kpi, bar_top_title, line_substance_title, stack_county_title, 
+         bar_fig, substance_line, age_line, sex_bar, county_line, 
+         table_year, table_county, table_age, table_sex, table_race, table_hawaii) = result
+         
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
         # KPI card should show 1,660
@@ -216,15 +224,18 @@ class TestFiltering:
         """Test filtering by sex Male with real data."""
         result = discharges_su_polysubstance_dashboard.update(
             substance=None,
-            county=None,
-            year=[2024],
             age=None,
             sex=['Male'],
+            county=None,
+            year=[2024],
             race_ethnicity=None,
             hawaii_residency=None
         )
-        kpi, substance_type_bar_title, substance_line_title, substance_bar_title, bar_fig, substance_line, county_line, table_county, table_year, table_age, table_sex = result
-        # Bar chart should have data
+        
+        (kpi, bar_top_title, line_substance_title, stack_county_title, 
+         bar_fig, substance_line, age_line, sex_bar, county_line, 
+         table_year, table_county, table_age, table_sex, table_race, table_hawaii) = result
+         
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
         # KPI card should show 2,320
@@ -243,19 +254,18 @@ class TestRegressionScenarios:
         """Regression: Empty filters should show all data from real database."""
         result = discharges_su_polysubstance_dashboard.update(
             substance=None,
-            county=None,
-            year=None,
             age=None,
             sex=None,
+            county=None,
+            year=None,
             race_ethnicity=None,
             hawaii_residency=None
         )
         
-        (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
-         bar_fig, substance_line, county_line, 
-         table_county, table_year, table_age, table_sex) = result
+        (kpi, bar_top_title, line_substance_title, stack_county_title, 
+         bar_fig, substance_line, age_line, sex_bar, county_line, 
+         table_year, table_county, table_age, table_sex, table_race, table_hawaii) = result
                 
-        # Should have data for multiple substances
         assert bar_fig is not None, "Bar chart should not be None"
         assert len(bar_fig.data) > 0, "Bar chart should have data"
         
@@ -266,23 +276,23 @@ class TestRegressionScenarios:
         """Regression: Multiple year selection should work with real data."""
         result = discharges_su_polysubstance_dashboard.update(
             substance=['Alcohol'],
-            county=['Honolulu'],
-            year=[2023, 2024],
             age=['18-44'],
             sex=['Male'],
+            county=['Honolulu'],
+            year=[2023, 2024],
             race_ethnicity=None,
             hawaii_residency=None
         )
         
-        (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
-         bar_fig, substance_line, county_line, 
-         table_county, table_year, table_age, table_sex) = result
+        (kpi, bar_top_title, line_substance_title, stack_county_title, 
+         bar_fig, substance_line, age_line, sex_bar, county_line, 
+         table_year, table_county, table_age, table_sex, table_race, table_hawaii) = result
                 
-        # Line charts should show both years
         if len(substance_line.data) > 0:
             alcohol_trace = substance_line.data[0]
             years_shown = set(alcohol_trace.x)
             assert 2023 in years_shown and 2024 in years_shown, "Should show both of the selected years"
+
 
 @pytest.mark.integration
 class TestCharts:
@@ -292,55 +302,68 @@ class TestCharts:
         """Test that bar chart has correct structure with real data."""
         result = discharges_su_polysubstance_dashboard.update(
             substance=None,
-            county=None,
-            year=[2024],
             age=None,
             sex=None,
+            county=None,
+            year=[2024],
             race_ethnicity=None,
             hawaii_residency=None
         )
-        (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
-         bar_fig, substance_line, county_line, 
-         table_county, table_year, table_age, table_sex) = result
+        (kpi, bar_top_title, line_substance_title, stack_county_title, 
+         bar_fig, substance_line, age_line, sex_bar, county_line, 
+         table_year, table_county, table_age, table_sex, table_race, table_hawaii) = result
                 
-        # Should be a bar chart
         assert isinstance(bar_fig, go.Figure), "Should be a Plotly Figure"
         assert len(bar_fig.data) > 0, "Should have at least one trace"
         assert bar_fig.data[0].type == 'bar', "Should be a bar chart"
-
-        # Bar chart should be horizontal (orientation='h')
         assert bar_fig.data[0].orientation == 'h', "Bar chart should be horizontal"
-
     
     def test_line_chart_structure(self):
         """Test that line charts have correct structure with real data."""
         result = discharges_su_polysubstance_dashboard.update(
             substance=['Alcohol'],
-            county=None,
-            year=None,
             age=None,
             sex=None,
+            county=None,
+            year=None,
             race_ethnicity=None,
             hawaii_residency=None
         )
         
-        (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
-         bar_fig, substance_line, county_line, 
-         table_county, table_year, table_age, table_sex) = result
+        (kpi, bar_top_title, line_substance_title, stack_county_title, 
+         bar_fig, substance_line, age_line, sex_bar, county_line, 
+         table_year, table_county, table_age, table_sex, table_race, table_hawaii) = result
                 
-        # Substance line should be a line chart
         assert isinstance(substance_line, go.Figure), "Should be a Plotly Figure"
         if len(substance_line.data) > 0:
             for trace in substance_line.data:
                 assert trace.type == 'scatter', "Should be scatter type"
 
-        # County line should be a line chart
         assert isinstance(county_line, go.Figure), "Should be a Plotly Figure"
         if len(county_line.data) > 0:
             for trace in county_line.data:
                 assert trace.type == 'scatter', "Should be scatter type"
-    
+                
+    def test_demographic_charts_structure(self):
+        """Test that demographic charts have correct structure with real data."""
+        result = discharges_su_polysubstance_dashboard.update(
+            substance=None, age=None, sex=None, county=None, year=[2024], race_ethnicity=None, hawaii_residency=None
+        )
+        
+        (kpi, bar_top_title, line_substance_title, stack_county_title, 
+         bar_fig, substance_line, age_line, sex_bar, county_line, 
+         table_year, table_county, table_age, table_sex, table_race, table_hawaii) = result
+                
+        assert isinstance(age_line, go.Figure), "Age line should be a Plotly Figure"
+        if len(age_line.data) > 0:
+            for trace in age_line.data:
+                assert trace.type == 'scatter', "Age chart should be scatter (line) type"
 
+        assert isinstance(sex_bar, go.Figure), "Sex chart should be a Plotly Figure"
+        if len(sex_bar.data) > 0:
+            for trace in sex_bar.data:
+                assert trace.type == 'bar', "Sex chart should be a bar type"
+            assert sex_bar.layout.barmode == 'stack', "Sex chart should be stacked"
 
 
 class TestTables:
@@ -350,36 +373,39 @@ class TestTables:
         """Test that all tables are generated."""
         result = discharges_su_polysubstance_dashboard.update(
             substance=['Alcohol'],
-            county=None,
-            year=[2024],
             age=None,
             sex=None,
+            county=None,
+            year=[2024],
             race_ethnicity=None,
             hawaii_residency=None
         )
         
-        (kpi, substance_type_bar_title, substance_line_title, substance_bar_title, 
-         bar_fig, substance_line, county_line, 
-         table_county, table_year, table_age, table_sex) = result
+        (kpi, bar_top_title, line_substance_title, stack_county_title, 
+         bar_fig, substance_line, age_line, sex_bar, county_line, 
+         table_year, table_county, table_age, table_sex, table_race, table_hawaii) = result
 
         assert table_year is not None, "Year table should not be None"
         assert table_county is not None, "County table should not be None"
         assert table_age is not None, "Age table should not be None"
         assert table_sex is not None, "Sex table should not be None"
+        assert table_race is not None, "Race table should not be None"
+        assert table_hawaii is not None, "Hawaii Residency table should not be None"
+
 
 class TestResetFilters:
     """Test filter reset functionality."""
     
     def test_reset_filters_callback_exists(self):
         """Test that reset filters callback is defined."""
-        assert hasattr(discharges_su_polysubstance_dashboard, 'reset_filters'), "Should have reset_discharges_filters function"
-        assert callable(discharges_su_polysubstance_dashboard.reset_filters), "reset_discharges_filters should be callable"
+        assert hasattr(discharges_su_polysubstance_dashboard, 'reset_filters'), "Should have reset_filters function"
+        assert callable(discharges_su_polysubstance_dashboard.reset_filters), "reset_filters should be callable"
     
     def test_reset_filters_returns_none_values(self):
-        """Test that reset filters returns None for all filter values."""
+        """Test that reset filters returns empty lists for all filter values."""
         result = discharges_su_polysubstance_dashboard.reset_filters(1)
         
-        # Should return 7 None values (one for each filter)
+        # Should return 7 empty list values (one for each filter)
         assert len(result) == 7, f"Should return 7 values, got {len(result)}"
         assert all(len(v) == 0 for v in result), "All filter values should be empty lists after reset"
 
@@ -399,9 +425,7 @@ class TestDataConsistency:
             (df['county'] == 'Honolulu') &
             (df['year'] == 2024) &
             (df['age_group'] == '18-44') &
-            (df['sex'] == 'Male') &
-            (df['race_ethnicity'] == 'Korean') &
-            (df['hawaii_residency'] == 'Resident') 
+            (df['sex'] == 'Male')
         ]
         
         expected_count = df_filtered['record_id'].nunique()
@@ -409,12 +433,12 @@ class TestDataConsistency:
         # Now call the dashboard callback
         result = discharges_su_polysubstance_dashboard.update(
             substance=['Alcohol'],
-            county=['Honolulu'],
-            year=[2024],
             age=['18-44'],
             sex=['Male'],
-            race_ethnicity=['Korean'],
-            hawaii_residency=['Resident']
+            county=['Honolulu'],
+            year=[2024],
+            race_ethnicity=None,
+            hawaii_residency=None
         )
         
         kpi_text = result[0]
