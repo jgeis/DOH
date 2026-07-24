@@ -244,7 +244,7 @@ WITH diag AS (
    AND TRIM(diagnosis) <> ''
 ),
 cooccur as 
-(select distinct record_id from discharge_data_view 
+(select distinct record_id from discharge_data_view_test
 where 
 	num_substance > 0
 	and num_mental > 0
@@ -282,7 +282,7 @@ WITH diag AS (
    AND TRIM(diagnosis) <> ''
 ),
 cooccur as 
-(select distinct record_id from discharge_data_view 
+(select distinct record_id from discharge_data_view_test
 where 
 	num_substance > 0
 	and num_mental > 0
@@ -319,7 +319,7 @@ WITH diag AS (
    AND TRIM(diagnosis) <> ''
 ),
 cooccur as 
-(select distinct record_id from discharge_data_view 
+(select distinct record_id from discharge_data_view_test
 where 
 	num_substance > 0
 	and num_mental > 0
