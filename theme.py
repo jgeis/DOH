@@ -2,7 +2,7 @@ import plotly.io as pio
 
 DEFAULTS = {
     # ---- Fonts & Text ----
-    "font_family": "Inter, Segoe UI, Arial, sans-serif",
+    "font_family": "Arial, 'Open Sans', sans-serif",
     "font_size": 13,
     "text_color": "#222222",    # axis labels & tick text
     "title_color": "#111111",   # chart titles

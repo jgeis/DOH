@@ -1,6 +1,13 @@
 /* Custom table styling for light green striping */
 /* Applied to all summary tables across dashboards via dashboard_utils */
 
+/* Enforce a consistent dashboard font across all app UI elements. */
+html,
+body,
+#react-entry-point {
+    font-family: Arial, "Open Sans", sans-serif;
+}
+
 /* Force override ALL Bootstrap table row backgrounds */
 table.custom-striped-table tbody tr,
 table.custom-striped-table tbody tr td,
