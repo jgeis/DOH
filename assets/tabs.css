@@ -75,9 +75,11 @@
    dark green, white text, stronger glow, slight lift
 */
 .tab--selected {
+  /* This would use the DOH color, but it doesn't provide enough contrast for ADA compliance.*/
+  /* background: #42a894;*/
   background: var(--brand-green);
   color: #ffffff;
-  border-color: var(--brand-green);
+  border-color: #42a894;
   box-shadow:
     0 0 15px var(--brand-glow),   /* glow border */
     0 4px 10px rgba(0,0,0,0.18);  /* depth shadow */
@@ -85,6 +87,8 @@
 
 /* keep solid look when hovering the selected tab */
 .tab--selected:hover {
+  /* This would use the DOH color, but it doesn't provide enough contrast for ADA compliance.*/
+  /* background: #42a894;*/
   background: var(--brand-green);
   color: #ffffff;
   box-shadow:

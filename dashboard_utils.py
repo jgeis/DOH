@@ -1532,14 +1532,23 @@ def make_kpi_card(label: str, count_id: str | None = None, count: int | None = N
     """
     if count_id is not None:
         value_el = html.H2(id=count_id, className="text-white")
+        # this would use the DOH color, but it doesn't provide enough contrast for ADA compliance.
+        #value_el = html.H2(id=count_id, className="text-black")
     else:
         value_el = html.H2(format_count_display(count) if count is not None else "—", className="text-white")
+        # this would use the DOH color, but it doesn't provide enough contrast for ADA compliance.
+        #value_el = html.H2(format_count_display(count) if count is not None else "—", className="text-black")
     return dbc.Card(
         dbc.CardBody([
             value_el,
             html.Small(label, className="card-title text-white"),
+            # this would use the DOH color, but it doesn't provide enough contrast for ADA compliance.
+            #html.Small(label, className="card-title text-black"),
         ]),
         className="bg-success text-center mb-4",
+        # this would use the DOH color, but it doesn't provide enough contrast for ADA compliance.
+        #className="text-center mb-4",
+        #style={"backgroundColor": "#42a894"}
     )
 
 
