@@ -406,7 +406,7 @@ def update_dashboard(view, sel_years, sel_months, sel_modalities, sel_counties, 
 
     apply_standard_line_layout(
         modality_line_fig,
-        xaxis=dict(dtick=2),
+        xaxis=dict(dtick=1),
     )
 
     modality_line_fig.update_traces(
@@ -438,7 +438,7 @@ def update_dashboard(view, sel_years, sel_months, sel_modalities, sel_counties, 
 
     apply_standard_line_layout(
         county_line_fig,
-        xaxis=dict(dtick=2),
+        xaxis=dict(dtick=1),
     )
 
     county_line_fig.update_traces(
