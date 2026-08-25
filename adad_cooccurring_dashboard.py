@@ -121,7 +121,7 @@ filters_card = make_filters_card(
             value=None,
         ),
         dropdown_filter(
-            "County",
+            "Island",
             "adad-cooccurring-county-filter",
             options=opts_list(county_opts),
             multi=True,
@@ -220,7 +220,7 @@ def layout():
             ),
             html.Div(
                 [
-                    html.H5("Clients Served by County and Year", className="plot-card-header mb-2"),
+                    html.H5("Clients Served by Island and Year", className="plot-card-header mb-2"),
                     dcc.Graph(
                         id="adad-cooccurring-county-line-chart",
                         style={"width": "100%", "height": "520px"},
@@ -243,7 +243,7 @@ def layout():
         [
             ("Modality", "adad-cooccurring-modality-table"),
             ("Year", "adad-cooccurring-year-table"),
-            ("County", "adad-cooccurring-county-table"),
+            ("Island", "adad-cooccurring-county-table"),
         ],
         xs=12,
         md=3,
@@ -432,7 +432,7 @@ def update_dashboard(view, sel_years, sel_months, sel_modalities, sel_counties, 
         labels={
             "year": "Year",
             "client_count": "Number of Clients",
-            "county": "County",
+            "county": "Island",
         },
     )
 
@@ -447,18 +447,24 @@ def update_dashboard(view, sel_years, sel_months, sel_modalities, sel_counties, 
 
     # ---------- Helper for the summary tables ----------
     # Use shared build_summary_count_table for summary tables
-    def summary_table(group_col, categories=None, filter_selection=None):
+    def summary_table(group_col, categories=None, filter_selection=None, header_labels=None):
         return build_summary_count_table(
             dff,
             group_col=group_col,
             id_col="client_id",
             categories=categories,
             filter_selection=filter_selection,
+            header_labels=header_labels,
             count_label="Number of Clients",
         )
 
     modality_table = summary_table("modality", categories=modality_opts, filter_selection=sel_modalities)
     year_table = summary_table("year", categories=year_opts, filter_selection=sel_years)
-    county_table = summary_table("county", categories=county_opts, filter_selection=sel_counties)
+    county_table = summary_table(
+        "county",
+        categories=county_opts,
+        filter_selection=sel_counties,
+        header_labels={"county": "Island"},
+    )
 
     return bar_fig, modality_line_fig, county_line_fig, format_count_display(total_clients), modality_table, year_table, county_table
