@@ -17,6 +17,7 @@ from dashboard_utils import (
     STATEWIDE_COUNTY,
     format_count_display,
     apply_standard_bar_layout,
+    apply_standard_line_layout,
     apply_standard_single_series_bar_trace,
     create_styled_table,
     wrap_axis_label,
@@ -229,6 +230,10 @@ def layout_for(
     center_col = dbc.Col(
         [
             dbc.Row([
+                graph_block("wonder-year-substance-line", "Yearly Deaths by Substance (All Years)"),
+                html.P("Line chart showing yearly deaths by substance across all years for the selected county.", className="visually-hidden"),
+            ]),
+            dbc.Row([
                 graph_block("wonder-substance-deaths", "Deaths by Substance"),
                 html.P("Bar chart showing deaths by substance.", className="visually-hidden"),
             ]),
@@ -293,6 +298,7 @@ def reset_all_filters(_n_clicks):
 
 @callback(
     Output("wonder-breakdown-kpi-deaths", "children"),
+    Output("wonder-year-substance-line", "figure"),
     Output("wonder-substance-deaths", "figure"),
     Output("wonder-race-deaths", "figure"),
     Output("wonder-age-group-deaths", "figure"),
@@ -325,6 +331,37 @@ def update_dashboard(county, year):
         if isinstance(val, (list, tuple)):
             return frame[frame[col].isin(val)]
         return frame[frame[col] == val]
+
+    def apply_county_only_filter(df):
+        """Apply only county logic (no year filter), with per-year statewide fallback."""
+        if "county" in df.columns and county is not None:
+            county_text = str(county).strip().lower()
+            statewide_text = STATEWIDE_COUNTY.lower()
+            statewide_rows = df[
+                df["county"].astype(str).str.strip().str.lower() == statewide_text
+            ]
+            non_statewide_rows = df[
+                df["county"].astype(str).str.strip().str.lower() != statewide_text
+            ]
+
+            if county_text == statewide_text:
+                # Statewide: prefer explicit statewide rows; otherwise aggregate source county rows.
+                df = statewide_rows if not statewide_rows.empty else non_statewide_rows
+            else:
+                # Specific county: use county rows and fill any missing years with statewide rows.
+                county_rows = apply_filter(non_statewide_rows, "county", county)
+                if county_rows.empty:
+                    df = statewide_rows
+                elif statewide_rows.empty or "year" not in county_rows.columns or "year" not in statewide_rows.columns:
+                    df = county_rows
+                else:
+                    county_years = set(county_rows["year"].astype(str))
+                    statewide_fallback = statewide_rows[
+                        ~statewide_rows["year"].astype(str).isin(county_years)
+                    ]
+                    df = pd.concat([county_rows, statewide_fallback], ignore_index=True)
+
+        return df
 
     def filter_df(df):
         if "year" in df.columns:
@@ -390,13 +427,49 @@ def update_dashboard(county, year):
     dff_race = filter_df(df_raw_race.copy())
     dff_age_group = filter_df(df_raw_age_group.copy())
     dff_gender = filter_df(df_raw_gender.copy())
+    dff_substance_county_only = apply_county_only_filter(df_raw_substance.copy())
+
+    # ---------- Line chart: Number of Deaths per Year by Substance ----------
+    if {"county", "year", "substance"}.issubset(dff_substance_county_only.columns):
+        by_year_substance = (
+            dff_substance_county_only.groupby(["year", "substance"], as_index=False)["deaths"]
+            .sum()
+            .sort_values(by=["year", "substance"])  # type: ignore[arg-type]
+        )
+
+        # Normalize year to numeric so x-axis sorts chronologically, not lexicographically.
+        by_year_substance["year"] = pd.to_numeric(by_year_substance["year"], errors="coerce")
+        by_year_substance = by_year_substance.dropna(subset=["year"])
+        by_year_substance["year"] = by_year_substance["year"].astype(int)
+        by_year_substance = by_year_substance.sort_values(by=["year", "substance"])  # type: ignore[arg-type]
+
+        year_substance_line = px.line(
+            by_year_substance,
+            x="year",
+            y="deaths",
+            color="substance",
+            markers=True,
+            labels={
+                "year": "Calendar Year",
+                "deaths": "Number of Deaths",
+                "substance": "Substance",
+            },
+        )
+
+        apply_standard_line_layout(
+            year_substance_line,
+            xaxis=dict(type="linear", tickmode="linear", dtick=1),
+            yaxis=dict(rangemode="tozero"),
+        )
+    else:
+        year_substance_line = px.line()
 
     # ---------- Bar chart: Deaths by Substance ----------
     if {"county", "year", "substance"}.issubset(dff_substance.columns):
         by_sub = (
             dff_substance.groupby("substance", as_index=False)["deaths"]
             .sum()
-            .sort_values("deaths", ascending=False)
+            .sort_values(by="deaths", ascending=False)  # type: ignore[arg-type]
         )
 
         by_sub["substance_label"] = by_sub["substance"].apply(wrap_axis_label)
@@ -426,7 +499,7 @@ def update_dashboard(county, year):
         by_race = (
             dff_race.groupby("race", as_index=False)["deaths"]
             .sum()
-            .sort_values("deaths", ascending=False)
+            .sort_values(by="deaths", ascending=False)  # type: ignore[arg-type]
         )
 
         by_race["race_label"] = by_race["race"].apply(wrap_axis_label)
@@ -456,7 +529,7 @@ def update_dashboard(county, year):
         # Use the shared sorter to ensure consistent age group ordering
         sorted_age_groups = sort_opts(by_age_group["age_group"])
         by_age_group["age_group"] = pd.Categorical(by_age_group["age_group"], categories=sorted_age_groups, ordered=True)
-        by_age_group = by_age_group.sort_values("age_group")
+        by_age_group = by_age_group.sort_values(by="age_group")  # type: ignore[arg-type]
 
         age_group_bar = px.bar(
             by_age_group,
@@ -489,6 +562,7 @@ def update_dashboard(county, year):
     # Return all the updated visuals and tables to Dash
     return (
         format_count_display(filter_total),
+        year_substance_line,
         sub_bar,
         race_bar,
         age_group_bar,
