@@ -752,7 +752,7 @@ def update(substance, age, sex, county, year, race_ethnicity, hawaii_residency):
         max_y = int(totals["discharges"].max()) if not totals.empty else 0
         apply_standard_bar_layout(
             sex_bar,
-            margin=dict(t=110),
+            margin=dict(t=80),
             xaxis=dict(dtick=1),
             yaxis=dict(range=[0, max_y * 1.25 if max_y else 1]),
             title="Yearly Discharges by Gender",
@@ -766,7 +766,7 @@ def update(substance, age, sex, county, year, race_ethnicity, hawaii_residency):
         sex_bar = px.bar()
         apply_standard_bar_layout(
             sex_bar,
-            margin=dict(t=110),
+            margin=dict(t=80),
             title="Yearly Discharges by Gender",
         )
 
@@ -927,6 +927,12 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
     heatmap_note = (
         "Heatmap shows how often substances appear together; darker cells indicate stronger co-occurrence."
     )
+
+    def title_top_margin(title_text: str, base: int = 70, per_line: int = 18, min_margin: int = 90, max_margin: int = 170) -> int:
+        """Compute consistent top spacing for multi-line in-figure title blocks."""
+        line_count = max(1, str(title_text).count("<br>") + 1)
+        computed = base + ((line_count - 1) * per_line)
+        return max(min_margin, min(max_margin, computed))
     
     # If the raw data is completely missing, return empty states for everything
     if df_raw.empty or 'substance' not in df_raw.columns:
@@ -998,17 +1004,18 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
     apply_standard_heatmap_layout(heatmap_fig)
     heatmap_title = "Substance Co-occurrence Correlation Matrix" + heatmap_subtitle
     filter_context = _get_active_filters_from_ctx()
+    heatmap_title_text = (
+        f"{heatmap_title}{filter_context}"
+        f"<br><span style='font-size:{12 if is_mobile else 13}px;color:#5f6b76'>{heatmap_note}</span>"
+    )
     heatmap_fig.update_layout(
         title=dict(
-            text=f"{heatmap_title}{filter_context}<br><span style='font-size:{12 if is_mobile else 13}px;color:#5f6b76'>{heatmap_note}</span>",
+            text=heatmap_title_text,
             font=dict(size=14 if is_mobile else 16, color="#1f2d3d"),
             x=0.5,
             xanchor="center",
-            y=0.95,
-            yanchor="top",
-            pad=dict(t=8),
         ),
-        margin=dict(t=145),
+        margin=dict(t=title_top_margin(heatmap_title_text)),
     )
 
 
@@ -1141,22 +1148,20 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
     if not bar_caption:
         bar_caption = "Grouped bar chart showing co-occurrence percentages between substances in the selected cohort."
     filter_context = _get_active_filters_from_ctx()
+    bar_title_text = (
+        "Co-occurrence by Selected Substance"
+        + f"{filter_context}"
+        + f"<br><span style='font-size:{12 if is_mobile else 13}px;color:#5f6b76'>{bar_caption}</span>"
+    )
 
     bar_fig.update_layout(
         title=dict(
-            text=(
-                "Co-occurrence by Selected Substance"
-                + f"{filter_context}"
-                + f"<br><span style='font-size:{12 if is_mobile else 13}px;color:#5f6b76'>{bar_caption}</span>"
-            ),
+            text=bar_title_text,
             font=dict(size=14 if is_mobile else 16),
             x=0.5,
             xanchor="center",
-            y=0.95,
-            yanchor="top",
-            pad=dict(t=8),
         ),
-        margin=dict(t=150),
+        margin=dict(t=title_top_margin(bar_title_text)),
     )
 
 
