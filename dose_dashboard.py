@@ -404,9 +404,9 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
                 featureidkey="properties.geoid20",
                 color="count",
                 color_continuous_scale="Blues",
-                mapbox_style="carto-positron",
-                zoom=6.2,
-                center={"lat": 20.8, "lon": -157.1},
+                mapbox_style="open-street-map",      # Updated to OpenStreetMap
+                zoom=5.8,                            # Decreased slightly to widen the view
+                center={"lat": 20.6, "lon": -157.5}, # Shifted west to center the chain
                 opacity=0.7,
                 custom_data=["display_count"],
                 labels={"count": "Discharges", "zip": "ZIP Code"},
@@ -418,7 +418,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             
             apply_standard_map_layout(
                 map_fig,
-                title="DOSE Discharges by County",
+                title="DOSE Discharges by ZCTA",
                 margin=middle_title_margin,
             )
         else:
@@ -426,7 +426,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             map_fig = px.choropleth_mapbox()
             apply_standard_map_layout(
                 map_fig,
-                title="DOSE Discharges by County",
+                title="DOSE Discharges by ZCTA",
                 margin=middle_title_margin,
             )
     else:
@@ -434,7 +434,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         map_fig = px.choropleth_mapbox()
         apply_standard_map_layout(
             map_fig,
-            title="DOSE Discharges by County",
+            title="DOSE Discharges by ZCTA",
             margin=middle_title_margin,
         )
 
