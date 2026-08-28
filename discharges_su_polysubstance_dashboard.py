@@ -25,7 +25,6 @@ from dashboard_utils import (
     compute_adaptive_horizontal_bar_height,
     make_filters_card,
     dropdown_filter,
-    graph_block,
     sort_opts,
     statewide_first,
     apply_county_filter,
@@ -333,16 +332,46 @@ def layout_for(is_mobile: bool = False):
 
     # CENTER: main charts focused on substance over time and new demographic charts
     center = dbc.Col([
-        graph_block("sunburst-cooccurrence", "Substance Co-occurrence Sunburst", sunburst_height),
-        html.P("Sunburst chart showing co-occurring substances in the selected cohort.", className="visually-hidden"),
-        graph_block("bar-top-substances", "Substance Type"),
-        html.P("Horizontal bar chart showing the top substances among polysubstance records.", className="visually-hidden"),
-        graph_block("line-year-substance", "Yearly Discharges by Polysubstance", h_stack),
-        html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
-        graph_block("polysubstance-age-year-lines", "Yearly Discharges by Age Group", h_stack),
-        html.P("Line chart showing yearly discharges by age group.", className="visually-hidden"),
-        graph_block("polysubstance-sex-year-stacked", "Yearly Discharges by Gender", h_bar),
-        html.P("Stacked bar chart showing yearly discharges by gender.", className="visually-hidden"),
+        html.Div([
+            dcc.Graph(
+                id="sunburst-cooccurrence",
+                style={"height": sunburst_height, "width": "100%"},
+                config={"displayModeBar": True, "displaylogo": False},
+            ),
+            html.P("Sunburst chart showing co-occurring substances in the selected cohort.", className="visually-hidden"),
+        ], className="mb-4 p-2 bg-white rounded-2"),
+        html.Div([
+            dcc.Graph(
+                id="bar-top-substances",
+                style={"width": "100%"},
+                config={"displayModeBar": True, "displaylogo": False},
+            ),
+            html.P("Horizontal bar chart showing the top substances among polysubstance records.", className="visually-hidden"),
+        ], className="mb-4 p-2 bg-white rounded-2"),
+        html.Div([
+            dcc.Graph(
+                id="line-year-substance",
+                style={"height": h_stack, "width": "100%"},
+                config={"displayModeBar": True, "displaylogo": False},
+            ),
+            html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
+        ], className="mb-4 p-2 bg-white rounded-2"),
+        html.Div([
+            dcc.Graph(
+                id="polysubstance-age-year-lines",
+                style={"height": h_stack, "width": "100%"},
+                config={"displayModeBar": True, "displaylogo": False},
+            ),
+            html.P("Line chart showing yearly discharges by age group.", className="visually-hidden"),
+        ], className="mb-4 p-2 bg-white rounded-2"),
+        html.Div([
+            dcc.Graph(
+                id="polysubstance-sex-year-stacked",
+                style={"height": h_bar, "width": "100%"},
+                config={"displayModeBar": True, "displaylogo": False},
+            ),
+            html.P("Stacked bar chart showing yearly discharges by gender.", className="visually-hidden"),
+        ], className="mb-4 p-2 bg-white rounded-2"),
     ], xs=12, md=6)
 
     # RIGHT: summary tables (ordered by shared site-wide utility)
@@ -370,13 +399,25 @@ def layout_for(is_mobile: bool = False):
         # Store mobile state for callbacks
         dcc.Store(id="polysubstance-cooccurrence-is-mobile", data=is_mobile),
 
+        # Hidden placeholders keep existing callback outputs stable after removing visible title boxes.
+        html.Div(id="bar-top-substances-title", style={"display": "none"}),
+        html.Div(id="line-year-substance-title", style={"display": "none"}),
+        html.Div(id="stack-year-county-title", style={"display": "none"}),
+        html.Div(id="polysubstance-cooccurrence-bar-caption", style={"display": "none"}),
+
         dbc.Row([left, center, right], className="g-3"),
 
         # Full-width row under filters/blurbs: county trend
         dbc.Row([
             dbc.Col([
-                graph_block("stack-year-county", "Yearly Discharges by County", h_full_row),
-                html.P("Line chart showing discharges by year and county.", className="visually-hidden"),
+                html.Div([
+                    dcc.Graph(
+                        id="stack-year-county",
+                        style={"height": h_full_row, "width": "100%"},
+                        config={"displayModeBar": True, "displaylogo": False},
+                    ),
+                    html.P("Line chart showing discharges by year and county.", className="visually-hidden"),
+                ], className="mb-4 p-2 bg-white rounded-2"),
             ], xs=12, md=12),
         ], className="g-3"),
 
@@ -384,93 +425,56 @@ def layout_for(is_mobile: bool = False):
         # Visualization 1: Heatmap
         dbc.Row([
             dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader([
-                        html.H5("Co-occurrence Heatmap", className="mb-0")
-                    ]),
-                    dbc.CardBody([
-                        html.P([
-                            "Heatmap showing how often substances appear together in the same polysubstance record. ",
-                            "Darker cells indicate stronger co-occurrence.  When you select one or more substances to filter on, ",
-                            "the heatmap updates to show how often each pair of substances co-occur among all records ", 
-                            "that include all of your selected substance(s). This helps you see which other substances are ", 
-                            "most likely to appear together with your selection.",
-                            html.Br() if is_mobile else "",
-                            html.Small("(Scroll horizontally to see full chart)", className="text-muted") if is_mobile else ""
-                        ], className="text-muted mb-3"),
-                        dcc.Loading(
-                            html.Div(
-                                dcc.Graph(
-                                    id="polysubstance-cooccurrence-heatmap",
-                                    config={"displayModeBar": True, "displaylogo": False},
-                                    style={
-                                        # Fixed height for both mobile and desktop
-                                        "height": "600px",
-                                        "minWidth": "1500px"
-                                    }
-                                ),
+                html.Div([
+                    dcc.Loading(
+                        html.Div(
+                            dcc.Graph(
+                                id="polysubstance-cooccurrence-heatmap",
+                                config={"displayModeBar": True, "displaylogo": False},
                                 style={
-                                    # handles horizontal scrolling on smaller screen sizes (mobile)
-                                    "overflowX": "auto",
-                                },
-                                className="graph-inner" if is_mobile else ""
+                                    # Fixed height for both mobile and desktop
+                                    "height": "600px",
+                                    "minWidth": "1500px"
+                                }
                             ),
-                            className="heatmap-scroll" if is_mobile else ""
+                            style={
+                                # handles horizontal scrolling on smaller screen sizes (mobile)
+                                "overflowX": "auto",
+                            },
+                            className="graph-inner" if is_mobile else ""
                         ),
-                        html.P(
-                            "Heatmap showing how often substances appear together in the same polysubstance record.",
-                            className="visually-hidden",
-                        )
-                    ])
-                ])
+                        className="heatmap-scroll" if is_mobile else ""
+                    ),
+                    html.P(
+                        "Heatmap showing how often substances appear together in the same polysubstance record.",
+                        className="visually-hidden",
+                    )
+                ], className="mb-4 p-2 bg-white rounded-2")
             ], md=12, className="mb-4")
         ]),
         
         # Visualization 2: Grouped Bar Chart
         dbc.Row([
             dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader([
-                        html.H5("Co-occurrence by Selected Substance", className="mb-0")
-                    ]),
-                    dbc.CardBody([
-                        html.P([
-                            "Grouped bar chart showing what percentage of cases with a given substance also contain each other substance. ",
-                            "Use the Substance Type filter above to focus on one or more substances.",
-                            html.Br() if is_mobile else "",
-                            html.Small("(Scroll horizontally to see all substances)", className="text-muted") if is_mobile else ""
-                        ], className="text-muted mb-3"),
+                html.Div([
+                    dcc.Loading(
                         html.Div(
-                            id="polysubstance-cooccurrence-bar-caption",
-                            className="plot-card-header text-center mb-2",
-                            style={
-                                "minHeight": "2.2rem",
-                                "lineHeight": "1.25",
-                                "overflow": "visible",
-                                "whiteSpace": "normal",
-                                "paddingTop": "0.25rem",
-                                "paddingBottom": "0.25rem",
-                            },
-                        ),
-                        dcc.Loading(
                             html.Div(
-                                html.Div(
-                                    dcc.Graph(
-                                        id="polysubstance-cooccurrence-bar-chart",
-                                        config={"displayModeBar": True, "displaylogo": False},
-                                        style={"width": "100%"}
-                                    ),
-                                    className="graph-inner" if is_mobile else ""
+                                dcc.Graph(
+                                    id="polysubstance-cooccurrence-bar-chart",
+                                    config={"displayModeBar": True, "displaylogo": False},
+                                    style={"width": "100%"}
                                 ),
-                                className="hscroll-graph" if is_mobile else ""
-                            )
-                        ),
-                        html.P(
-                            "Grouped bar chart showing the percentage of cases where each substance co-occurs with other substances.",
-                            className="visually-hidden",
+                                className="graph-inner" if is_mobile else ""
+                            ),
+                            className="hscroll-graph" if is_mobile else ""
                         )
-                    ])
-                ])
+                    ),
+                    html.P(
+                        "Grouped bar chart showing the percentage of cases where each substance co-occurs with other substances.",
+                        className="visually-hidden",
+                    )
+                ], className="mb-4 p-2 bg-white rounded-2")
             ], md=12, className="mb-4")
         ]),
         
@@ -590,7 +594,7 @@ def update(substance, age, sex, county, year, race_ethnicity, hawaii_residency):
         if sub_counts.empty:
             fig_sub = px.bar()
             fig_sub.add_annotation(text="No co-substances found for selected filter.", showarrow=False)
-            apply_standard_bar_layout(fig_sub)
+            apply_standard_bar_layout(fig_sub, title=bar_title)
         else:
             sub_counts["substance_wrapped"] = sub_counts["substance"].apply(wrap_label)
 
@@ -611,9 +615,11 @@ def update(substance, age, sex, county, year, race_ethnicity, hawaii_residency):
             apply_standard_bar_layout(
                 fig_sub,
                 xaxis=dict(rangemode="tozero"),
+                title=bar_title,
             )
     else:
         fig_sub = px.bar()
+        apply_standard_bar_layout(fig_sub, title=bar_title)
 
 
     # ---------- Line: Yearly Discharges by Substance ----------
@@ -666,10 +672,12 @@ def update(substance, age, sex, county, year, race_ethnicity, hawaii_residency):
 
         apply_standard_line_layout(
             fig_year_substance,
+            title=line_title,
         )
 
     else:
         fig_year_substance = px.line()
+        apply_standard_line_layout(fig_year_substance, title=line_title)
 
     demographic_source = dff
     if selected_substances and {"substance", "record_id"}.issubset(dff_base.columns):
@@ -697,9 +705,10 @@ def update(substance, age, sex, county, year, race_ethnicity, hawaii_residency):
         age_line_fig.update_traces(
             hovertemplate="Year %{x}<br>Age Group: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
         )
-        apply_standard_line_layout(age_line_fig)
+        apply_standard_line_layout(age_line_fig, title="Yearly Discharges by Age Group")
     else:
         age_line_fig = px.line()
+        apply_standard_line_layout(age_line_fig, title="Yearly Discharges by Age Group")
 
     # ---------- Stacked bar: Yearly Discharges by Gender (Sex) ----------
     if {"year", "sex", "record_id"}.issubset(demographic_source.columns) and not demographic_source.empty:
@@ -734,6 +743,7 @@ def update(substance, age, sex, county, year, race_ethnicity, hawaii_residency):
             sex_bar,
             xaxis=dict(dtick=1),
             yaxis=dict(range=[0, max_y * 1.25 if max_y else 1]),
+            title="Yearly Discharges by Gender",
         )
         sex_bar.update_traces(
             textposition="inside",
@@ -742,6 +752,7 @@ def update(substance, age, sex, county, year, race_ethnicity, hawaii_residency):
         )
     else:
         sex_bar = px.bar()
+        apply_standard_bar_layout(sex_bar, title="Yearly Discharges by Gender")
 
     # ---------- Line: Year × County ----------
     if {"year", "county", "record_id"}.issubset(demographic_source.columns) and not demographic_source.empty:
@@ -782,9 +793,11 @@ def update(substance, age, sex, county, year, race_ethnicity, hawaii_residency):
 
         apply_standard_line_layout(
             fig_year_county,
+            title=county_title,
         )
     else:
         fig_year_county = px.line()
+        apply_standard_line_layout(fig_year_county, title=county_title)
 
     def summary_table(df, col, ordered=None, filter_selection=None):
         # Use shared build_summary_count_table for summary tables, letting it handle header labels
@@ -895,6 +908,9 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
     """
     empty_fig = go.Figure().add_annotation(text="No data available", showarrow=False)
     bar_caption = ""
+    heatmap_note = (
+        "Heatmap shows how often substances appear together; darker cells indicate stronger co-occurrence."
+    )
     
     # If the raw data is completely missing, return empty states for everything
     if df_raw.empty or 'substance' not in df_raw.columns:
@@ -921,6 +937,12 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
     if selected_values:
         dff_heat = records_matching_all_selected_substances(dff_heat, selected_values)
         
+    heatmap_subtitle = (
+        f" (records containing all of: {format_display_list(selected_values)})"
+        if (selected_values and len(selected_values) > 1)
+        else ""
+    )
+
     if dff_heat.empty:
         heatmap_fig = go.Figure().add_annotation(text="No data for selected substance(s)", showarrow=False)
     else:
@@ -935,8 +957,6 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
                 text_size, height, width = 10, 600, None
                 title_text, title_size = "Substance Co-occurrence Correlation Matrix", 16
 
-            subtitle = f" (records containing all of: {format_display_list(selected_values)})" if (selected_values and len(selected_values) > 1) else ""
-
             heatmap_fig = go.Figure(data=go.Heatmap(
                 z=corr_matrix.values,
                 x=corr_matrix.columns,
@@ -950,7 +970,7 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
             ))
 
             heatmap_fig.update_layout(
-                title=dict(text=title_text + subtitle, font=dict(size=title_size)),
+                title=dict(text=title_text + heatmap_subtitle, font=dict(size=title_size)),
                 xaxis=dict(side='bottom', tickangle=45, tickfont=dict(size=text_size)),
                 yaxis=dict(autorange='reversed', tickfont=dict(size=text_size)),
                 height=height,
@@ -958,6 +978,27 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
                 autosize=False if is_mobile else True
             )
             apply_standard_heatmap_layout(heatmap_fig)
+
+    apply_standard_heatmap_layout(heatmap_fig)
+    heatmap_fig.update_layout(
+        title=dict(
+            text="Substance Co-occurrence Correlation Matrix" + heatmap_subtitle,
+            font=dict(size=14 if is_mobile else 16),
+        ),
+        margin=dict(b=120),
+    )
+    heatmap_fig.add_annotation(
+        text=heatmap_note,
+        xref="paper",
+        yref="paper",
+        x=0,
+        y=-0.22,
+        xanchor="left",
+        yanchor="top",
+        showarrow=False,
+        align="left",
+        font=dict(size=10, color="#5f6b76"),
+    )
 
 
     # ---------------------------------------------------------
@@ -1079,7 +1120,27 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
             bar_fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5))
 
         chart_height = compute_adaptive_horizontal_bar_height(len(co_data), min_height=260, max_height=500)
-        apply_standard_bar_layout(bar_fig, height=chart_height)
+        apply_standard_bar_layout(
+            bar_fig,
+            height=chart_height,
+            title="Co-occurrence by Selected Substance",
+        )
+
+    if not bar_caption:
+        bar_caption = "Grouped bar chart showing co-occurrence percentages between substances in the selected cohort."
+    bar_fig.update_layout(margin=dict(b=120))
+    bar_fig.add_annotation(
+        text=bar_caption,
+        xref="paper",
+        yref="paper",
+        x=0,
+        y=-0.22,
+        xanchor="left",
+        yanchor="top",
+        showarrow=False,
+        align="left",
+        font=dict(size=10, color="#5f6b76"),
+    )
 
 
     # ---------------------------------------------------------
@@ -1137,7 +1198,7 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
                         branchvalues="total", insidetextorientation="horizontal",
                         hovertemplate="<b>%{customdata[2]}</b><br>Raw Count: %{customdata[0]:,}<br>Cohort: %{customdata[1]}<extra></extra>",
                     ))
-                    apply_standard_non_axis_layout(sunburst_fig)
+                    apply_standard_non_axis_layout(sunburst_fig, title="Substance Co-occurrence Sunburst")
                     sunburst_fig.update_layout(uniformtext_minsize=8, uniformtext_mode="show")
             else:
                 sunburst_data = build_sunburst_cooccurrence_data(dff_sun)
