@@ -40,6 +40,7 @@ from dashboard_utils import (
     apply_standard_line_layout,
     apply_standard_non_axis_layout,
     apply_standard_heatmap_layout,
+    _get_active_filters_from_ctx,
     build_summary_count_table,
     load_sql_query,
 )
@@ -751,6 +752,7 @@ def update(substance, age, sex, county, year, race_ethnicity, hawaii_residency):
         max_y = int(totals["discharges"].max()) if not totals.empty else 0
         apply_standard_bar_layout(
             sex_bar,
+            margin=dict(t=110),
             xaxis=dict(dtick=1),
             yaxis=dict(range=[0, max_y * 1.25 if max_y else 1]),
             title="Yearly Discharges by Gender",
@@ -762,7 +764,11 @@ def update(substance, age, sex, county, year, race_ethnicity, hawaii_residency):
         )
     else:
         sex_bar = px.bar()
-        apply_standard_bar_layout(sex_bar, title="Yearly Discharges by Gender")
+        apply_standard_bar_layout(
+            sex_bar,
+            margin=dict(t=110),
+            title="Yearly Discharges by Gender",
+        )
 
     # ---------- Line: Year × County ----------
     if {"year", "county", "record_id"}.issubset(demographic_source.columns) and not demographic_source.empty:
@@ -990,24 +996,19 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
             apply_standard_heatmap_layout(heatmap_fig)
 
     apply_standard_heatmap_layout(heatmap_fig)
+    heatmap_title = "Substance Co-occurrence Correlation Matrix" + heatmap_subtitle
+    filter_context = _get_active_filters_from_ctx()
     heatmap_fig.update_layout(
         title=dict(
-            text="Substance Co-occurrence Correlation Matrix" + heatmap_subtitle,
-            font=dict(size=14 if is_mobile else 16),
+            text=f"{heatmap_title}{filter_context}<br><span style='font-size:{12 if is_mobile else 13}px;color:#5f6b76'>{heatmap_note}</span>",
+            font=dict(size=14 if is_mobile else 16, color="#1f2d3d"),
+            x=0.5,
+            xanchor="center",
+            y=0.95,
+            yanchor="top",
+            pad=dict(t=8),
         ),
-        margin=dict(b=120),
-    )
-    heatmap_fig.add_annotation(
-        text=heatmap_note,
-        xref="paper",
-        yref="paper",
-        x=0,
-        y=-0.22,
-        xanchor="left",
-        yanchor="top",
-        showarrow=False,
-        align="left",
-        font=dict(size=10, color="#5f6b76"),
+        margin=dict(t=145),
     )
 
 
@@ -1071,7 +1072,7 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
                     if is_mobile:
                         bar_fig = px.bar(
                             co_data, x='Also Found', y='Plot_Percentage', orientation='v',
-                            labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
+                            labels={'Plot_Percentage': 'Percentage', 'Also Found': 'Other Substance'},
                             text='label', hover_data={'Count': False, 'Total': False, 'label': False},
                             custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line']
                         )
@@ -1085,7 +1086,7 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
                     else:
                         bar_fig = px.bar(
                             co_data, x='Plot_Percentage', y='Also Found', orientation='h',
-                            labels={'Percentage': 'Co-occurrence %', 'Also Found': 'Other Substance'},
+                            labels={'Plot_Percentage': 'Percentage', 'Also Found': 'Other Substance'},
                             text='label', hover_data={'Count': False, 'Total': False, 'label': False},
                             custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line', 'Also Found']
                         )
@@ -1112,7 +1113,7 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
             
             bar_fig = px.bar(
                 co_data, x='Primary', y='Plot_Percentage', color='Also Found', barmode='group',
-                labels={'Percentage': 'Co-occurrence %', 'Primary': 'Primary Substance'},
+                labels={'Plot_Percentage': 'Co-occurrence percentage', 'Primary': 'Primary Substance'},
                 hover_data={'Count': False, 'Total': False, 'label': False},
                 custom_data=['Count_formatted', 'Total_formatted', 'Cooccurrence_line', 'Also Found']
             )
@@ -1127,7 +1128,8 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
         bar_fig.update_xaxes(tickangle=x_angle)
 
         if not selected_values:
-            bar_fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5))
+            # Keep legend on top, but below the title/subtitle block.
+            bar_fig.update_layout(legend=dict(orientation="h", yanchor="top", y=1.0, xanchor="center", x=0.5))
 
         chart_height = compute_adaptive_horizontal_bar_height(len(co_data), min_height=260, max_height=500)
         apply_standard_bar_layout(
@@ -1138,18 +1140,23 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
 
     if not bar_caption:
         bar_caption = "Grouped bar chart showing co-occurrence percentages between substances in the selected cohort."
-    bar_fig.update_layout(margin=dict(b=120))
-    bar_fig.add_annotation(
-        text=bar_caption,
-        xref="paper",
-        yref="paper",
-        x=0,
-        y=-0.22,
-        xanchor="left",
-        yanchor="top",
-        showarrow=False,
-        align="left",
-        font=dict(size=10, color="#5f6b76"),
+    filter_context = _get_active_filters_from_ctx()
+
+    bar_fig.update_layout(
+        title=dict(
+            text=(
+                "Co-occurrence by Selected Substance"
+                + f"{filter_context}"
+                + f"<br><span style='font-size:{12 if is_mobile else 13}px;color:#5f6b76'>{bar_caption}</span>"
+            ),
+            font=dict(size=14 if is_mobile else 16),
+            x=0.5,
+            xanchor="center",
+            y=0.95,
+            yanchor="top",
+            pad=dict(t=8),
+        ),
+        margin=dict(t=150),
     )
 
 
