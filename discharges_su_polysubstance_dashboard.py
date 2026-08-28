@@ -7,7 +7,6 @@
 from pathlib import Path
 
 import pandas as pd
-import numpy as np
 import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 import plotly.express as px
@@ -42,8 +41,6 @@ from dashboard_utils import (
     apply_standard_line_layout,
     apply_standard_non_axis_layout,
     apply_standard_heatmap_layout,
-    apply_standard_network_layout,
-    apply_standard_sankey_layout,
     build_summary_count_table,
     load_sql_query,
 )
@@ -100,27 +97,6 @@ def load_df():
 
 
 # ---------- Helper functions ----------
-def build_cooccurrence_matrix(df):
-    """
-    Build a co-occurrence matrix showing how often substances appear together.
-    
-    Returns a DataFrame where rows and columns are substances, and values are
-    the count of records where both substances appear together.
-    """
-    # Create a pivot table: rows=record_id, columns=substance, values=1 if present
-    substance_matrix = df.pivot_table(
-        index='record_id',
-        columns='substance',
-        aggfunc='size',
-        fill_value=0
-    ).clip(upper=1)  # Convert to binary (0 or 1)
-    
-    # Calculate co-occurrence: matrix multiplication
-    cooccurrence = substance_matrix.T.dot(substance_matrix)
-    
-    return cooccurrence
-
-
 def build_correlation_matrix(df):
     """
     Build a correlation matrix showing the correlation between substance occurrences.
@@ -497,64 +473,6 @@ def layout_for(is_mobile: bool = False):
             ], md=12, className="mb-4")
         ]),
         
-        # Visualization 3: Network Graph
-        dbc.Row([
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader([
-                        html.H5("Substance Co-occurrence Network", className="mb-0")
-                    ]),
-                    dbc.CardBody([
-                        html.P([
-                            "Network graph showing substances as connected nodes. ",
-                            "Thicker lines indicate more frequent co-occurrence. ",
-                            "Only connections with 50 or more cases are shown."
-                        ], className="text-muted mb-3"),
-                        dcc.Loading(
-                            dcc.Graph(
-                                id="polysubstance-cooccurrence-network",
-                                config={"displayModeBar": True, "displaylogo": False},
-                                style={"minHeight": "650px"}
-                            )
-                        ),
-                        html.P(
-                            "Network graph showing substances as connected nodes, with thicker lines indicating more frequent co-occurrence.",
-                            className="visually-hidden",
-                        )
-                    ])
-                ])
-            ], md=12, className="mb-4")
-        ]),
-        
-        # Visualization 4: Sankey Diagram
-        dbc.Row([
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader([
-                        html.H5("Substance Flow Diagram (Sankey)", className="mb-0")
-                    ]),
-                    dbc.CardBody([
-                        html.P([
-                            "Sankey diagram showing flows between the most frequent co-occurring substances in polysubstance cases. ",
-                            "Flow width represents the number of co-occurrences. ",
-                            "Only the top 8 substances by frequency are shown."
-                        ], className="text-muted mb-3"),
-                        dcc.Loading(
-                            dcc.Graph(
-                                id="polysubstance-cooccurrence-sankey",
-                                config={"displayModeBar": True, "displaylogo": False},
-                                style={"minHeight": "760px"}
-                            )
-                        ),
-                        html.P(
-                            "Sankey diagram showing flows between the most frequent co-occurring substances in polysubstance cases.",
-                            className="visually-hidden",
-                        )
-                    ])
-                ])
-            ], md=12, className="mb-4")
-        ]),
-
     ], fluid=True)
 
 
@@ -960,8 +878,6 @@ def reset_filters(n):
     Output("polysubstance-cooccurrence-bar-chart", "figure"),
     Output("polysubstance-cooccurrence-bar-caption", "children"),
     Output("sunburst-cooccurrence", "figure"),
-    Output("polysubstance-cooccurrence-network", "figure"),
-    Output("polysubstance-cooccurrence-sankey", "figure"),
     Input("polysubstance-substance-filter", "value"),
     Input("polysubstance-cooccurrence-is-mobile", "data"),
     Input("polysubstance-age-filter", "value"),
@@ -973,15 +889,15 @@ def reset_filters(n):
 )
 def update_dashboard(selected_substances, is_mobile, age, sex, county, year, race_ethnicity, hawaii_residency):
     """
-    Unified callback that updates the heatmap, grouped bar chart, sunburst, 
-    network graph, and sankey diagram simultaneously.
+    Unified callback that updates the heatmap, grouped bar chart, and sunburst
+    simultaneously.
     """
     empty_fig = go.Figure().add_annotation(text="No data available", showarrow=False)
     bar_caption = ""
     
     # If the raw data is completely missing, return empty states for everything
     if df_raw.empty or 'substance' not in df_raw.columns:
-        return empty_fig, empty_fig, bar_caption, empty_fig, empty_fig, empty_fig
+        return empty_fig, empty_fig, bar_caption, empty_fig
 
     # Parse selected substances once
     selected_values = (
@@ -1262,112 +1178,4 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
                     sunburst_fig.update_layout(uniformtext_minsize=8, uniformtext_mode="show")
 
 
-    # ---------------------------------------------------------
-    # 4. Network Graph Generation
-    # ---------------------------------------------------------
-    cooccurrence = build_cooccurrence_matrix(df_raw)
-    threshold = 50
-    edges, edge_weights = [], []
-    substances = list(cooccurrence.index)
-    
-    for i, sub1 in enumerate(substances):
-        for j, sub2 in enumerate(substances):
-            if i < j:
-                weight = cooccurrence.loc[sub1, sub2]
-                try:
-                    weight_num = float(weight)
-                except Exception:
-                    continue
-                if weight_num > threshold:
-                    edges.append((sub1, sub2))
-                    edge_weights.append(weight_num)
-    
-    if not edges:
-        network_fig = go.Figure().add_annotation(text=f"No co-occurrences above threshold ({threshold})", showarrow=False)
-    else:
-        n = len(substances)
-        angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
-        pos = {sub: (np.cos(angle), np.sin(angle)) for sub, angle in zip(substances, angles)}
-        
-        edge_traces, edge_label_traces = [], []
-        max_weight = max(edge_weights)
-
-        for (sub1, sub2), weight in zip(edges, edge_weights):
-            x0, y0 = pos[sub1]
-            x1, y1 = pos[sub2]
-            line_width = 1 + (weight / max_weight) * 9
-            
-            edge_traces.append(go.Scatter(
-                x=[x0, x1, None], y=[y0, y1, None], mode='lines',
-                line=dict(width=line_width, color='rgba(125,125,125,0.3)'),
-                hoverinfo='skip', showlegend=False
-            ))
-            
-            dx, dy = x1 - x0, y1 - y0
-            length = np.sqrt(dx**2 + dy**2)
-            perp_x, perp_y = -dy / length * 0.02, dx / length * 0.02
-            mid_x, mid_y = (x0 + x1) / 2 + perp_x, (y0 + y1) / 2 + perp_y
-            
-            edge_label_traces.append(go.Scatter(
-                x=[mid_x], y=[mid_y], mode='markers+text', text=[f"{int(weight):,}"],
-                textfont=dict(size=10, color='#ffffff', family='Arial'), textposition='middle center',
-                hovertext=f"{sub1} + {sub2}<br>Co-occurrences: {int(weight):,}", hoverinfo='text', showlegend=False,
-                marker=dict(size=20, color='#d32f2f', symbol='square', line=dict(width=0))
-            ))
-        
-        node_size = []
-        for sub in substances:
-            try:
-                freq = float(cooccurrence.loc[sub, sub])
-            except Exception:
-                freq = 1.0
-            node_size.append(freq / 50)
-        
-        node_trace = go.Scatter(
-            x=[pos[sub][0] for sub in substances], y=[pos[sub][1] for sub in substances],
-            mode='markers+text', text=substances, textposition='top center',
-            marker=dict(size=node_size, color='lightblue', line=dict(width=2, color='darkblue'), sizemode='area', sizeref=2.*max(node_size)/(40.**2) if node_size else 1, sizemin=4),
-            hovertext=[f"{sub}<br>Frequency: {cooccurrence.loc[sub, sub]:,.0f}" for sub in substances], hoverinfo='text', showlegend=False
-        )
-        
-        network_fig = go.Figure(data=edge_traces + edge_label_traces + [node_trace])
-        apply_standard_network_layout(
-            network_fig, node_count=len(substances), title=f"Substance Co-occurrence Network (threshold: {threshold}+ cases)",
-            showlegend=False, hovermode='closest', plot_bgcolor='white',
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[-1.2, 1.2], fixedrange=True),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[-1.2, 1.2], fixedrange=True),
-        )
-
-
-    # ---------------------------------------------------------
-    # 5. Sankey Diagram Generation
-    # ---------------------------------------------------------
-    top_substances = df_raw.groupby('substance')['record_id'].nunique().nlargest(8).index.tolist()
-    df_filtered = df_raw[df_raw['substance'].isin(top_substances)].copy()
-    
-    sankey_edges = []
-    for substance_val in top_substances:
-        records = df_filtered[df_filtered['substance'] == substance_val]['record_id'].unique()
-        for other_sub in top_substances:
-            if other_sub != substance_val:
-                count = df_filtered[(df_filtered['record_id'].isin(records)) & (df_filtered['substance'] == other_sub)]['record_id'].nunique()
-                if count > 20:
-                    sankey_edges.append({'source': substance_val, 'target': other_sub, 'value': count})
-    
-    if not sankey_edges:
-        sankey_fig = go.Figure().add_annotation(text="Insufficient data for Sankey diagram", showarrow=False)
-    else:
-        edge_df = pd.DataFrame(sankey_edges)
-        all_nodes = list(set(edge_df['source'].tolist() + edge_df['target'].tolist()))
-        node_dict = {node: idx for idx, node in enumerate(all_nodes)}
-        
-        source_indices = [node_dict[s] for s in edge_df['source']]
-        target_indices = [node_dict[t] for t in edge_df['target']]
-        
-        sankey_fig = go.Figure(data=[go.Sankey(
-            node=dict(pad=15, thickness=20, line=dict(color="black", width=0.5), label=all_nodes, color="lightblue"),
-            link=dict(source=source_indices, target=target_indices, value=edge_df['value'].tolist(), label=[f"{edge_df.iloc[i]['value']:,.0f}" for i in range(len(edge_df))])
-        )])
-        apply_standard_sankey_layout(sankey_fig, node_count=len(all_nodes), title="Substance Co-occurrence Flow (Top 8 Substances)", font=dict(size=12))
-
-    return heatmap_fig, bar_fig, bar_caption, sunburst_fig, network_fig, sankey_fig
+    return heatmap_fig, bar_fig, bar_caption, sunburst_fig
