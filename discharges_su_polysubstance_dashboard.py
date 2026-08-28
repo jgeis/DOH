@@ -1011,7 +1011,7 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
     heatmap_fig.update_layout(
         title=dict(
             text=heatmap_title_text,
-            font=dict(size=14 if is_mobile else 16, color="#1f2d3d"),
+            font=dict(size=18, color="#1f2d3d"),
             x=0.5,
             xanchor="center",
         ),
@@ -1157,7 +1157,7 @@ def update_dashboard(selected_substances, is_mobile, age, sex, county, year, rac
     bar_fig.update_layout(
         title=dict(
             text=bar_title_text,
-            font=dict(size=14 if is_mobile else 16),
+            font=dict(size=18, color="#1f2d3d"),
             x=0.5,
             xanchor="center",
         ),
