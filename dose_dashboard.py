@@ -16,7 +16,6 @@ from dashboard_utils import (
     apply_year_filter,
     county_output_should_include_statewide,
     append_statewide_aggregate_rows,
-    graph_block,
     make_kpi_card,
     make_left_sidebar,
     make_right_summary_tables_col,
@@ -150,6 +149,19 @@ def layout():
         md=3,
     )
 
+    def graph_panel(graph_id: str, height_px: str | None = None):
+        return html.Div(
+            [
+                dcc.Graph(
+                    id=graph_id,
+                    style=({"height": height_px, "width": "100%"} if height_px else {"width": "100%"}),
+                    config={"displayModeBar": True, "displaylogo": False},
+                ),
+            ],
+            className="mb-4 p-2 bg-white rounded-2",
+            style={"overflow": "visible"},
+        )
+
     return dbc.Container([
         skip_link,
         html.Div(
@@ -157,12 +169,12 @@ def layout():
                 left_col,
 
                 dbc.Col([
-                    graph_block("bar-dose", "Nonfatal Overdoses Related to Drug Poisonings"),
+                    graph_panel("bar-dose"),
                     html.P("Bar chart showing nonfatal overdoses related to drug poisonings.", className="visually-hidden"),
-                    graph_block("year-diagnosis-lines-dose", "DOSE Discharges by Year and Substance", line_h),
+                    graph_panel("year-diagnosis-lines-dose", line_h),
                     html.P("Line chart showing DOSE discharges by year and substance.", className="visually-hidden"),
                     dbc.Row([
-                        graph_block("map-county", "Discharges by County", map_h),
+                        graph_panel("map-county", map_h),
                         html.P("Choropleth map showing discharges by county.", className="visually-hidden"),
                     ]),
                 ], xs=12, md=6),
@@ -273,11 +285,13 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
     if "race_ethnicity" in dose_df.columns:     dose_df = apply_filter(dose_df, "race_ethnicity", race_ethnicity)
 
     include_statewide_county_outputs = county_output_should_include_statewide(county)
+    middle_title_margin = {"t": 60, "b": 50}
     
     filter_dose_total = dose_df["record_id"].nunique()
     kpi_dose_display = format_count_display(filter_dose_total)
 
     # ---------- Bar chart: Nonfatal overdoses related to poisonings ----------
+    dose_bar = px.bar()
     if {"substance"}.issubset(dose_df.columns):
         by_dose = (
             dose_df.groupby("substance")["record_id"].nunique()
@@ -299,11 +313,14 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         
         apply_standard_single_series_bar_trace(dose_bar)
 
-        apply_standard_bar_layout(dose_bar)
-    else:
-        dose_bar = px.bar()
+    apply_standard_bar_layout(
+        dose_bar,
+        title="Nonfatal Overdoses Related to Drug Poisonings (DOSE)",
+        margin=middle_title_margin,
+    )
 
     # ---------- Line chart: Discharges by Year and Substance ----------
+    dose_line = px.line()
     if {"year", "substance"}.issubset(dose_df.columns):
         by_year_substance = (
             dose_df.groupby(["year", "substance"])["record_id"].nunique()
@@ -332,11 +349,12 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         dose_line.update_traces(
             hovertemplate="Year %{x}<br>Substance: %{fullData.name}<br>%{y:,} discharges<extra></extra>"
         )
-        apply_standard_line_layout(
-            dose_line,
-        )
-    else:
-        dose_line = px.line()
+
+    apply_standard_line_layout(
+        dose_line,
+        title="DOSE Discharges by Year and Substance",
+        margin=middle_title_margin,
+    )
 
     # ---------- Helper for the summary tables ----------
     # Use shared build_summary_count_table for summary tables
@@ -391,13 +409,27 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
                 hovertemplate="<b>ZIP Code: %{location}</b><br>Discharges: %{customdata[0]}<extra></extra>"
             )
             
-            apply_standard_map_layout(map_fig)
+            apply_standard_map_layout(
+                map_fig,
+                title="DOSE Discharges by County",
+                margin=middle_title_margin,
+            )
         else:
             print("[MAP] by_zip is empty!")
             map_fig = px.choropleth_mapbox()
+            apply_standard_map_layout(
+                map_fig,
+                title="DOSE Discharges by County",
+                margin=middle_title_margin,
+            )
     else:
         print(f"[MAP] Missing zip column or no GeoJSON: zip in columns: {'zip' in dose_df.columns}, zips_geo: {zips_geo is not None}")
         map_fig = px.choropleth_mapbox()
+        apply_standard_map_layout(
+            map_fig,
+            title="DOSE Discharges by County",
+            margin=middle_title_margin,
+        )
 
     # Return all the updated visuals and tables to Dash
     return (
