@@ -309,6 +309,7 @@ def layout_for(is_mobile: bool = False):
     )
     h_stack = "55vh" if is_mobile else "360px"
     h_full_row = "55vh" if is_mobile else "420px"
+    sunburst_height = "70vh" if is_mobile else "760px"
 
     # LEFT: KPI + filters
     left = make_left_sidebar(
@@ -332,7 +333,7 @@ def layout_for(is_mobile: bool = False):
 
     # CENTER: main charts focused on substance over time and new demographic charts
     center = dbc.Col([
-        graph_block("sunburst-cooccurrence", "Substance Co-occurrence Sunburst", h_full_row),
+        graph_block("sunburst-cooccurrence", "Substance Co-occurrence Sunburst", sunburst_height),
         html.P("Sunburst chart showing co-occurring substances in the selected cohort.", className="visually-hidden"),
         graph_block("bar-top-substances", "Substance Type"),
         html.P("Horizontal bar chart showing the top substances among polysubstance records.", className="visually-hidden"),
