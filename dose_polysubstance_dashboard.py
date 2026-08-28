@@ -246,16 +246,25 @@ def layout():
 
         graph_panel("dose-polysubstance-substance-bar"),
         html.P("Bar chart showing DOSE discharges by substance type.", className="visually-hidden"),
+    ], xs=12, md=8)
 
-        graph_panel("dose-polysubstance-year-line", "400px"),
-        html.P("Line chart showing yearly DOSE discharges by substance.", className="visually-hidden"),
+    left_middle_col = dbc.Col([
+        dbc.Row([left_col, center_col], className="g-3"),
+        dbc.Row([
+            dbc.Col([
+                graph_panel("dose-polysubstance-year-line", "400px"),
+                html.P("Line chart showing yearly DOSE discharges by substance.", className="visually-hidden"),
 
-        graph_panel("dose-polysubstance-county-line", "400px"),
-        html.P("Line chart showing yearly DOSE discharges by county.", className="visually-hidden"),
+                graph_panel("dose-polysubstance-county-line", "400px"),
+                html.P("Line chart showing yearly DOSE discharges by county.", className="visually-hidden"),
+            ], xs=12, md=12),
+        ], className="g-3 mt-0"),
+    ], xs=12, md=9)
 
-        graph_panel("dose-polysubstance-cooccurrence-bar", "500px"),
+    cooccurrence_full_row = dbc.Col([
+        graph_panel("dose-polysubstance-cooccurrence-bar", "560px"),
         html.P("Bar chart showing co-occurrence percentages for selected substance.", className="visually-hidden"),
-    ], xs=12, md=6)
+    ], xs=12, md=12)
     
     right_col = make_right_summary_tables_col([
         ("County", "dose-polysubstance-table-county"),
@@ -268,7 +277,10 @@ def layout():
     return dbc.Container([
         skip_link,
         html.Div(
-            dbc.Row([left_col, center_col, right_col], className="g-3"),
+            [
+                dbc.Row([left_middle_col, right_col], className="g-3"),
+                dbc.Row([cooccurrence_full_row], className="g-3 mt-0"),
+            ],
             id="dose-polysubstance-section",
         ),
         html.Hr(className="my-5"),
@@ -510,10 +522,9 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
             
             cooccur_bar = px.bar(
                 cooccur_filtered,
-                x="Percentage",
-                y="Also Found",
+                x="Also Found",
+                y="Percentage",
                 text="display_pct",
-                orientation="h",
                 labels={"Percentage": "Co-occurrence %", "Also Found": "Co-occurring Substance"},
             )
             apply_standard_single_series_bar_trace(cooccur_bar)
@@ -534,11 +545,10 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
         if not cooccur_filtered.empty:
             cooccur_bar = px.bar(
                 cooccur_filtered,
-                x="Percentage",
-                y="Also Found",
+                x="Also Found",
+                y="Percentage",
                 color="Primary",
                 barmode="group",
-                orientation="h",
                 labels={"Percentage": "Co-occurrence %", "Also Found": "Co-occurring Substance", "Primary": "Primary Substance"},
             )
             apply_standard_bar_layout(cooccur_bar, title="Co-occurrence by Selected Substance")
@@ -553,11 +563,10 @@ def update_dashboard(substance, year, county, city, age, sex, race, residency):
         if not cooccur_data.empty and 'Primary' in cooccur_data.columns:
             cooccur_bar = px.bar(
                 cooccur_data, # Use the full, unfiltered dataframe here
-                x="Percentage",
-                y="Also Found",
+                x="Also Found",
+                y="Percentage",
                 color="Primary",
                 barmode="group",
-                orientation="h",
                 labels={"Percentage": "Co-occurrence %", "Also Found": "Co-occurring Substance", "Primary": "Primary Substance"},
             )
             apply_standard_bar_layout(cooccur_bar, title="Co-occurrence by Selected Substance")
