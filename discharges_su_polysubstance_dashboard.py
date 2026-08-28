@@ -310,6 +310,12 @@ def layout_for(is_mobile: bool = False):
     h_full_row = "55vh" if is_mobile else "420px"
     sunburst_height = "70vh" if is_mobile else "760px"
 
+    def panel(content, sr_text=None, class_name="mb-4 p-2 bg-white rounded-2"):
+        children = [content]
+        if sr_text:
+            children.append(html.P(sr_text, className="visually-hidden"))
+        return html.Div(children, className=class_name)
+
     # LEFT: KPI + filters
     left = make_left_sidebar(
         make_kpi_card(
@@ -327,52 +333,56 @@ def layout_for(is_mobile: bool = False):
         helper_text=polysubstance_sidebar_text,
         last_updated_value=last_updated_value,
         xs=12,
-        md=3,
+        md=4,
     )
 
-    # CENTER: main charts focused on substance over time and new demographic charts
+    # CENTER: top charts in the middle column
     center = dbc.Col([
-        html.Div([
+        panel(
             dcc.Graph(
                 id="sunburst-cooccurrence",
                 style={"height": sunburst_height, "width": "100%"},
                 config={"displayModeBar": True, "displaylogo": False},
             ),
-            html.P("Sunburst chart showing co-occurring substances in the selected cohort.", className="visually-hidden"),
-        ], className="mb-4 p-2 bg-white rounded-2"),
-        html.Div([
+            "Sunburst chart showing co-occurring substances in the selected cohort.",
+        ),
+        panel(
             dcc.Graph(
                 id="bar-top-substances",
                 style={"width": "100%"},
                 config={"displayModeBar": True, "displaylogo": False},
             ),
-            html.P("Horizontal bar chart showing the top substances among polysubstance records.", className="visually-hidden"),
-        ], className="mb-4 p-2 bg-white rounded-2"),
-        html.Div([
+            "Horizontal bar chart showing the top substances among polysubstance records.",
+        ),
+    ], xs=12, md=8)
+
+    # Trend charts should span the combined left + middle width.
+    trend_charts = dbc.Col([
+        panel(
             dcc.Graph(
                 id="line-year-substance",
                 style={"height": h_stack, "width": "100%"},
                 config={"displayModeBar": True, "displaylogo": False},
             ),
-            html.P("Line chart showing yearly discharges by substance.", className="visually-hidden"),
-        ], className="mb-4 p-2 bg-white rounded-2"),
-        html.Div([
+            "Line chart showing yearly discharges by substance.",
+        ),
+        panel(
             dcc.Graph(
                 id="polysubstance-age-year-lines",
                 style={"height": h_stack, "width": "100%"},
                 config={"displayModeBar": True, "displaylogo": False},
             ),
-            html.P("Line chart showing yearly discharges by age group.", className="visually-hidden"),
-        ], className="mb-4 p-2 bg-white rounded-2"),
-        html.Div([
+            "Line chart showing yearly discharges by age group.",
+        ),
+        panel(
             dcc.Graph(
                 id="polysubstance-sex-year-stacked",
                 style={"height": h_bar, "width": "100%"},
                 config={"displayModeBar": True, "displaylogo": False},
             ),
-            html.P("Stacked bar chart showing yearly discharges by gender.", className="visually-hidden"),
-        ], className="mb-4 p-2 bg-white rounded-2"),
-    ], xs=12, md=6)
+            "Stacked bar chart showing yearly discharges by gender.",
+        ),
+    ], xs=12, md=12)
 
     # RIGHT: summary tables (ordered by shared site-wide utility)
     right = make_right_summary_tables_col(
@@ -405,19 +415,25 @@ def layout_for(is_mobile: bool = False):
         html.Div(id="stack-year-county-title", style={"display": "none"}),
         html.Div(id="polysubstance-cooccurrence-bar-caption", style={"display": "none"}),
 
-        dbc.Row([left, center, right], className="g-3"),
+        dbc.Row([
+            dbc.Col([
+                dbc.Row([left, center], className="g-3"),
+                dbc.Row([trend_charts], className="g-3 mt-0"),
+            ], xs=12, md=9),
+            right,
+        ], className="g-3"),
 
         # Full-width row under filters/blurbs: county trend
         dbc.Row([
             dbc.Col([
-                html.Div([
+                panel(
                     dcc.Graph(
                         id="stack-year-county",
                         style={"height": h_full_row, "width": "100%"},
                         config={"displayModeBar": True, "displaylogo": False},
                     ),
-                    html.P("Line chart showing discharges by year and county.", className="visually-hidden"),
-                ], className="mb-4 p-2 bg-white rounded-2"),
+                    "Line chart showing discharges by year and county.",
+                ),
             ], xs=12, md=12),
         ], className="g-3"),
 
@@ -425,7 +441,7 @@ def layout_for(is_mobile: bool = False):
         # Visualization 1: Heatmap
         dbc.Row([
             dbc.Col([
-                html.Div([
+                panel(
                     dcc.Loading(
                         html.Div(
                             dcc.Graph(
@@ -445,18 +461,15 @@ def layout_for(is_mobile: bool = False):
                         ),
                         className="heatmap-scroll" if is_mobile else ""
                     ),
-                    html.P(
-                        "Heatmap showing how often substances appear together in the same polysubstance record.",
-                        className="visually-hidden",
-                    )
-                ], className="mb-4 p-2 bg-white rounded-2")
+                    "Heatmap showing how often substances appear together in the same polysubstance record.",
+                )
             ], md=12, className="mb-4")
         ]),
         
         # Visualization 2: Grouped Bar Chart
         dbc.Row([
             dbc.Col([
-                html.Div([
+                panel(
                     dcc.Loading(
                         html.Div(
                             html.Div(
@@ -470,11 +483,8 @@ def layout_for(is_mobile: bool = False):
                             className="hscroll-graph" if is_mobile else ""
                         )
                     ),
-                    html.P(
-                        "Grouped bar chart showing the percentage of cases where each substance co-occurs with other substances.",
-                        className="visually-hidden",
-                    )
-                ], className="mb-4 p-2 bg-white rounded-2")
+                    "Grouped bar chart showing the percentage of cases where each substance co-occurs with other substances.",
+                )
             ], md=12, className="mb-4")
         ]),
         
