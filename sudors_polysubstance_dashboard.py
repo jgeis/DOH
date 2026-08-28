@@ -281,7 +281,17 @@ def layout():
                 className="mb-4",
             ),
 
-            graph_block("sudors-cooccurrence-bar", "Deaths by Co-occurring Substances"),
+            html.Div(
+                dcc.Loading(
+                    dcc.Graph(
+                        id="sudors-cooccurrence-bar",
+                        config={"displayModeBar": True, "displaylogo": False},
+                        style={"width": "100%"},
+                    )
+                ),
+                className="mb-4",
+                style={"overflow": "visible"},
+            ),
             html.P("Bar chart showing deaths by cooccurring substances.", className="visually-hidden"),
         ],
         xs=12, md=8 # CHANGED from 6 to 8
@@ -326,15 +336,15 @@ def layout():
                 dbc.Col([
                     # Top inner row (Left and Center)
                     dbc.Row([left_col, center_col], className="g-3"),
-                    
-                    # Bottom inner row (Center Alt Chart)
-                    dbc.Row([center_alt_col], className="g-3 mt-0")
                 ], xs=12, md=9),
 
                 # 2. THE RIGHT WRAPPER (Takes up 3 columns on the main grid)
                 right_col
                 
             ], className="g-3"),
+
+            # Full-width grouped co-occurrence chart row
+            dbc.Row([center_alt_col], className="g-3 mt-0"),
         ], id="sudors-cooccurrence-section"),
     ], fluid=True, className="p-2")
 
@@ -461,6 +471,11 @@ def update_dashboard(substance, homeless, sex, age, race, year):
                text="No additional co-substances found with selected substance(s)",
                showarrow=False,
            )
+           apply_standard_bar_layout(
+                sud_bar,
+                xaxis=dict(rangemode="tozero"),
+                title="SUDORS Deaths by Co-occurring Substances",
+            )
            return (
                format_count_display(filter_total),
                sud_bar,
@@ -492,9 +507,18 @@ def update_dashboard(substance, homeless, sex, age, race, year):
        apply_standard_single_series_bar_trace(sud_bar)
        sud_bar.update_traces(hovertemplate="%{y}: %{text}<extra></extra>")
 
-       apply_standard_bar_layout(sud_bar, xaxis=dict(rangemode="tozero"))
+       apply_standard_bar_layout(
+           sud_bar,
+           xaxis=dict(rangemode="tozero"),
+           title="SUDORS Deaths by Co-occurring Substances",
+       )
    else:
        sud_bar = px.bar()
+       apply_standard_bar_layout(
+           sud_bar,
+           xaxis=dict(rangemode="tozero"),
+           title="SUDORS Deaths by Co-occurring Substances",
+       )
 
    # Return all the updated visuals and tables to Dash
    return (
@@ -625,7 +649,7 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                 categoryorder="array",
                 categoryarray=co_data["Also Found"].tolist()[::-1],
             )
-            apply_standard_bar_layout(bar_fig, title="Co-occurrence with Selected Substance")
+            apply_standard_bar_layout(bar_fig, title="SUDORS Co-occurrence with Selected Substance")
 
     else:
         co_data = build_cooccurrence_data(dff)
@@ -666,7 +690,7 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                             'Total: %{customdata[1]}<extra></extra>',
             )
             bar_fig.update_layout(legend=dict(orientation="v", x=1.02, y=1, xanchor="left", yanchor="top"))
-            apply_standard_bar_layout(bar_fig, title="Co-occurrence with Selected Substance")
+            apply_standard_bar_layout(bar_fig, title="SUDORS Co-occurrence with Selected Substance")
         
     # --- Sunburst Chart ---
     if selected_values:
