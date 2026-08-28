@@ -292,12 +292,14 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
 
     # ---------- Bar chart: Nonfatal overdoses related to poisonings ----------
     dose_bar = px.bar()
+    bar_category_count = 1
     if {"substance"}.issubset(dose_df.columns):
         by_dose = (
             dose_df.groupby("substance")["record_id"].nunique()
             .reset_index(name="count")
             .sort_values("count", ascending=True)
         )
+        bar_category_count = max(1, len(by_dose))
 
         by_dose["substance_label"] = by_dose["substance"].apply(wrap_axis_label)
 
@@ -317,6 +319,11 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         dose_bar,
         title="Nonfatal Overdoses Related to Drug Poisonings (DOSE)",
         margin=middle_title_margin,
+        height=compute_adaptive_horizontal_bar_height(
+            bar_category_count,
+            pixels_per_bar=30,
+            base_padding=130,
+        ),
     )
 
     # ---------- Line chart: Discharges by Year and Substance ----------
