@@ -254,6 +254,7 @@ def layout():
     """
     # Adjust plot heights for desktop
     bar_h = f"{compute_adaptive_horizontal_bar_height(len(substance_opts))}px"
+    sunburst_h = "820px"
 
 # Left column: updated for nested md=4
     left_col = make_left_sidebar(
@@ -269,41 +270,19 @@ def layout():
     # Center column: updated for nested md=8
     center_col = dbc.Col(
         [
+            html.Div(
+                dcc.Loading(
+                    dcc.Graph(
+                        id="sudors-alt-cooccurrence-sunburst",
+                        config={"displayModeBar": True, "displaylogo": False},
+                        style={"height": sunburst_h},
+                    )
+                ),
+                className="mb-4",
+            ),
+
             graph_block("sudors-cooccurrence-bar", "Deaths by Co-occurring Substances"),
             html.P("Bar chart showing deaths by cooccurring substances.", className="visually-hidden"),
-
-            # Sunburst Chart
-            dbc.Row([
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader([
-                            html.H5("Co-occurrence Sunburst", className="mb-0")
-                        ]),
-                        dbc.CardBody([
-                            # ... (Keep your existing CardBody contents unchanged) ...
-                            html.P([
-                                "Sunburst chart showing how selected substances branch into co-occurring substance combinations.",
-                                "Use the filter in the left panel to focus on one substance.",
-                            ], className="text-muted mb-3"),
-                            dcc.Loading(
-                                html.Div(
-                                    html.Div(
-                                        dcc.Graph(
-                                            id="sudors-alt-cooccurrence-sunburst",
-                                            config={"displayModeBar": True, "displaylogo": False},
-                                            style={"height": "500px"}
-                                        ),
-                                    ),
-                                )
-                            ),
-                            html.P(
-                                "Sunburst chart showing how selected substances branch into co-occurring substance combinations.",
-                                className="visually-hidden",
-                            ),
-                        ])
-                    ])
-                ], md=12, className="mb-4")
-            ])
         ],
         xs=12, md=8 # CHANGED from 6 to 8
     )
@@ -313,33 +292,13 @@ def layout():
         # Cooccurrence Chart
         dbc.Row([
             dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader([
-                        html.H5("Co-occurrence with Selected Substance", className="mb-0")
-                    ]),
-                    dbc.CardBody([
-                        # ... (Keep your existing CardBody contents unchanged) ...
-                        html.P([
-                            "Grouped bar chart showing what percentage of cases with a given substance also contain each other substance. ",
-                            "Use the filter in the left panel to focus on one substance.",
-                        ], className="text-muted mb-3"),
-                        dcc.Loading(
-                            html.Div(
-                                html.Div(
-                                    dcc.Graph(
-                                        id="sudors-alt-cooccurrence-bar-chart",
-                                        config={"displayModeBar": True, "displaylogo": False},
-                                        style={"height": bar_h}
-                                    ),
-                                ),
-                            )
-                        ),
-                        html.P(
-                            "Grouped bar chart showing the percentage of cases where the selected substance co-occurs with other substances.",
-                            className="visually-hidden",
-                        ),
-                    ])
-                ])
+                dcc.Loading(
+                    dcc.Graph(
+                        id="sudors-alt-cooccurrence-bar-chart",
+                        config={"displayModeBar": True, "displaylogo": False},
+                        style={"height": bar_h},
+                    )
+                )
             ])
         ])
     ], xs=12, md=12, className="mb-4") # CHANGED from 9 to 12
@@ -666,7 +625,7 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                 categoryorder="array",
                 categoryarray=co_data["Also Found"].tolist()[::-1],
             )
-            apply_standard_bar_layout(bar_fig)
+            apply_standard_bar_layout(bar_fig, title="Co-occurrence with Selected Substance")
 
     else:
         co_data = build_cooccurrence_data(dff)
@@ -707,7 +666,7 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                             'Total: %{customdata[1]}<extra></extra>',
             )
             bar_fig.update_layout(legend=dict(orientation="v", x=1.02, y=1, xanchor="left", yanchor="top"))
-            apply_standard_bar_layout(bar_fig)
+            apply_standard_bar_layout(bar_fig, title="Co-occurrence with Selected Substance")
         
     # --- Sunburst Chart ---
     if selected_values:
@@ -785,7 +744,7 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                     "Cohort: %{customdata[1]}<extra></extra>"
                 ),
             ))
-            apply_standard_non_axis_layout(sun_fig)
+            apply_standard_non_axis_layout(sun_fig, title="SUDORS Substance Co-occurrence")
             sun_fig.update_layout(uniformtext_minsize=8, uniformtext_mode="show")
     else:
         sunburst_data = build_sunburst_cooccurrence_data(dff)
@@ -819,7 +778,7 @@ def update_alternative_charts(substance, homeless, sex, age, race, year):
                 path=["Primary", "Also Found"],
                 values="Count",
             )
-            apply_standard_non_axis_layout(sun_fig)
+            apply_standard_non_axis_layout(sun_fig, title="SUDORS Substance Co-occurrence")
             sun_fig.update_layout(uniformtext_minsize=8, uniformtext_mode="show")
 
     return bar_fig, sun_fig
