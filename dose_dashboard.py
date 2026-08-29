@@ -173,6 +173,9 @@ def layout():
                     html.P("Bar chart showing nonfatal overdoses related to drug poisonings.", className="visually-hidden"),
                     graph_panel("year-diagnosis-lines-dose", line_h),
                     html.P("Line chart showing DOSE discharges by year and substance.", className="visually-hidden"),
+                    # New Age Group Line Chart
+                    graph_panel("age-year-lines-dose", line_h),
+                    html.P("Line chart showing DOSE discharges by year and age group.", className="visually-hidden"),
                     dbc.Row([
                         graph_panel("map-county", map_h),
                         html.P("Choropleth map showing discharges by county.", className="visually-hidden"),
@@ -231,6 +234,7 @@ def reset_dose_filters(_n_clicks):
     Output("kpi-total-dose-discharges", "children"),
     Output("bar-dose", "figure"),
     Output("year-diagnosis-lines-dose", "figure"),
+    Output("age-year-lines-dose", "figure"),
     Output("map-county", "figure"),
     Output("table-county-dose", "children"),
     Output("table-age-dose", "children"),
@@ -363,6 +367,44 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         margin=middle_title_margin,
     )
 
+    # ---------- Line chart: Discharges by Year and Age Group ----------
+    age_line_fig = px.line()
+    if {"year", "age_group"}.issubset(dose_df.columns):
+        by_ya = (
+            dose_df.groupby(["year", "age_group"])["record_id"].nunique()
+            .reset_index(name="count")
+        )
+        by_ya["display_count"] = by_ya["count"].apply(format_count_display)
+
+        if dose_age_opts:
+            by_ya["age_group"] = pd.Categorical(
+                by_ya["age_group"], 
+                categories=dose_age_opts, 
+                ordered=True
+            )
+            by_ya = by_ya.sort_values(["year", "age_group"])
+
+        age_line_fig = px.line(
+            by_ya,
+            x="year",
+            y="count",
+            color="age_group",
+            markers=True,
+            custom_data=["display_count"],
+            labels={"year": "Year", "count": "Discharges", "age_group": "Age Group"},
+            category_orders={"age_group": dose_age_opts} if dose_age_opts else None,
+        )
+        
+        age_line_fig.update_traces(
+            hovertemplate="Year %{x}<br>Age Group: %{fullData.name}<br>Discharges: %{customdata[0]}<extra></extra>"
+        )
+
+    apply_standard_line_layout(
+        age_line_fig,
+        title="DOSE Discharges by Year and Age Group",
+        margin=middle_title_margin,
+    )
+
     # ---------- Helper for the summary tables ----------
     # Use shared build_summary_count_table for summary tables
     def summary_table(group_col, categories=None, filter_selection=None):
@@ -443,6 +485,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         kpi_dose_display,
         dose_bar,
         dose_line,
+        age_line_fig,
         map_fig,
         summary_table("county", dose_county_opts, filter_selection=county),
         summary_table("age_group", dose_age_opts, filter_selection=age),
