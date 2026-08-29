@@ -137,7 +137,7 @@ def layout():
     """
     line_h = "400px"
     bar_h = f"{compute_adaptive_horizontal_bar_height(len(dose_substance_opts))}px"
-    map_h  = "500px"
+    map_h  = "800px"  # Increased from 500px to give the map a much larger canvas
 
     left_col = make_left_sidebar(
         kpi_card_dose,
@@ -146,7 +146,7 @@ def layout():
         helper_text=dose_sidebar_text,
         last_updated_value=last_updated_value,
         xs=12,
-        md=3,
+        md=4,  # Updated from 3 to 4 to maintain ratio inside the new md=9 wrapper
     )
 
     def graph_panel(graph_id: str, height_px: str | None = None):
@@ -166,22 +166,38 @@ def layout():
         skip_link,
         html.Div(
             dbc.Row([
-                left_col,
-
+                
+                # Wrapper column that takes up the Left (3/12) and Center (6/12) space
                 dbc.Col([
-                    graph_panel("bar-dose"),
-                    html.P("Bar chart showing nonfatal overdoses related to drug poisonings.", className="visually-hidden"),
-                    graph_panel("year-diagnosis-lines-dose", line_h),
-                    html.P("Line chart showing DOSE discharges by year and substance.", className="visually-hidden"),
-                    # New Age Group Line Chart
-                    graph_panel("age-year-lines-dose", line_h),
-                    html.P("Line chart showing DOSE discharges by year and age group.", className="visually-hidden"),
+                    
+                    # Top section: Sidebar and Line/Bar Charts
                     dbc.Row([
-                        graph_panel("map-county", map_h),
-                        html.P("Choropleth map showing discharges by county.", className="visually-hidden"),
-                    ]),
-                ], xs=12, md=6),
+                        left_col,
+                        
+                        dbc.Col([
+                            graph_panel("bar-dose"),
+                            html.P("Bar chart showing nonfatal overdoses related to drug poisonings.", className="visually-hidden"),
+                            
+                            graph_panel("year-diagnosis-lines-dose", line_h),
+                            html.P("Line chart showing DOSE discharges by year and substance.", className="visually-hidden"),
+                            
+                            graph_panel("age-year-lines-dose", line_h),
+                            html.P("Line chart showing DOSE discharges by year and age group.", className="visually-hidden"),
+                        ], xs=12, md=8), # Updated from 6 to 8 to maintain ratio inside the new wrapper
+                        
+                    ], className="g-3"),
+                    
+                    # Bottom section: Map spanning the full width of the wrapper
+                    dbc.Row([
+                        dbc.Col([
+                            graph_panel("map-county", map_h),
+                            html.P("Choropleth map showing discharges by county.", className="visually-hidden"),
+                        ], xs=12)
+                    ])
+                    
+                ], xs=12, md=9),
 
+                # Right column summary tables remain pinned to the right
                 make_right_summary_tables_col(
                     [
                         ("County", "table-county-dose"),
@@ -446,9 +462,9 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
                 featureidkey="properties.geoid20",
                 color="count",
                 color_continuous_scale="Blues",
-                mapbox_style="open-street-map",      # Updated to OpenStreetMap
-                zoom=5.8,                            # Decreased slightly to widen the view
-                center={"lat": 20.6, "lon": -157.5}, # Shifted west to center the chain
+                mapbox_style="open-street-map",
+                zoom=6.8,      
+                center={"lat": 20.65, "lon": -157.5},
                 opacity=0.7,
                 custom_data=["display_count"],
                 labels={"count": "Discharges", "zip": "ZIP Code"},
@@ -460,7 +476,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             
             apply_standard_map_layout(
                 map_fig,
-                title="DOSE Discharges by ZCTA",
+                title="DOSE Discharges by Island",
                 margin=middle_title_margin,
             )
         else:
@@ -468,7 +484,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             map_fig = px.choropleth_mapbox()
             apply_standard_map_layout(
                 map_fig,
-                title="DOSE Discharges by ZCTA",
+                title="DOSE Discharges by Island",
                 margin=middle_title_margin,
             )
     else:
@@ -476,7 +492,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
         map_fig = px.choropleth_mapbox()
         apply_standard_map_layout(
             map_fig,
-            title="DOSE Discharges by ZCTA",
+            title="DOSE Discharges by Island",
             margin=middle_title_margin,
         )
 
