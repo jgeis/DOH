@@ -462,7 +462,7 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
                 featureidkey="properties.geoid20",
                 color="count",
                 color_continuous_scale="Blues",
-                mapbox_style="open-street-map",
+                mapbox_style="white-bg",
                 zoom=6.9,      
                 center={"lat": 20.60, "lon": -157.7},
                 opacity=0.7,
@@ -473,7 +473,18 @@ def update_dashboard(substance, county, city, year, hawaii_residency, age, sex, 
             map_fig.update_traces(
                 hovertemplate="<b>ZIP Code: %{location}</b><br>Discharges: %{customdata[0]}<extra></extra>"
             )
-            
+            map_fig.update_layout(
+                mapbox_layers=[
+                    {
+                        "below": 'traces',
+                        "sourcetype": "raster",
+                        "sourceattribution": "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+                        "source": [
+                            "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+                        ]
+                    }
+                ]
+            )
             apply_standard_map_layout(
                 map_fig,
                 title="DOSE Discharges by Island",
